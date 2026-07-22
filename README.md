@@ -14,6 +14,22 @@ By default block of checklist items you tag with `#todo` will appear in this sid
 
 You can complete checklist items by checking them off in your editor (e.g. `- [ ]` -> `- [x]`) or by clicking a checklist item in the sidebar which will update your `.md` file for you
 
+### Nested tasks
+
+Checklist preserves Markdown task hierarchy in the sidebar. Tagging a parent
+task includes its nested task descendants, and each child is rendered beneath
+its parent:
+
+```markdown
+- [ ] Plan the release #todo
+  - [ ] Write the release notes
+  - [ ] Publish the build
+    - [ ] Verify the download
+```
+
+When a parent is hidden by the completed-task filter, any visible descendants
+are promoted to the root of the displayed group instead of disappearing.
+
 ## Configuration
 
 ![screenshot-settings](https://raw.githubusercontent.com/delashum/obsidian-checklist-plugin/master/images/screenshot-settings.png)

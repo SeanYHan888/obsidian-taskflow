@@ -35,14 +35,14 @@
       {/if}
     </div>
     <div class="space" />
-    <div class="count">{group.todos.length}</div>
+    <div class="count">{group.itemCount}</div>
     <button class="collapse" on:click={() => onToggle(group.id)} title="Toggle Group">
       <Icon name="chevron" direction={isCollapsed ? "left" : "down"} />
     </button>
   </header>
   {#if !isCollapsed}
     <ul>
-      {#each group.todos as item}
+      {#each group.todos as item (`${item.filePath}:${item.line}`)}
         <ChecklistItem {item} {lookAndFeel} {app} />
       {/each}
     </ul>

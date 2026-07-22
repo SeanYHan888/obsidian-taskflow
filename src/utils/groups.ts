@@ -1,4 +1,5 @@
 import {classifyString, sortGenericItemsInplace} from './helpers'
+import {buildTodoTree} from './hierarchy'
 
 import type {TodoItem, TodoGroup, GroupByType, SortDirection} from 'src/_types'
 export const groupTodos = (
@@ -23,6 +24,7 @@ export const groupTodos = (
         className: '',
         type: groupBy,
         todos: [],
+        itemCount: 0,
         oldestItem: Infinity,
         newestItem: 0,
       }
@@ -48,6 +50,7 @@ export const groupTodos = (
       group.oldestItem = item.fileCreatedTs
 
     group.todos.push(item)
+    group.itemCount += 1
   }
 
   const nonEmptyGroups = groups.filter(g => g.todos.length > 0)
@@ -60,13 +63,10 @@ export const groupTodos = (
   )
 
   if (!subGroups)
-    for (const g of groups)
-      sortGenericItemsInplace(
-        g.todos,
-        sortItems,
-        'originalText',
-        'fileCreatedTs',
-      )
+    for (const g of groups) {
+      g.todos = buildTodoTree(g.todos)
+      sortTodoTreeInplace(g.todos, sortItems)
+    }
   else
     for (const g of nonEmptyGroups)
       g.groups = groupTodos(
@@ -79,4 +79,9 @@ export const groupTodos = (
       )
 
   return nonEmptyGroups
+}
+
+const sortTodoTreeInplace = (todos: TodoItem[], direction: SortDirection) => {
+  sortGenericItemsInplace(todos, direction, 'originalText', 'fileCreatedTs')
+  for (const todo of todos) sortTodoTreeInplace(todo.children, direction)
 }

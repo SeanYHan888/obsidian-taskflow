@@ -35,30 +35,47 @@
 </script>
 
 <li class={`${lookAndFeel}`}>
-  <button
-    class="toggle"
-    on:click={(ev) => {
-      toggleItem(item)
-      ev.stopPropagation()
-    }}
-  >
-    <CheckCircle checked={item.checked} />
-  </button>
-  <div bind:this={contentDiv} on:click={(ev) => handleClick(ev, item)} class="content" />
+  <div class="task-row">
+    <button
+      class="toggle"
+      on:click={(ev) => {
+        toggleItem(item)
+        ev.stopPropagation()
+      }}
+    >
+      <CheckCircle checked={item.checked} />
+    </button>
+    <div bind:this={contentDiv} on:click={(ev) => handleClick(ev, item)} class="content" />
+  </div>
+  {#if item.children.length > 0}
+    <ul class="children">
+      {#each item.children as child (`${child.filePath}:${child.line}`)}
+        <svelte:self item={child} {lookAndFeel} {app} />
+      {/each}
+    </ul>
+  {/if}
 </li>
 
 <style>
   li {
+    margin: var(--checklist-listItemMargin);
+    list-style: none;
+  }
+  .task-row {
     display: flex;
     align-items: center;
     background-color: var(--checklist-listItemBackground);
     border-radius: var(--checklist-listItemBorderRadius);
-    margin: var(--checklist-listItemMargin);
     cursor: pointer;
     transition: background-color 100ms ease-in-out;
   }
-  li:hover {
+  li:hover > .task-row {
     background-color: var(--checklist-listItemBackground--hover);
+  }
+  .children {
+    list-style: none;
+    margin: 0;
+    padding-inline-start: 1.25rem !important;
   }
   .toggle {
     padding: var(--checklist-togglePadding);
@@ -75,10 +92,10 @@
   .compact {
     bottom: var(--checklist-listItemMargin--compact);
   }
-  .compact > .content {
+  .compact > .task-row > .content {
     padding: var(--checklist-contentPadding--compact);
   }
-  .compact > .toggle {
+  .compact > .task-row > .toggle {
     padding: var(--checklist-togglePadding--compact);
   }
   .toggle:hover {

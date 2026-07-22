@@ -9,7 +9,9 @@ export type TodoItem = {
   mainTag?: string
   subTag?: string
   line: number
+  parentLine?: number
   spacesIndented: number
+  children: TodoItem[]
   fileInfo: FileInfo
   originalText: string
   rawHTML: string
@@ -21,6 +23,7 @@ type BaseGroup = {
   id: string
   sortName: string
   className: string
+  itemCount: number
   oldestItem: number
   newestItem: number
   groups?: TodoGroup[]

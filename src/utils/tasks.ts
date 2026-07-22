@@ -22,6 +22,7 @@ import {
   setLineTo,
   todoLineIsChecked,
 } from './helpers'
+import {collectDescendantLineNumbers} from './hierarchy'
 
 import type {
   App,
@@ -168,7 +169,21 @@ const findAllTodosFromTagBlock = (file: FileInfo, tag: TagCache) => {
   const tagMeta = getTagMeta(tag.tag)
   const tagLine = fileLines[tag.position.start.line]
   if (lineIsValidTodo(tagLine)) {
-    return [formTodo(tagLine, file, links, tag.position.start.line, tagMeta)]
+    const listItemRelations = (file.cache?.listItems ?? []).map(item => ({
+      line: item.position.start.line,
+      parent: item.parent,
+    }))
+    const descendantLines = collectDescendantLineNumbers(
+      listItemRelations,
+      tag.position.start.line,
+    )
+
+    return [...descendantLines]
+      .sort((a, b) => a - b)
+      .filter(lineNumber => lineIsValidTodo(fileLines[lineNumber]))
+      .map(lineNumber =>
+        formTodo(fileLines[lineNumber], file, links, lineNumber, tagMeta),
+      )
   }
 
   const todos: TodoItem[] = []
@@ -197,6 +212,11 @@ const formTodo = (
   const linkMap = mapLinkMeta(relevantLinks)
   const rawText = extractTextFromTodoLine(line)
   const spacesIndented = getIndentationSpacesFromTodoLine(line)
+  const listItem = file.cache?.listItems?.find(
+    item => item.position.start.line === lineNum,
+  )
+  const parentLine =
+    listItem != null && listItem.parent >= 0 ? listItem.parent : undefined
   const tagStripped = removeTagFromText(rawText, tagMeta?.main)
   const md = new MD()
     .use(commentPlugin)
@@ -213,7 +233,9 @@ const formTodo = (
     fileCreatedTs: file.file.stat.ctime,
     rawHTML: md.render(tagStripped),
     line: lineNum,
+    parentLine,
     spacesIndented,
+    children: [],
     fileInfo: file,
     originalText: rawText,
   }
