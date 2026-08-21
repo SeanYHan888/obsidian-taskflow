@@ -1,17 +1,20 @@
 <script lang="ts">
   import TaskRow from './TaskRow.svelte'
+  import {locationKey} from '../core/hierarchy'
 
   import type {TaskflowTask} from '../core/types'
-  import type {PanelCallbacks, PanelData} from './panel-types'
+  import type {PanelCallbacks} from './panel-types'
 
   let {
     task,
-    data,
+    today,
+    sourceLabels,
     callbacks,
     showSource = true,
   }: {
     task: TaskflowTask
-    data: PanelData
+    today: string
+    sourceLabels: Record<string, string>
     callbacks: PanelCallbacks
     showSource?: boolean
   } = $props()
@@ -24,9 +27,9 @@
         : null,
   )
 
-  const chipText = (date: string) => (date === data.today ? 'today' : date.slice(5))
+  const chipText = (date: string) => (date === today ? 'today' : date.slice(5))
   const sourceLabel = $derived(
-    data.sourceLabels[task.filePath] ?? task.filePath.split('/').pop() ?? '',
+    sourceLabels[task.filePath] ?? task.filePath.split('/').pop() ?? '',
   )
 </script>
 
@@ -46,7 +49,7 @@
     <span
       class="taskflow-chip"
       class:taskflow-chip-due={chip.kind === 'due'}
-      class:taskflow-chip-past={chip.date < data.today}
+      class:taskflow-chip-past={chip.date < today}
     >
       {chipText(chip.date)}
     </span>
@@ -54,8 +57,8 @@
 </div>
 {#if task.children.length > 0}
   <div class="taskflow-children">
-    {#each task.children as child (child.filePath + ':' + child.line)}
-      <TaskRow task={child} {data} {callbacks} {showSource} />
+    {#each task.children as child (locationKey(child.filePath, child.line))}
+      <TaskRow task={child} {today} {sourceLabels} {callbacks} {showSource} />
     {/each}
   </div>
 {/if}

@@ -14,7 +14,7 @@ export type ListItemRelation = {
  * Reconstructs task trees from Obsidian's list-item parent line metadata.
  * A task whose parent is not in the supplied collection is promoted to a root.
  */
-export const buildTodoTree = <T extends HierarchyItem>(items: T[]): T[] => {
+export const buildTaskTree = <T extends HierarchyItem>(items: T[]): T[] => {
   const itemsByLocation = new Map<string, T>()
   const roots: T[] = []
 
@@ -62,7 +62,7 @@ export const collectDescendantLineNumbers = (
   return descendants
 }
 
-export const countTodoTree = (items: readonly HierarchyItem[]): number =>
-  items.reduce((count, item) => count + 1 + countTodoTree(item.children), 0)
+export const countTaskTree = (items: readonly HierarchyItem[]): number =>
+  items.reduce((count, item) => count + 1 + countTaskTree(item.children), 0)
 
-const locationKey = (filePath: string, line: number) => `${filePath}:${line}`
+export const locationKey = (filePath: string, line: number) => `${filePath}:${line}`

@@ -1,9 +1,9 @@
 import {assert, test} from 'vitest'
 
 import {
-  buildTodoTree,
+  buildTaskTree,
   collectDescendantLineNumbers,
-  countTodoTree,
+  countTaskTree,
 } from '../src/core/hierarchy'
 
 type TestTodo = {
@@ -19,31 +19,31 @@ const todo = (
   filePath = 'project.md',
 ): TestTodo => ({filePath, line, parentLine, children: []})
 
-test('buildTodoTree preserves parent, child, and grandchild hierarchy', () => {
+test('buildTaskTree preserves parent, child, and grandchild hierarchy', () => {
   const parent = todo(1)
   const child = todo(2, 1)
   const grandchild = todo(3, 2)
   const sibling = todo(4)
 
-  const roots = buildTodoTree([parent, child, grandchild, sibling])
+  const roots = buildTaskTree([parent, child, grandchild, sibling])
 
   assert.deepEqual(roots, [parent, sibling])
   assert.deepEqual(parent.children, [child])
   assert.deepEqual(child.children, [grandchild])
-  assert.equal(countTodoTree(roots), 4)
+  assert.equal(countTaskTree(roots), 4)
 })
 
-test('buildTodoTree promotes a task when its parent is filtered out', () => {
+test('buildTaskTree promotes a task when its parent is filtered out', () => {
   const visibleChild = todo(2, 1)
 
-  assert.deepEqual(buildTodoTree([visibleChild]), [visibleChild])
+  assert.deepEqual(buildTaskTree([visibleChild]), [visibleChild])
 })
 
-test('buildTodoTree never attaches a task to a parent in another file', () => {
+test('buildTaskTree never attaches a task to a parent in another file', () => {
   const firstFileParent = todo(1, undefined, 'first.md')
   const secondFileChild = todo(2, 1, 'second.md')
 
-  assert.deepEqual(buildTodoTree([firstFileParent, secondFileChild]), [
+  assert.deepEqual(buildTaskTree([firstFileParent, secondFileChild]), [
     firstFileParent,
     secondFileChild,
   ])

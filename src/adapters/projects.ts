@@ -1,3 +1,5 @@
+import {inFolder} from '../core/classify'
+
 import type {App} from 'obsidian'
 import type {ProjectMeta, ProjectStatus} from '../core/types'
 
@@ -8,10 +10,9 @@ const ACTIVE_STATUSES: ReadonlySet<string> = new Set(['now', 'next', 'later'])
  * frontmatter. Retired statuses (done/dropped) fall out of the panel entirely.
  */
 export const readProjects = (app: App, projectsFolder: string): ProjectMeta[] => {
-  const folder = projectsFolder.replace(/\/$/, '') + '/'
   return app.vault
     .getMarkdownFiles()
-    .filter(file => file.path.startsWith(folder))
+    .filter(file => inFolder(file.path, projectsFolder))
     .map(file => {
       const rawStatus = app.metadataCache.getFileCache(file)?.frontmatter?.status
       const status =

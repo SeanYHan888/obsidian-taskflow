@@ -84,21 +84,21 @@ export const readTasks = (app: App): TaskflowTask[] => {
   return tasks
 }
 
-const fallbackToggle = (line: string): string =>
-  /^(\s*[-*+]\s+\[)\s(\])/.test(line)
-    ? line.replace(/^(\s*[-*+]\s+\[)\s(\])/, '$1x$2')
-    : line.replace(/^(\s*[-*+]\s+\[)\S(\])/, '$1 $2')
-
 /**
  * Completes a task through the Tasks plugin so ✅ done-dates, recurrence, and
- * Apple Reminders write-back keep working (ADR-0001). The source line is
- * verified before editing; a stale line aborts with a Notice instead of writing.
+ * Apple Reminders write-back keep working (ADR-0001) — there is deliberately no
+ * degraded write path without the API. The source line is verified before
+ * editing; a stale line aborts with a Notice instead of writing.
  */
 export const toggleTask = async (app: App, task: TaskflowTask): Promise<void> => {
   const file = app.vault.getAbstractFileByPath(task.filePath)
   if (!(file instanceof TFile)) return
 
   const api = getTasksPlugin(app)?.apiV1
+  if (!api || typeof api.executeToggleTaskDoneCommand !== 'function') {
+    new Notice('Taskflow: Tasks plugin API unavailable — task not completed')
+    return
+  }
   let stale = false
   await app.vault.process(file, data => {
     const lines = data.split('\n')
@@ -106,11 +106,10 @@ export const toggleTask = async (app: App, task: TaskflowTask): Promise<void> =>
       stale = true
       return data
     }
-    const toggled =
-      api && typeof api.executeToggleTaskDoneCommand === 'function'
-        ? api.executeToggleTaskDoneCommand(task.originalMarkdown, task.filePath)
-        : fallbackToggle(task.originalMarkdown)
-    lines[task.line] = toggled
+    lines[task.line] = api.executeToggleTaskDoneCommand(
+      task.originalMarkdown,
+      task.filePath,
+    )
     return lines.join('\n')
   })
   if (stale) new Notice('Taskflow: task moved since last refresh — refreshing instead')

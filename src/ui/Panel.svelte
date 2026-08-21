@@ -1,7 +1,7 @@
 <script lang="ts">
   import Section from './Section.svelte'
   import TaskRow from './TaskRow.svelte'
-  import {countTodoTree} from '../core/hierarchy'
+  import {countTaskTree, locationKey} from '../core/hierarchy'
 
   import type {PanelCallbacks, PanelData} from './panel-types'
 
@@ -21,11 +21,11 @@
   }
 
   const counts = $derived({
-    today: data.sections ? countTodoTree(data.sections.today) : 0,
-    slipped: data.sections ? countTodoTree(data.sections.slipped) : 0,
-    inbox: data.sections ? countTodoTree(data.sections.inbox) : 0,
+    today: data.sections ? countTaskTree(data.sections.today) : 0,
+    slipped: data.sections ? countTaskTree(data.sections.slipped) : 0,
+    inbox: data.sections ? countTaskTree(data.sections.inbox) : 0,
     projects: data.sections
-      ? data.sections.projects.reduce((sum, g) => sum + countTodoTree(g.tasks), 0)
+      ? data.sections.projects.reduce((sum, g) => sum + countTaskTree(g.tasks), 0)
       : 0,
   })
 
@@ -50,8 +50,8 @@
       collapsed={data.collapsed.today ?? false}
       onCollapse={callbacks.onCollapse}
     >
-      {#each data.sections.today as task (task.filePath + ':' + task.line)}
-        <TaskRow {task} {data} {callbacks} />
+      {#each data.sections.today as task (locationKey(task.filePath, task.line))}
+        <TaskRow {task} today={data.today} sourceLabels={data.sourceLabels} {callbacks} />
       {/each}
     </Section>
 
@@ -63,8 +63,8 @@
       danger
       onCollapse={callbacks.onCollapse}
     >
-      {#each data.sections.slipped as task (task.filePath + ':' + task.line)}
-        <TaskRow {task} {data} {callbacks} />
+      {#each data.sections.slipped as task (locationKey(task.filePath, task.line))}
+        <TaskRow {task} today={data.today} sourceLabels={data.sourceLabels} {callbacks} />
       {/each}
     </Section>
 
@@ -75,8 +75,8 @@
       collapsed={data.collapsed.inbox ?? false}
       onCollapse={callbacks.onCollapse}
     >
-      {#each data.sections.inbox as task (task.filePath + ':' + task.line)}
-        <TaskRow {task} {data} {callbacks} />
+      {#each data.sections.inbox as task (locationKey(task.filePath, task.line))}
+        <TaskRow {task} today={data.today} sourceLabels={data.sourceLabels} {callbacks} />
       {/each}
     </Section>
 
@@ -101,10 +101,10 @@
                 {group.project.status}
               </span>
             {/if}
-            <span class="taskflow-project-count">{countTodoTree(group.tasks)}</span>
+            <span class="taskflow-project-count">{countTaskTree(group.tasks)}</span>
           </button>
-          {#each group.tasks as task (task.filePath + ':' + task.line)}
-            <TaskRow {task} {data} {callbacks} showSource={false} />
+          {#each group.tasks as task (locationKey(task.filePath, task.line))}
+            <TaskRow {task} today={data.today} sourceLabels={data.sourceLabels} {callbacks} showSource={false} />
           {/each}
         </div>
       {/each}

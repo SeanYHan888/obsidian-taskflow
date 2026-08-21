@@ -302,6 +302,34 @@ test('sections preserve subtask hierarchy and promote orphaned children', () => 
   assert.deepEqual(descriptions(backlog[0].children), ['fix figure 3'])
 })
 
+test('sections are disjoint: a task dated today is not also slipped', () => {
+  const repaired = task({
+    description: 'rescheduled to today, due yesterday',
+    scheduled: '2026-08-21',
+    due: '2026-08-20',
+  })
+
+  const sections = classify([repaired])
+
+  assert.deepEqual(descriptions(sections.today), [
+    'rescheduled to today, due yesterday',
+  ])
+  assert.deepEqual(sections.slipped, [])
+})
+
+test('daily-note events headings are never read, even for dated tasks', () => {
+  const eventBlock = task({
+    description: '09:00 am - 10:00 am planning block',
+    heading: 'Events:',
+    scheduled: '2026-08-20',
+  })
+
+  const sections = classify([eventBlock])
+
+  assert.deepEqual(sections.today, [])
+  assert.deepEqual(sections.slipped, [])
+})
+
 test('blank descriptions are excluded from every section', () => {
   const blank = task({description: '   ', scheduled: '2026-08-21'})
 

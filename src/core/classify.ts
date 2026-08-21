@@ -1,13 +1,22 @@
-import {buildTodoTree} from './hierarchy'
+import {buildTaskTree} from './hierarchy'
 
 import type {ClassifyConfig, ProjectMeta, Sections, TaskflowTask} from './types'
+
+export const inFolder = (filePath: string, folder: string): boolean =>
+  filePath.startsWith(folder.replace(/\/$/, '') + '/')
+
+const normalizeHeading = (heading: string) =>
+  heading.replace(/^#+\s*/, '').trim().toLowerCase()
+
+const isEventsHeading = (heading: string) =>
+  normalizeHeading(heading).replace(/:$/, '') === 'events'
 
 /**
  * A task can appear in more than one section (Today and its project group),
  * so each section trees its own copies — trees never share mutable children.
  */
 const toTree = (tasks: TaskflowTask[]): TaskflowTask[] =>
-  buildTodoTree(tasks.map(t => ({...t, children: []})))
+  buildTaskTree(tasks.map(t => ({...t, children: []})))
 
 export const classifySections = (
   tasks: TaskflowTask[],
@@ -17,18 +26,23 @@ export const classifySections = (
   const isCalendarBlock = (t: TaskflowTask) =>
     t.filePath === config.appleSyncPath && t.scheduled != null
 
+  const isEventsBlock = (t: TaskflowTask) =>
+    inFolder(t.filePath, config.dailyNotesFolder) &&
+    t.heading != null &&
+    isEventsHeading(t.heading)
+
   const visible = tasks.filter(
-    t => t.open && t.description.trim() !== '' && !isCalendarBlock(t),
+    t =>
+      t.open &&
+      t.description.trim() !== '' &&
+      !isCalendarBlock(t) &&
+      !isEventsBlock(t),
   )
 
-  const today = visible.filter(
-    t => t.scheduled === config.today || t.due === config.today,
-  )
+  const isToday = (t: TaskflowTask) =>
+    t.scheduled === config.today || t.due === config.today
 
-  const inFolder = (filePath: string, folder: string) =>
-    filePath.startsWith(folder.replace(/\/$/, '') + '/')
-  const normalizeHeading = (heading: string) =>
-    heading.replace(/^#+\s*/, '').trim().toLowerCase()
+  const today = visible.filter(isToday)
 
   const inboxHeading = normalizeHeading(config.inboxHeading)
   const inbox = visible
@@ -40,16 +54,15 @@ export const classifySections = (
         t.heading != null &&
         normalizeHeading(t.heading) === inboxHeading,
     )
-    .sort(
-      (a, b) => b.filePath.localeCompare(a.filePath) || a.line - b.line,
-    )
+    .sort((a, b) => b.filePath.localeCompare(a.filePath) || a.line - b.line)
 
   const slippedDate = (t: TaskflowTask) => t.due ?? t.scheduled ?? ''
   const slipped = visible
     .filter(
       t =>
-        (t.due != null && t.due < config.today) ||
-        (t.scheduled != null && t.scheduled < config.today),
+        !isToday(t) &&
+        ((t.due != null && t.due < config.today) ||
+          (t.scheduled != null && t.scheduled < config.today)),
     )
     .sort((a, b) => slippedDate(a).localeCompare(slippedDate(b)))
 
