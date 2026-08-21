@@ -1,107 +1,49 @@
 import {Plugin} from 'obsidian'
 
-import {TODO_VIEW_TYPE} from './constants'
-import {DEFAULT_SETTINGS, TodoSettings, TodoSettingTab} from './settings'
-import TodoListView from './view'
+import {DEFAULT_SETTINGS, TaskflowSettingTab} from './settings'
+import {TASKFLOW_VIEW_TYPE, TaskflowView} from './view'
 
-export default class TodoPlugin extends Plugin {
-  private _settings!: TodoSettings
+import type {TaskflowSettings} from './settings'
 
-  get view() {
-    return this.app.workspace.getLeavesOfType(TODO_VIEW_TYPE)[0]
-      ?.view as TodoListView
-  }
+export default class TaskflowPlugin extends Plugin {
+  settings: TaskflowSettings = {...DEFAULT_SETTINGS}
 
-  async onload() {
-    await this.loadSettings()
+  async onload(): Promise<void> {
+    const loaded = (await this.loadData()) as Partial<TaskflowSettings> | null
+    this.settings = {...DEFAULT_SETTINGS, ...loaded}
 
-    this.addSettingTab(new TodoSettingTab(this.app, this))
+    this.registerView(TASKFLOW_VIEW_TYPE, leaf => new TaskflowView(leaf, this))
+    this.addSettingTab(new TaskflowSettingTab(this.app, this))
     this.addCommand({
-      id: 'show-checklist-view',
-      name: 'Show Checklist Pane',
-      callback: () => {
-        const workspace = this.app.workspace
-        const views = workspace.getLeavesOfType(TODO_VIEW_TYPE)
-        if (views.length === 0) {
-          workspace
-            .getRightLeaf(false)
-            ?.setViewState({
-              type: TODO_VIEW_TYPE,
-              active: true,
-            })
-            .then(() => {
-              const todoLeaf = workspace.getLeavesOfType(TODO_VIEW_TYPE)[0]
-              workspace.revealLeaf(todoLeaf)
-              workspace.setActiveLeaf(todoLeaf, true, true)
-            })
-        } else {
-          views[0].setViewState({
-            active: true,
-            type: TODO_VIEW_TYPE,
-          })
-          workspace.revealLeaf(views[0])
-          workspace.setActiveLeaf(views[0], true, true)
-        }
-      },
-    })
-    this.addCommand({
-      id: 'refresh-checklist-view',
-      name: 'Refresh List',
-      callback: () => {
-        this.view.refresh()
-      },
-    })
-    this.registerView(TODO_VIEW_TYPE, leaf => {
-      const newView = new TodoListView(leaf, this)
-      return newView
+      id: 'open-panel',
+      name: 'Open panel',
+      callback: () => void this.activateView(),
     })
 
-    if (this.app.workspace.layoutReady) this.initLeaf()
-    else this.app.workspace.onLayoutReady(() => this.initLeaf())
+    this.app.workspace.onLayoutReady(() => void this.activateView(false))
   }
 
-  initLeaf(): void {
-    if (this.app.workspace.getLeavesOfType(TODO_VIEW_TYPE).length) return
-
-    this.app.workspace.getRightLeaf(false)?.setViewState({
-      type: TODO_VIEW_TYPE,
-      active: true,
-    })
+  async updateSettings(updates: Partial<TaskflowSettings>): Promise<void> {
+    this.settings = {...this.settings, ...updates}
+    await this.saveData(this.settings)
+    for (const leaf of this.app.workspace.getLeavesOfType(TASKFLOW_VIEW_TYPE)) {
+      const view = leaf.view
+      if (view instanceof TaskflowView) view.refresh()
+    }
   }
 
-  async onunload() {
-    this.app.workspace.getLeavesOfType(TODO_VIEW_TYPE)[0]?.detach()
-  }
-
-  async loadSettings() {
-    const loadedData = await this.loadData()
-    this._settings = {...DEFAULT_SETTINGS, ...loadedData}
-  }
-
-  async updateSettings(updates: Partial<TodoSettings>) {
-    Object.assign(this._settings, updates)
-    await this.saveData(this._settings)
-    const onlyRepaintWhenChanges = [
-      'autoRefresh',
-      'lookAndFeel',
-      '_collapsedSections',
-    ]
-    const onlyReGroupWhenChanges = [
-      'subGroups',
-      'groupBy',
-      'sortDirectionGroups',
-      'sortDirectionSubGroups',
-      'sortDirectionItems',
-    ]
-    if (onlyRepaintWhenChanges.includes(Object.keys(updates)[0]))
-      this.view.rerender()
-    else
-      this.view.refresh(
-        !onlyReGroupWhenChanges.includes(Object.keys(updates)[0]),
-      )
-  }
-
-  getSettingValue<K extends keyof TodoSettings>(setting: K): TodoSettings[K] {
-    return this._settings[setting]
+  private async activateView(reveal = true): Promise<void> {
+    const existing = this.app.workspace.getLeavesOfType(TASKFLOW_VIEW_TYPE)[0]
+    if (existing) {
+      if (reveal) await this.app.workspace.revealLeaf(existing)
+      return
+    }
+    const leaf = this.app.workspace.getRightLeaf(false)
+    if (!leaf) return
+    await leaf.setViewState({type: TASKFLOW_VIEW_TYPE, active: reveal})
+    if (reveal) {
+      const created = this.app.workspace.getLeavesOfType(TASKFLOW_VIEW_TYPE)[0]
+      if (created) await this.app.workspace.revealLeaf(created)
+    }
   }
 }

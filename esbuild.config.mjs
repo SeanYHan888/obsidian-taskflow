@@ -31,7 +31,6 @@ const options = {
     '@lezer/common',
     '@lezer/highlight',
     '@lezer/lr',
-    'punycode',
     ...builtins,
   ],
   format: 'cjs',
@@ -41,7 +40,7 @@ const options = {
   treeShaking: true,
   plugins: [
     sveltePlugin({
-      compilerOptions: {css: 'injected', compatibility: {componentApi: 4}},
+      compilerOptions: {css: 'injected'},
     }),
   ],
   outfile: 'main.js',

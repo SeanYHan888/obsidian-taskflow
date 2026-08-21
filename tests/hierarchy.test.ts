@@ -4,7 +4,7 @@ import {
   buildTodoTree,
   collectDescendantLineNumbers,
   countTodoTree,
-} from '../src/utils/hierarchy'
+} from '../src/core/hierarchy'
 
 type TestTodo = {
   filePath: string

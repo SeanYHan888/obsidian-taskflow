@@ -1,46 +1,34 @@
-import {App, PluginSettingTab, Setting} from 'obsidian'
+import {PluginSettingTab, Setting} from 'obsidian'
 
-import type TodoPlugin from './main'
-import type {GroupByType, LookAndFeel, SortDirection} from './_types'
+import type {App} from 'obsidian'
+import type TaskflowPlugin from './main'
 
-export interface TodoSettings {
-  todoPageName: string
-  showChecked: boolean
-  showAllTodos: boolean
-  showOnlyActiveFile: boolean
-  autoRefresh: boolean
-  groupBy: GroupByType
-  subGroups: boolean
-  sortDirectionItems: SortDirection
-  sortDirectionGroups: SortDirection
-  sortDirectionSubGroups: SortDirection
-  includeFiles: string
-  lookAndFeel: LookAndFeel
-  _collapsedSections: string[]
-  _hiddenTags: string[]
+export type SectionKey = 'today' | 'slipped' | 'inbox' | 'projects'
+
+export type TaskflowSettings = {
+  dailyNotesFolder: string
+  projectsFolder: string
+  appleSyncPath: string
+  inboxHeading: string
+  moveTargetHeading: string
+  wipLimit: number
+  collapsed: Partial<Record<SectionKey, boolean>>
 }
 
-export const DEFAULT_SETTINGS: TodoSettings = {
-  todoPageName: 'todo',
-  showChecked: false,
-  showAllTodos: false,
-  showOnlyActiveFile: false,
-  autoRefresh: true,
-  subGroups: false,
-  groupBy: 'page',
-  sortDirectionItems: 'new->old',
-  sortDirectionGroups: 'new->old',
-  sortDirectionSubGroups: 'new->old',
-  includeFiles: '',
-  lookAndFeel: 'classic',
-  _collapsedSections: [],
-  _hiddenTags: [],
+export const DEFAULT_SETTINGS: TaskflowSettings = {
+  dailyNotesFolder: 'Daily Notes',
+  projectsFolder: 'Projects/Active',
+  appleSyncPath: 'Indexes/System/Apple Sync.md',
+  inboxHeading: 'Inbox',
+  moveTargetHeading: 'Tasks',
+  wipLimit: 3,
+  collapsed: {},
 }
 
-export class TodoSettingTab extends PluginSettingTab {
+export class TaskflowSettingTab extends PluginSettingTab {
   constructor(
     app: App,
-    private plugin: TodoPlugin,
+    private plugin: TaskflowPlugin,
   ) {
     super(app, plugin)
   }
@@ -48,185 +36,65 @@ export class TodoSettingTab extends PluginSettingTab {
   display(): void {
     this.containerEl.empty()
 
-    this.containerEl.createEl('h3', {
-      text: 'General Settings',
-    })
+    const text = (
+      name: string,
+      desc: string,
+      key: 'dailyNotesFolder' | 'projectsFolder' | 'appleSyncPath' | 'inboxHeading' | 'moveTargetHeading',
+      placeholder: string,
+    ) =>
+      new Setting(this.containerEl)
+        .setName(name)
+        .setDesc(desc)
+        .addText(input =>
+          input
+            .setPlaceholder(placeholder)
+            .setValue(this.plugin.settings[key])
+            .onChange(async value => {
+              await this.plugin.updateSettings({[key]: value.trim() || placeholder})
+            }),
+        )
 
-    this.buildSettings()
-  }
-
-  private buildSettings() {
-    /** GENERAL */
-
-    new Setting(this.containerEl).setName('General')
-
-    new Setting(this.containerEl)
-      .setName('Tag name')
-      .setDesc(
-        'e.g. "todo" will match #todo. You may add mutliple tags separated by a newline. Leave empty to capture all',
-      )
-      .addTextArea(text =>
-        text
-          .setPlaceholder('todo')
-          .setValue(this.plugin.getSettingValue('todoPageName'))
-          .onChange(async value => {
-            await this.plugin.updateSettings({
-              todoPageName: value,
-            })
-          }),
-      )
-
-    new Setting(this.containerEl)
-      .setName('Show Completed?')
-      .addToggle(toggle => {
-        toggle.setValue(this.plugin.getSettingValue('showChecked'))
-        toggle.onChange(async value => {
-          await this.plugin.updateSettings({showChecked: value})
-        })
-      })
-
-    new Setting(this.containerEl)
-      .setName('Show All Todos In File?')
-      .setDesc(
-        'Show all items in file if tag is present, or only items attached to the block where the tag is located. Only has an effect if Tag Name is not empty',
-      )
-      .addToggle(toggle => {
-        toggle.setValue(this.plugin.getSettingValue('showAllTodos'))
-        toggle.onChange(async value => {
-          await this.plugin.updateSettings({showAllTodos: value})
-        })
-      })
-
-    new Setting(this.containerEl)
-      .setName('Show only in currently active file?')
-      .setDesc(
-        'Show only todos present in currently active file?'
-      )
-      .addToggle(toggle => {
-        toggle.setValue(this.plugin.getSettingValue('showOnlyActiveFile'))
-        toggle.onChange(async value => {
-          await this.plugin.updateSettings({showOnlyActiveFile: value})
-        })
-      })
-
-    /** GORUPING & SORTING */
-
-    new Setting(this.containerEl).setName('Grouping & Sorting')
-
-    new Setting(this.containerEl).setName('Group By').addDropdown(dropdown => {
-      dropdown.addOption('page', 'Page')
-      dropdown.addOption('tag', 'Tag')
-      dropdown.setValue(this.plugin.getSettingValue('groupBy'))
-      dropdown.onChange(async value => {
-        await this.plugin.updateSettings({groupBy: value as GroupByType})
-      })
-    })
-
-    // new Setting(this.containerEl)
-    //   .setName("Enable Sub-Groups?")
-    //   .addToggle((toggle) => {
-    //     toggle.setValue(this.plugin.getSettingValue("subGroups"))
-    //     toggle.onChange(async (value) => {
-    //       await this.plugin.updateSettings({ subGroups: value })
-    //     })
-    //   })
-    //   .setDesc("When grouped by page you will see sub-groups by tag, and vice versa.")
+    text(
+      'Daily notes folder',
+      'Where capture happens. Inbox only reads notes under this folder.',
+      'dailyNotesFolder',
+      DEFAULT_SETTINGS.dailyNotesFolder,
+    )
+    text(
+      'Projects folder',
+      'Notes here are projects; membership is location, status is frontmatter.',
+      'projectsFolder',
+      DEFAULT_SETTINGS.projectsFolder,
+    )
+    text(
+      'Apple Sync note',
+      'Machine-written note: its reminders are shown, its calendar blocks are not.',
+      'appleSyncPath',
+      DEFAULT_SETTINGS.appleSyncPath,
+    )
+    text(
+      'Inbox heading',
+      'Only tasks under this daily-note heading count as capture.',
+      'inboxHeading',
+      DEFAULT_SETTINGS.inboxHeading,
+    )
+    text(
+      'Move-target heading',
+      'Where moved tasks land in a project note (used by triage; configurable for kanban-converted projects).',
+      'moveTargetHeading',
+      DEFAULT_SETTINGS.moveTargetHeading,
+    )
 
     new Setting(this.containerEl)
-      .setName('Item Sort')
-      .addDropdown(dropdown => {
-        dropdown.addOption('a->z', 'A -> Z')
-        dropdown.addOption('z->a', 'Z -> A')
-        dropdown.addOption('new->old', 'New -> Old')
-        dropdown.addOption('old->new', 'Old -> New')
-        dropdown.setValue(this.plugin.getSettingValue('sortDirectionItems'))
-        dropdown.onChange(async value => {
-          await this.plugin.updateSettings({
-            sortDirectionItems: value as SortDirection,
-          })
-        })
-      })
-      .setDesc(
-        'Time sorts are based on last time the file for a particular item was edited',
-      )
-
-    new Setting(this.containerEl)
-      .setName('Group Sort')
-      .addDropdown(dropdown => {
-        dropdown.addOption('a->z', 'A -> Z')
-        dropdown.addOption('z->a', 'Z -> A')
-        dropdown.addOption('new->old', 'New -> Old')
-        dropdown.addOption('old->new', 'Old -> New')
-        dropdown.setValue(this.plugin.getSettingValue('sortDirectionGroups'))
-        dropdown.onChange(async value => {
-          await this.plugin.updateSettings({
-            sortDirectionGroups: value as SortDirection,
-          })
-        })
-      })
-      .setDesc(
-        'Time sorts are based on last time the file for the newest or oldest item in a group was edited',
-      )
-
-    // new Setting(this.containerEl)
-    //   .setName("Sub-Group Sort")
-    //   .addDropdown((dropdown) => {
-    //     dropdown.addOption("a->z", "A -> Z")
-    //     dropdown.addOption("z->a", "Z -> A")
-    //     dropdown.addOption("new->old", "New -> Old")
-    //     dropdown.addOption("old->new", "Old -> New")
-    //     dropdown.setValue(this.plugin.getSettingValue("sortDirectionSubGroups"))
-    //     dropdown.onChange(async (value: SortDirection) => {
-    //       await this.plugin.updateSettings({ sortDirectionSubGroups: value })
-    //     })
-    //   })
-    //   .setDesc("Time sorts are based on last time the file for the newest or oldest item in a group was edited")
-
-    /** STYLING */
-
-    new Setting(this.containerEl).setName('Styling')
-
-    new Setting(this.containerEl)
-      .setName('Look and Feel')
-      .addDropdown(dropdown => {
-        dropdown.addOption('classic', 'Classic')
-        dropdown.addOption('compact', 'Compact')
-        dropdown.setValue(this.plugin.getSettingValue('lookAndFeel'))
-        dropdown.onChange(async value => {
-          await this.plugin.updateSettings({lookAndFeel: value as LookAndFeel})
-        })
-      })
-
-    /** ADVANCED */
-
-    new Setting(this.containerEl).setName('Advanced')
-
-    new Setting(this.containerEl)
-      .setName('Include Files')
-      .setDesc(
-        'Include all files that match this glob pattern. Examples on plugin page/github readme. Leave empty to check all files.',
-      )
-      .setTooltip('**/*')
-      .addText(text =>
-        text
-          .setValue(this.plugin.getSettingValue('includeFiles'))
-          .onChange(async value => {
-            await this.plugin.updateSettings({
-              includeFiles: value,
-            })
-          }),
-      )
-
-    new Setting(this.containerEl)
-      .setName('Auto Refresh List?')
-      .addToggle(toggle => {
-        toggle.setValue(this.plugin.getSettingValue('autoRefresh'))
-        toggle.onChange(async value => {
-          await this.plugin.updateSettings({autoRefresh: value})
-        })
-      })
-      .setDesc(
-        'It\'s recommended to leave this on unless you are expereince performance issues due to a large vault. You can then reload manually using the "Checklist: refresh" command',
+      .setName('WIP limit')
+      .setDesc('Projects allowed in "now" before the badge warns. Warns, never blocks.')
+      .addText(input =>
+        input.setValue(String(this.plugin.settings.wipLimit)).onChange(async value => {
+          const parsed = Number.parseInt(value, 10)
+          if (Number.isFinite(parsed) && parsed > 0) {
+            await this.plugin.updateSettings({wipLimit: parsed})
+          }
+        }),
       )
   }
 }

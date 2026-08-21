@@ -1,0 +1,48 @@
+import type {HierarchyItem} from './hierarchy'
+
+/** One markdown checkbox line, as projected from the Tasks plugin. */
+export type TaskflowTask = HierarchyItem & {
+  description: string
+  originalMarkdown: string
+  /** TODO or IN_PROGRESS — done and cancelled tasks are not open. */
+  open: boolean
+  /** ⏳ the day the user plans to work on it (ISO date), or null. */
+  scheduled: string | null
+  /** 📅 a real external deadline (ISO date), or null. */
+  due: string | null
+  /** Text of the nearest heading above the task, without `#` marks. */
+  heading: string | null
+  children: TaskflowTask[]
+}
+
+export type ProjectStatus = 'now' | 'next' | 'later'
+
+export type ProjectMeta = {
+  path: string
+  name: string
+  status: ProjectStatus | null
+}
+
+export type ProjectGroup = {
+  project: ProjectMeta
+  tasks: TaskflowTask[]
+}
+
+export type ClassifyConfig = {
+  /** ISO date injected by the caller — core never reads the clock. */
+  today: string
+  dailyNotesFolder: string
+  projectsFolder: string
+  appleSyncPath: string
+  /** Heading text without `#` marks; capture outside it is not Taskflow's business. */
+  inboxHeading: string
+}
+
+export type Sections = {
+  today: TaskflowTask[]
+  slipped: TaskflowTask[]
+  inbox: TaskflowTask[]
+  projects: ProjectGroup[]
+  /** Number of projects with status `now`, for the WIP badge. */
+  wipNowCount: number
+}
