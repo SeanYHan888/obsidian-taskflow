@@ -1,11 +1,17 @@
 {
-  "extends": "@tsconfig/svelte/tsconfig.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "baseUrl": ".",
-    "moduleResolution": "node",
-    "importHelpers": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["svelte", "node"],
-    "lib": ["ESNext", "DOM"]
+    "importHelpers": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "verbatimModuleSyntax": false
   },
-  "include": ["src/**/*", "svelte-custom.d.ts"]
+  "include": ["src/**/*", "tests/**/*", "svelte-custom.d.ts"]
 }

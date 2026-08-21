@@ -16,7 +16,7 @@ export const classifyString = (str: string) => {
   return dasherizedGroupName
 }
 
-export const removeTagFromText = (text: string, tag: string) => {
+export const removeTagFromText = (text: string, tag?: string) => {
   if (!text) return ''
   if (!tag) return text.trim()
   return text.replace(new RegExp(`\\s?\\#${tag}[^\\s]*`, 'g'), '').trim()
@@ -24,7 +24,7 @@ export const removeTagFromText = (text: string, tag: string) => {
 
 export const getTagMeta = (tag: string): TagMeta => {
   const tagMatch = /^\#([^\/]+)\/?(.*)?$/.exec(tag)
-  if (!tagMatch) return {main: null, sub: null}
+  if (!tagMatch) return {}
   const [full, main, sub] = tagMatch
   return {main, sub}
 }
@@ -97,19 +97,19 @@ export const ensureMdExtension = (path: string) => {
 }
 
 export const getFrontmatterTags = (
-  cache: CachedMetadata,
+  cache: CachedMetadata | null,
   todoTags: string[] = [],
 ) => {
   const frontMatterTags: string[] =
     parseFrontMatterTags(cache?.frontmatter) ?? []
   if (todoTags.length > 0)
     return frontMatterTags.filter((tag: string) =>
-      todoTags.includes(getTagMeta(tag).main),
+      todoTags.includes(getTagMeta(tag).main ?? ''),
     )
   return frontMatterTags
 }
 
-export const getAllTagsFromMetadata = (cache: CachedMetadata): string[] => {
+export const getAllTagsFromMetadata = (cache: CachedMetadata | null): string[] => {
   if (!cache) return []
   const frontmatterTags = getFrontmatterTags(cache)
   const blockTags = (cache.tags ?? []).map(e => e.tag)
@@ -120,6 +120,6 @@ export const getFileFromPath = (vault: Vault, path: string) => {
   let file = vault.getAbstractFileByPath(path)
   if (file instanceof TFile) return file
   const files = vault.getMarkdownFiles()
-  file = files.find(e => e.name === path)
+  file = files.find(e => e.name === path) ?? null
   if (file instanceof TFile) return file
 }

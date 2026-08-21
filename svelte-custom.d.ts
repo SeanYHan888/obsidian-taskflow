@@ -1,5 +1,5 @@
-declare namespace svelte.JSX {
+declare namespace svelteHTML {
   interface HTMLAttributes<T> {
-    onclick_outside?: (ev: MouseEvent) => void
+    'on:click_outside'?: (ev: CustomEvent) => void
   }
 }

@@ -15,12 +15,13 @@ export const navToFile = async (
   const leaf = app.workspace.getLeaf(mod)
   await leaf.openFile(file)
   if (line) {
-    app.workspace.getActiveViewOfType(MarkdownView).editor.setCursor(line)
+    app.workspace.getActiveViewOfType(MarkdownView)?.editor.setCursor(line)
   }
 }
 
 export const hoverFile = (event: MouseEvent, app: App, filePath: string) => {
   const targetElement = event.currentTarget
+  if (!targetElement) return
   const timeoutHandle = setTimeout(() => {
     app.workspace.trigger('link-hover', {}, targetElement, filePath, filePath)
   }, 800)

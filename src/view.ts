@@ -8,7 +8,7 @@ import type {TodoSettings} from './settings'
 import type TodoPlugin from './main'
 import type {TodoGroup, TodoItem} from './_types'
 export default class TodoListView extends ItemView {
-  private _app: App
+  private _app!: App
   private lastRerender = 0
   private groupedItems: TodoGroup[] = []
   private itemsByFile = new Map<string, TodoItem[]>()
@@ -134,7 +134,7 @@ export default class TodoListView extends ItemView {
     const flattenedItems = Array.from(this.itemsByFile.values()).flat()
     const viewOnlyOpen = this.plugin.getSettingValue('showOnlyActiveFile');
     const openFile = this.app.workspace.getActiveFile();
-    const filteredItems = viewOnlyOpen ? flattenedItems.filter(i => i.filePath === openFile.path) : flattenedItems;
+    const filteredItems = viewOnlyOpen ? flattenedItems.filter(i => i.filePath === openFile?.path) : flattenedItems;
     const searchedItems = filteredItems.filter(e =>
       e.originalText.toLowerCase().includes(this.searchTerm.toLowerCase()),
     )

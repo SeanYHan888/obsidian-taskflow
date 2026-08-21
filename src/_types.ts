@@ -43,15 +43,15 @@ export type TodoGroup = PageGroup | TagGroup
 
 export type FileInfo = {
   content: string
-  cache: CachedMetadata
+  cache: CachedMetadata | null
   parseEntireFile: boolean
-  frontmatterTag: string
+  frontmatterTag?: string
   file: TFile
   validTags: TagCache[]
 }
 
-export type TagMeta = {main: string; sub: string}
-export type LinkMeta = {filePath: string; linkName: string}
+export type TagMeta = {main?: string; sub?: string}
+export type LinkMeta = {filePath: string; linkName?: string}
 
 export type GroupByType = 'page' | 'tag'
 export type SortDirection = 'new->old' | 'old->new' | 'a->z' | 'z->a'

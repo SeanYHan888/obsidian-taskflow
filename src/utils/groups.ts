@@ -75,7 +75,7 @@ export const groupTodos = (
         subGroupSort,
         sortItems,
         false,
-        null,
+        'a->z',
       )
 
   return nonEmptyGroups

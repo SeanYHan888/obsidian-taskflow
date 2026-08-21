@@ -51,7 +51,7 @@ export const collectDescendantLineNumbers = (
   const descendants = new Set<number>([rootLine])
   const pending = [rootLine]
   while (pending.length > 0) {
-    const parent = pending.pop()
+    const parent = pending.pop()!
     for (const child of childrenByParent.get(parent) ?? []) {
       if (descendants.has(child)) continue
       descendants.add(child)

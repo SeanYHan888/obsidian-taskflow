@@ -117,8 +117,8 @@ export class TodoSettingTab extends PluginSettingTab {
       dropdown.addOption('page', 'Page')
       dropdown.addOption('tag', 'Tag')
       dropdown.setValue(this.plugin.getSettingValue('groupBy'))
-      dropdown.onChange(async (value: GroupByType) => {
-        await this.plugin.updateSettings({groupBy: value})
+      dropdown.onChange(async value => {
+        await this.plugin.updateSettings({groupBy: value as GroupByType})
       })
     })
 
@@ -140,9 +140,9 @@ export class TodoSettingTab extends PluginSettingTab {
         dropdown.addOption('new->old', 'New -> Old')
         dropdown.addOption('old->new', 'Old -> New')
         dropdown.setValue(this.plugin.getSettingValue('sortDirectionItems'))
-        dropdown.onChange(async (value: SortDirection) => {
+        dropdown.onChange(async value => {
           await this.plugin.updateSettings({
-            sortDirectionItems: value,
+            sortDirectionItems: value as SortDirection,
           })
         })
       })
@@ -158,9 +158,9 @@ export class TodoSettingTab extends PluginSettingTab {
         dropdown.addOption('new->old', 'New -> Old')
         dropdown.addOption('old->new', 'Old -> New')
         dropdown.setValue(this.plugin.getSettingValue('sortDirectionGroups'))
-        dropdown.onChange(async (value: SortDirection) => {
+        dropdown.onChange(async value => {
           await this.plugin.updateSettings({
-            sortDirectionGroups: value,
+            sortDirectionGroups: value as SortDirection,
           })
         })
       })
@@ -192,8 +192,8 @@ export class TodoSettingTab extends PluginSettingTab {
         dropdown.addOption('classic', 'Classic')
         dropdown.addOption('compact', 'Compact')
         dropdown.setValue(this.plugin.getSettingValue('lookAndFeel'))
-        dropdown.onChange(async (value: LookAndFeel) => {
-          await this.plugin.updateSettings({lookAndFeel: value})
+        dropdown.onChange(async value => {
+          await this.plugin.updateSettings({lookAndFeel: value as LookAndFeel})
         })
       })
 

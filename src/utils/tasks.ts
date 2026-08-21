@@ -26,6 +26,7 @@ import {collectDescendantLineNumbers} from './hierarchy'
 
 import type {
   App,
+  EmbedCache,
   LinkCache,
   MetadataCache,
   TagCache,
@@ -132,7 +133,7 @@ const findAllTodosInFile = (file: FileInfo): TodoItem[] => {
 
   if (!file.content) return []
   const fileLines = getAllLinesFromFile(file.content)
-  const links = []
+  const links: (LinkCache | EmbedCache)[] = []
   if (file.cache?.links) {
     links.push(...file.cache.links)
   }
@@ -157,7 +158,7 @@ const findAllTodosInFile = (file: FileInfo): TodoItem[] => {
 
 const findAllTodosFromTagBlock = (file: FileInfo, tag: TagCache) => {
   const fileContents = file.content
-  const links = []
+  const links: (LinkCache | EmbedCache)[] = []
   if (file.cache?.links) {
     links.push(...file.cache.links)
   }
@@ -202,7 +203,7 @@ const findAllTodosFromTagBlock = (file: FileInfo, tag: TagCache) => {
 const formTodo = (
   line: string,
   file: FileInfo,
-  links: LinkCache[],
+  links: (LinkCache | EmbedCache)[],
   lineNum: number,
   tagMeta?: TagMeta,
 ): TodoItem => {
@@ -210,7 +211,7 @@ const formTodo = (
     .filter(link => link.position.start.line === lineNum)
     .map(link => ({filePath: link.link, linkName: link.displayText}))
   const linkMap = mapLinkMeta(relevantLinks)
-  const rawText = extractTextFromTodoLine(line)
+  const rawText = extractTextFromTodoLine(line) ?? ''
   const spacesIndented = getIndentationSpacesFromTodoLine(line)
   const listItem = file.cache?.listItems?.find(
     item => item.position.start.line === lineNum,
@@ -229,7 +230,7 @@ const formTodo = (
     checked: todoLineIsChecked(line),
     filePath: file.file.path,
     fileName: file.file.name,
-    fileLabel: getFileLabelFromName(file.file.name),
+    fileLabel: getFileLabelFromName(file.file.name) ?? file.file.name,
     fileCreatedTs: file.file.stat.ctime,
     rawHTML: md.render(tagStripped),
     line: lineNum,

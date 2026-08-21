@@ -5,7 +5,7 @@ import {DEFAULT_SETTINGS, TodoSettings, TodoSettingTab} from './settings'
 import TodoListView from './view'
 
 export default class TodoPlugin extends Plugin {
-  private settings: TodoSettings
+  private _settings!: TodoSettings
 
   get view() {
     return this.app.workspace.getLeavesOfType(TODO_VIEW_TYPE)[0]
@@ -25,7 +25,7 @@ export default class TodoPlugin extends Plugin {
         if (views.length === 0) {
           workspace
             .getRightLeaf(false)
-            .setViewState({
+            ?.setViewState({
               type: TODO_VIEW_TYPE,
               active: true,
             })
@@ -63,7 +63,7 @@ export default class TodoPlugin extends Plugin {
   initLeaf(): void {
     if (this.app.workspace.getLeavesOfType(TODO_VIEW_TYPE).length) return
 
-    this.app.workspace.getRightLeaf(false).setViewState({
+    this.app.workspace.getRightLeaf(false)?.setViewState({
       type: TODO_VIEW_TYPE,
       active: true,
     })
@@ -75,12 +75,12 @@ export default class TodoPlugin extends Plugin {
 
   async loadSettings() {
     const loadedData = await this.loadData()
-    this.settings = {...DEFAULT_SETTINGS, ...loadedData}
+    this._settings = {...DEFAULT_SETTINGS, ...loadedData}
   }
 
   async updateSettings(updates: Partial<TodoSettings>) {
-    Object.assign(this.settings, updates)
-    await this.saveData(this.settings)
+    Object.assign(this._settings, updates)
+    await this.saveData(this._settings)
     const onlyRepaintWhenChanges = [
       'autoRefresh',
       'lookAndFeel',
@@ -102,6 +102,6 @@ export default class TodoPlugin extends Plugin {
   }
 
   getSettingValue<K extends keyof TodoSettings>(setting: K): TodoSettings[K] {
-    return this.settings[setting]
+    return this._settings[setting]
   }
 }
