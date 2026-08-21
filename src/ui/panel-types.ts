@@ -14,6 +14,14 @@ export type PanelData = {
   appleSyncPath: string
 }
 
+/** Everything a task row needs regardless of which section rendered it. */
+export type RowContext = {
+  today: string
+  sourceLabels: Record<string, string>
+  appleSyncPath: string
+  callbacks: PanelCallbacks
+}
+
 export type PanelCallbacks = {
   onToggleTask: (task: TaskflowTask) => void
   onOpenTask: (task: TaskflowTask) => void

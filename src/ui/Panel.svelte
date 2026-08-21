@@ -3,7 +3,7 @@
   import TaskRow from './TaskRow.svelte'
   import {countTaskTree, locationKey} from '../core/hierarchy'
 
-  import type {PanelCallbacks, PanelData} from './panel-types'
+  import type {PanelCallbacks, PanelData, RowContext} from './panel-types'
 
   let {callbacks}: {callbacks: PanelCallbacks} = $props()
 
@@ -30,6 +30,13 @@
       : 0,
   })
 
+  const ctx: RowContext = $derived({
+    today: data.today,
+    sourceLabels: data.sourceLabels,
+    appleSyncPath: data.appleSyncPath,
+    callbacks,
+  })
+
   const wipBadge = $derived(
     data.sections && data.sections.wipNowCount > 0
       ? `now ${data.sections.wipNowCount}/${data.wipLimit}`
@@ -52,13 +59,7 @@
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.today as task (locationKey(task.filePath, task.line))}
-        <TaskRow
-          {task}
-          today={data.today}
-          sourceLabels={data.sourceLabels}
-          {callbacks}
-          canSchedule={task.filePath !== data.appleSyncPath}
-        />
+        <TaskRow {task} {ctx} />
       {/each}
     </Section>
 
@@ -73,14 +74,7 @@
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.slipped as task (locationKey(task.filePath, task.line))}
-        <TaskRow
-          {task}
-          today={data.today}
-          sourceLabels={data.sourceLabels}
-          {callbacks}
-          canSchedule={task.filePath !== data.appleSyncPath}
-          slippedActions
-        />
+        <TaskRow {task} {ctx} slippedActions />
       {/each}
     </Section>
 
@@ -92,7 +86,7 @@
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.inbox as task (locationKey(task.filePath, task.line))}
-        <TaskRow {task} today={data.today} sourceLabels={data.sourceLabels} {callbacks} />
+        <TaskRow {task} {ctx} />
       {/each}
     </Section>
 
@@ -120,7 +114,7 @@
             <span class="taskflow-project-count">{countTaskTree(group.tasks)}</span>
           </button>
           {#each group.tasks as task (locationKey(task.filePath, task.line))}
-            <TaskRow {task} today={data.today} sourceLabels={data.sourceLabels} {callbacks} showSource={false} />
+            <TaskRow {task} {ctx} showSource={false} />
           {/each}
         </div>
       {/each}

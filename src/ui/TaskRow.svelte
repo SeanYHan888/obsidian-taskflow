@@ -3,29 +3,27 @@
   import {locationKey} from '../core/hierarchy'
 
   import type {TaskflowTask} from '../core/types'
-  import type {PanelCallbacks} from './panel-types'
+  import type {RowContext} from './panel-types'
 
   let {
     task,
-    today,
-    sourceLabels,
-    callbacks,
+    ctx,
     showSource = true,
-    canSchedule = true,
     slippedActions = false,
   }: {
     task: TaskflowTask
-    today: string
-    sourceLabels: Record<string, string>
-    callbacks: PanelCallbacks
+    ctx: RowContext
     showSource?: boolean
-    canSchedule?: boolean
     slippedActions?: boolean
   } = $props()
 
-  const chipText = (date: string) => (date === today ? 'today' : date.slice(5))
+  // The structural ADR-0003 guard: Apple Sync tasks get check-off only,
+  // regardless of which section rendered this row.
+  const canSchedule = $derived(task.filePath !== ctx.appleSyncPath)
+
+  const chipText = (date: string) => (date === ctx.today ? 'today' : date.slice(5))
   const sourceLabel = $derived(
-    sourceLabels[task.filePath] ?? task.filePath.split('/').pop() ?? '',
+    ctx.sourceLabels[task.filePath] ?? task.filePath.split('/').pop() ?? '',
   )
 </script>
 
@@ -33,45 +31,56 @@
   <button
     class="taskflow-check"
     aria-label="Complete task"
-    onclick={() => callbacks.onToggleTask(task)}
+    onclick={() => ctx.callbacks.onToggleTask(task)}
   ></button>
-  <button class="taskflow-text" onclick={() => callbacks.onOpenTask(task)}>
+  <button class="taskflow-text" onclick={() => ctx.callbacks.onOpenTask(task)}>
     <span class="taskflow-desc">{task.description}</span>
     {#if showSource}
       <span class="taskflow-source">{sourceLabel}</span>
     {/if}
   </button>
   {#if task.due != null}
-    <span
-      class="taskflow-chip taskflow-chip-due"
-      class:taskflow-chip-past={task.due < today}
-    >
-      {chipText(task.due)}
-    </span>
+    {#if canSchedule}
+      <button
+        class="taskflow-chip taskflow-chip-button taskflow-chip-due"
+        class:taskflow-chip-past={task.due < ctx.today}
+        aria-label="Schedule task"
+        onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
+      >
+        {chipText(task.due)}
+      </button>
+    {:else}
+      <span
+        class="taskflow-chip taskflow-chip-due"
+        class:taskflow-chip-past={task.due < ctx.today}
+      >
+        {chipText(task.due)}
+      </span>
+    {/if}
   {/if}
   {#if task.scheduled != null}
     {#if canSchedule}
       <button
         class="taskflow-chip taskflow-chip-button"
-        class:taskflow-chip-past={task.scheduled < today}
+        class:taskflow-chip-past={task.scheduled < ctx.today}
         aria-label="Reschedule"
-        onclick={ev => callbacks.onScheduleMenu(task, ev)}
+        onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
       >
         {chipText(task.scheduled)}
       </button>
     {:else}
       <span
         class="taskflow-chip"
-        class:taskflow-chip-past={task.scheduled < today}
+        class:taskflow-chip-past={task.scheduled < ctx.today}
       >
         {chipText(task.scheduled)}
       </span>
     {/if}
-  {:else if canSchedule}
+  {:else if canSchedule && task.due == null}
     <button
       class="taskflow-add-date"
       aria-label="Schedule task"
-      onclick={ev => callbacks.onScheduleMenu(task, ev)}
+      onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
     >
       ⏳
     </button>
@@ -79,23 +88,23 @@
 </div>
 {#if slippedActions && canSchedule}
   <div class="taskflow-actions">
-    <button class="taskflow-action" onclick={() => callbacks.onSchedule(task, 'today')}>
+    <button class="taskflow-action" onclick={() => ctx.callbacks.onSchedule(task, 'today')}>
       today
     </button>
-    <button class="taskflow-action" onclick={() => callbacks.onSchedule(task, 'tomorrow')}>
+    <button class="taskflow-action" onclick={() => ctx.callbacks.onSchedule(task, 'tomorrow')}>
       tomorrow
     </button>
     <button
       class="taskflow-action"
       aria-label="Pick a date"
-      onclick={() => callbacks.onPickDate(task)}
+      onclick={() => ctx.callbacks.onPickDate(task)}
     >
       📅
     </button>
     <button
       class="taskflow-action taskflow-action-danger"
       aria-label="Cancel task"
-      onclick={() => callbacks.onCancelTask(task)}
+      onclick={() => ctx.callbacks.onCancelTask(task)}
     >
       ✕
     </button>
@@ -104,15 +113,7 @@
 {#if task.children.length > 0}
   <div class="taskflow-children">
     {#each task.children as child (locationKey(child.filePath, child.line))}
-      <TaskRow
-        task={child}
-        {today}
-        {sourceLabels}
-        {callbacks}
-        {showSource}
-        {canSchedule}
-        {slippedActions}
-      />
+      <TaskRow task={child} {ctx} {showSource} {slippedActions} />
     {/each}
   </div>
 {/if}

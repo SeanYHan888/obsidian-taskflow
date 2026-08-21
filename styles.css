@@ -319,3 +319,7 @@
 .taskflow-section-header .taskflow-header-action + .taskflow-badge {
   margin-left: 0;
 }
+
+.taskflow-modal-submit {
+  margin-left: 8px;
+}

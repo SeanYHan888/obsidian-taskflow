@@ -46,8 +46,9 @@
           onAction()
         }}
         onkeydown={ev => {
-          if (ev.key === 'Enter') {
+          if (ev.key === 'Enter' || ev.key === ' ') {
             ev.stopPropagation()
+            ev.preventDefault()
             onAction()
           }
         }}

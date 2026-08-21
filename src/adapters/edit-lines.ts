@@ -44,9 +44,6 @@ const editTaskLines = async (
   }
 }
 
-export const rescheduleTask = (app: App, task: TaskflowTask, date: string) =>
-  editTaskLines(app, [task], line => setScheduled(line, date))
-
 export const rescheduleTasks = (app: App, tasks: TaskflowTask[], date: string) =>
   editTaskLines(app, tasks, line => setScheduled(line, date))
 

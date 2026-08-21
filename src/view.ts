@@ -1,15 +1,16 @@
-import {ItemView, Menu, Modal, TFile, debounce} from 'obsidian'
+import {ItemView, Menu, TFile, debounce} from 'obsidian'
 import {mount, unmount} from 'svelte'
 
 import Panel from './ui/Panel.svelte'
+import {PickDateModal} from './ui/pick-date-modal'
 import {classifySections} from './core/classify'
 import {flattenTaskTree} from './core/hierarchy'
 import {resolveQuickDate} from './core/schedule'
 import {getTasksPlugin, readTasks, toggleTask} from './adapters/tasks-plugin'
-import {cancelTask, rescheduleTask, rescheduleTasks} from './adapters/edit-lines'
+import {cancelTask, rescheduleTasks} from './adapters/edit-lines'
 import {readProjects} from './adapters/projects'
 
-import type {App, EventRef, WorkspaceLeaf} from 'obsidian'
+import type {EventRef, WorkspaceLeaf} from 'obsidian'
 import type {QuickDate} from './core/schedule'
 import type {Sections, TaskflowTask} from './core/types'
 import type {PanelData} from './ui/panel-types'
@@ -23,37 +24,6 @@ const localToday = (): string => {
   const month = String(now.getMonth() + 1).padStart(2, '0')
   const day = String(now.getDate()).padStart(2, '0')
   return `${now.getFullYear()}-${month}-${day}`
-}
-
-class PickDateModal extends Modal {
-  constructor(
-    app: App,
-    private defaultDate: string,
-    private onPick: (date: string) => void,
-  ) {
-    super(app)
-  }
-
-  onOpen(): void {
-    this.titleEl.setText('Schedule for…')
-    const input = this.contentEl.createEl('input', {type: 'date'})
-    input.value = this.defaultDate
-    const submit = () => {
-      if (input.value) this.onPick(input.value)
-      this.close()
-    }
-    input.addEventListener('keydown', ev => {
-      if (ev.key === 'Enter') submit()
-    })
-    const button = this.contentEl.createEl('button', {text: 'Schedule'})
-    button.style.marginLeft = '8px'
-    button.addEventListener('click', submit)
-    input.focus()
-  }
-
-  onClose(): void {
-    this.contentEl.empty()
-  }
 }
 
 export class TaskflowView extends ItemView {
@@ -198,7 +168,7 @@ export class TaskflowView extends ItemView {
   }
 
   private async reschedule(task: TaskflowTask, date: string): Promise<void> {
-    await rescheduleTask(this.app, task, date)
+    await rescheduleTasks(this.app, [task], date)
     this.refresh()
   }
 
@@ -207,6 +177,9 @@ export class TaskflowView extends ItemView {
     this.refresh()
   }
 
+  // Bulk-writes from the last projection, not a fresh read — safe because
+  // edit-lines verifies every line against its originalMarkdown at write time,
+  // so anything that changed since the last refresh is skipped, not guessed at.
   private async rescheduleAllSlipped(): Promise<void> {
     if (!this.lastSections) return
     const appleSyncPath = this.plugin.settings.appleSyncPath
