@@ -14,6 +14,7 @@
     wipLimit: 3,
     collapsed: {},
     sourceLabels: {},
+    appleSyncPath: '',
   })
 
   export const update = (next: PanelData) => {
@@ -51,7 +52,13 @@
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.today as task (locationKey(task.filePath, task.line))}
-        <TaskRow {task} today={data.today} sourceLabels={data.sourceLabels} {callbacks} />
+        <TaskRow
+          {task}
+          today={data.today}
+          sourceLabels={data.sourceLabels}
+          {callbacks}
+          canSchedule={task.filePath !== data.appleSyncPath}
+        />
       {/each}
     </Section>
 
@@ -61,10 +68,19 @@
       count={counts.slipped}
       collapsed={data.collapsed.slipped ?? false}
       danger
+      actionLabel="All → today"
+      onAction={callbacks.onRescheduleAllSlipped}
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.slipped as task (locationKey(task.filePath, task.line))}
-        <TaskRow {task} today={data.today} sourceLabels={data.sourceLabels} {callbacks} />
+        <TaskRow
+          {task}
+          today={data.today}
+          sourceLabels={data.sourceLabels}
+          {callbacks}
+          canSchedule={task.filePath !== data.appleSyncPath}
+          slippedActions
+        />
       {/each}
     </Section>
 

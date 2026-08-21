@@ -66,3 +66,7 @@ export const countTaskTree = (items: readonly HierarchyItem[]): number =>
   items.reduce((count, item) => count + 1 + countTaskTree(item.children), 0)
 
 export const locationKey = (filePath: string, line: number) => `${filePath}:${line}`
+
+/** Roots and every nested descendant, depth-first. */
+export const flattenTaskTree = <T extends HierarchyItem>(items: readonly T[]): T[] =>
+  items.flatMap(item => [item, ...flattenTaskTree(item.children as T[])])

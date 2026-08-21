@@ -151,8 +151,13 @@
   font-size: var(--font-ui-smaller);
 }
 
-.taskflow-chip {
+.taskflow-panel .taskflow-chip {
   flex-shrink: 0;
+  display: inline-block;
+  border: none;
+  box-shadow: none;
+  height: auto;
+  font-weight: 400;
   align-self: center;
   padding: 0 7px;
   border-radius: 9px;
@@ -162,12 +167,20 @@
   white-space: nowrap;
 }
 
-.taskflow-chip-due {
+.taskflow-panel .taskflow-chip-button {
+  cursor: pointer;
+}
+
+.taskflow-panel .taskflow-chip-button:hover {
+  filter: brightness(1.25);
+}
+
+.taskflow-panel .taskflow-chip-due {
   background: rgba(var(--color-red-rgb), 0.12);
   color: var(--color-red);
 }
 
-.taskflow-chip-past {
+.taskflow-panel .taskflow-chip-past {
   background: rgba(var(--color-red-rgb), 0.15);
   color: var(--color-red);
 }
@@ -229,4 +242,80 @@
   margin-left: auto;
   color: var(--text-faint);
   font-size: var(--font-ui-smaller);
+}
+
+/* Scheduling affordances (v0.2) */
+
+.taskflow-panel .taskflow-add-date {
+  flex-shrink: 0;
+  align-self: center;
+  display: inline-block;
+  padding: 0 4px;
+  height: auto;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  font-size: var(--font-ui-smaller);
+  opacity: 0.3;
+}
+
+.taskflow-row:hover .taskflow-add-date,
+.taskflow-panel .taskflow-add-date:hover {
+  opacity: 1;
+}
+
+.taskflow-actions {
+  display: flex;
+  gap: 4px;
+  padding: 0 6px 4px 29px;
+}
+
+.taskflow-panel .taskflow-action {
+  display: inline-block;
+  height: auto;
+  padding: 1px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 9px;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+}
+
+.taskflow-panel .taskflow-action:hover {
+  color: var(--text-normal);
+  border-color: var(--background-modifier-border-hover);
+  background: var(--interactive-hover);
+}
+
+.taskflow-panel .taskflow-action-danger:hover {
+  color: var(--color-red);
+  border-color: var(--color-red);
+}
+
+.taskflow-header-action {
+  margin-left: auto;
+  padding: 0 7px;
+  border-radius: 9px;
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.taskflow-header-action:hover {
+  color: var(--text-normal);
+  background: var(--interactive-hover);
+}
+
+.taskflow-section-header .taskflow-badge {
+  margin-left: 0;
+}
+
+.taskflow-section-header .taskflow-header-action + .taskflow-badge {
+  margin-left: 0;
 }
