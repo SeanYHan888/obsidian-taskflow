@@ -1,7 +1,7 @@
 {
-  "name": "obsidian-checklist-plugin",
-  "version": "2.3.0",
-  "description": "A plugin for Obsidian.md which consoldiates todo items into a single view.",
+  "name": "taskflow",
+  "version": "0.1.0",
+  "description": "Obsidian sidebar panel for a daily-note to project task pipeline.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
@@ -12,7 +12,7 @@
   "keywords": [
     "obsidian"
   ],
-  "author": "delashum",
+  "author": "Sean Han",
   "license": "MIT",
   "devDependencies": {
     "@tsconfig/svelte": "^1.0.10",

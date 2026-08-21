@@ -1,60 +1,26 @@
-**LOOKING FOR ANOTHER MAINTAINER TO HELP OUT** There's quite a bit of work to do on this plugin still and i've been neglecting it because work is too busy. I would love some help, or at least someone who could approve PRs and triage issues. Send me an email at delashum@gmail.com if you're interested.
+# Taskflow
 
-# obsidian-checklist-plugin
+An Obsidian sidebar panel that turns daily-note capture into project execution. Four sections over your vault's tasks:
 
-This plugin consolidates checklists from across files into a single view.
+1. **Today** — tasks scheduled (`⏳`) or due (`📅`) today. Nothing from the past.
+2. **Overdue & slipped** — past-due and past-scheduled tasks, with one-tap reschedule.
+3. **Inbox** — undated tasks captured in your daily notes. Multi-select them and move them into a project.
+4. **Projects** — open tasks in your active project notes, grouped by project, `now` → `next` → `later`, with a WIP badge.
 
-![screenshot-main](https://raw.githubusercontent.com/delashum/obsidian-checklist-plugin/master/images/screenshot-two-files.png)
+Taskflow is stateless: your markdown is the database, the panel is a projection. It reads live from the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin (emoji format) and completes tasks through the Tasks API, so done-dates and any downstream sync keep working. It is a task panel, not a calendar — time blocks belong to Day Planner.
 
-## Usage
+## Requirements
 
-After enabling this plugin, you will see the checklist appear in the right sidebar. If you do not you can run the `Checklist: Open View` command from the command palette to get it to appear.
+- The [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin, in emoji format mode.
+- Projects as notes in a projects folder (default `Projects/Active/`) with `status: now|next|later` frontmatter.
+- Daily notes with an `# Inbox` heading for capture.
 
-By default block of checklist items you tag with `#todo` will appear in this sidebar.
+Folder paths, headings, and the WIP limit are configurable in settings.
 
-You can complete checklist items by checking them off in your editor (e.g. `- [ ]` -> `- [x]`) or by clicking a checklist item in the sidebar which will update your `.md` file for you
+## Status
 
-### Nested tasks
+Early development — v0.1 (read-only sections + check-off) in progress. Roadmap in the repo issues.
 
-Checklist preserves Markdown task hierarchy in the sidebar. Tagging a parent
-task includes its nested task descendants, and each child is rendered beneath
-its parent:
+## Credits
 
-```markdown
-- [ ] Plan the release #todo
-  - [ ] Write the release notes
-  - [ ] Publish the build
-    - [ ] Verify the download
-```
-
-When a parent is hidden by the completed-task filter, any visible descendants
-are promoted to the root of the displayed group instead of disappearing.
-
-## Configuration
-
-![screenshot-settings](https://raw.githubusercontent.com/delashum/obsidian-checklist-plugin/master/images/screenshot-settings.png)
-
-**Tag name:** The default tag to lookup checklist items by is `#todo`, but may be changed to whatever you like
-
-**Show completed?:** By default the plugin will only show uncompleted tasks, and as tasks are completed they will filter out of the sidebar. You may choose to show all tasks
-
-![screenshot-completed](https://raw.githubusercontent.com/delashum/obsidian-checklist-plugin/master/images/screenshot-show-completed.png)
-
-**Show All Todos In File?:** By default the plugin will only show tasks in the block that is tagged - changing this will show all tasks present in a file if the tag is present anywhere on the page.
-
-**Group by:** You can group by either file or tagname. If you choose to group by tag name they will appear in the order that they first appear in your files (or last depending on sort order)
-
-![screenshot-tags](https://raw.githubusercontent.com/delashum/obsidian-checklist-plugin/master/images/screenshot-sub-tag.png)
-
-**Sort order:** By default checklist items will appear in the order they appear in the file, with files ordered with the oldest at the top. This can be changed to show the newest files at the top.
-
-## Glob File Matching
-
-The "Include Files" setting uses Glob file matching. Specifically the plugin uses [minimatch](https://github.com/isaacs/minimatch) to match the file pattern - so any specific oddities will come from that plugin.
-
-Couple of common examples to help structure your glob:
-
-- `!{_templates/**,_archive/**}` will include everything except for the two directories `_templates` and `_archive`.
-- `{Daily/**,Weekly/**}` will only include files in the `Daily` & `Weekly` directories
-
-I recommend the [Digital Ocean Glob Tool](https://www.digitalocean.com/community/tools/glob) for figuring out how globs work - although the implementation is not identical to minimatch so there might be slight differences.
+Taskflow began as a fork of [obsidian-checklist-plugin](https://github.com/delashum/obsidian-checklist-plugin) by delashum, whose minimalist card-list UI it keeps. MIT licensed; original license retained.

@@ -1,9 +1,10 @@
 {
-	"id": "obsidian-checklist-plugin",
-	"name": "Checklist",
-	"version": "2.3.0",
-	"minAppVersion": "0.14.5",
-	"description": "Combines checklists across pages into users sidebar",
-	"author": "delashum",
+	"id": "taskflow",
+	"name": "Taskflow",
+	"version": "0.1.0",
+	"minAppVersion": "1.5.0",
+	"description": "Daily-note to project task pipeline: today, slipped, inbox triage, and project backlogs in one sidebar panel.",
+	"author": "Sean Han",
+	"authorUrl": "https://github.com/SeanYHan888",
 	"isDesktopOnly": false
 }
