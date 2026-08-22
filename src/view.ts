@@ -204,6 +204,7 @@ export class TaskflowView extends ItemView {
       name,
       settings.projectsFolder,
       settings.projectTemplatePath,
+      settings.moveTargetHeading,
       localToday(),
     )
     if (file) await this.moveTo(tasks, file.path)

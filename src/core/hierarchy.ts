@@ -70,3 +70,28 @@ export const locationKey = (filePath: string, line: number) => `${filePath}:${li
 /** Roots and every nested descendant, depth-first. */
 export const flattenTaskTree = <T extends HierarchyItem>(items: readonly T[]): T[] =>
   items.flatMap(item => [item, ...flattenTaskTree(item.children as T[])])
+
+const LIST_ITEM = /^(\s*)(?:[-*+]|\d+[.)])\s/
+
+/**
+ * Derives list-item parent relations from raw lines by indentation — the same
+ * shape the metadata cache provides, but computed from the exact content about
+ * to be edited, so it can never lag the file. Blank lines keep the current
+ * list open; any other non-item line closes it.
+ */
+export const relationsFromLines = (lines: string[]): ListItemRelation[] => {
+  const relations: ListItemRelation[] = []
+  const stack: {line: number; indent: number}[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].match(LIST_ITEM)
+    if (!match) {
+      if (lines[i].trim() !== '') stack.length = 0
+      continue
+    }
+    const indent = match[1].length
+    while (stack.length > 0 && stack[stack.length - 1].indent >= indent) stack.pop()
+    relations.push({line: i, parent: stack.length > 0 ? stack[stack.length - 1].line : -1})
+    stack.push({line: i, indent})
+  }
+  return relations
+}

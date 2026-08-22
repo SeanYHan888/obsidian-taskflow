@@ -41,13 +41,7 @@ export class TaskflowSettingTab extends PluginSettingTab {
     const text = (
       name: string,
       desc: string,
-      key:
-        | 'dailyNotesFolder'
-        | 'projectsFolder'
-        | 'appleSyncPath'
-        | 'inboxHeading'
-        | 'moveTargetHeading'
-        | 'projectTemplatePath',
+      key: {[K in keyof TaskflowSettings]: TaskflowSettings[K] extends string ? K : never}[keyof TaskflowSettings],
       placeholder: string,
     ) =>
       new Setting(this.containerEl)

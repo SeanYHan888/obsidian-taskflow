@@ -46,25 +46,23 @@
       aria-label="Select task"
       onclick={() => onToggleSelect(task)}
     >{selected ? '✓' : ''}</button>
-    <button class="taskflow-text" onclick={() => onToggleSelect(task)}>
-      <span class="taskflow-desc">{task.description}</span>
-      {#if showSource}
-        <span class="taskflow-source">{sourceLabel}</span>
-      {/if}
-    </button>
   {:else}
     <button
       class="taskflow-check"
       aria-label="Complete task"
       onclick={() => ctx.callbacks.onToggleTask(task)}
     ></button>
-    <button class="taskflow-text" onclick={() => ctx.callbacks.onOpenTask(task)}>
-      <span class="taskflow-desc">{task.description}</span>
-      {#if showSource}
-        <span class="taskflow-source">{sourceLabel}</span>
-      {/if}
-    </button>
   {/if}
+  <button
+    class="taskflow-text"
+    onclick={() =>
+      selectMode && onToggleSelect ? onToggleSelect(task) : ctx.callbacks.onOpenTask(task)}
+  >
+    <span class="taskflow-desc">{task.description}</span>
+    {#if showSource}
+      <span class="taskflow-source">{sourceLabel}</span>
+    {/if}
+  </button>
   {#if task.due != null}
     {#if canSchedule}
       <button

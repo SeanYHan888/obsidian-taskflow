@@ -76,9 +76,11 @@ export const insertUnderHeading = (
   }
 
   if (headingIndex === -1) {
+    const explicitMarks = heading.trim().match(/^#{1,6}(?=\s)/)?.[0]
+    const headingLine = `${explicitMarks ?? '##'} ${heading.replace(/^#+\s*/, '').trim()}`
     const result = [...lines]
     if (result.length > 0 && result[result.length - 1].trim() !== '') result.push('')
-    result.push(`## ${heading.replace(/^#+\s*/, '').trim()}`, '', ...flat)
+    result.push(headingLine, '', ...flat)
     return result
   }
 

@@ -1,6 +1,7 @@
 import {assert, test} from 'vitest'
 
 import {cutTaskBlocks, insertUnderHeading} from '../src/core/move'
+import {relationsFromLines} from '../src/core/hierarchy'
 
 test('cutTaskBlocks removes a lone task and returns it as a block', () => {
   const lines = ['# Inbox', '', '- [ ] book dentist', '- [ ] keep me']
@@ -118,4 +119,45 @@ test('insertUnderHeading places into an empty section right after the heading', 
   const result = insertUnderHeading(lines, 'Tasks', [['- [ ] first']])
 
   assert.deepEqual(result, ['## Tasks', '- [ ] first', '', '## Notes'])
+})
+
+test('relationsFromLines nests list items by indentation', () => {
+  const relations = relationsFromLines([
+    '# Inbox',
+    '- [ ] parent',
+    '  - [ ] child',
+    '    - grandchild bullet',
+    '  - [ ] second child',
+    '- [ ] sibling',
+  ])
+
+  assert.deepEqual(relations, [
+    {line: 1, parent: -1},
+    {line: 2, parent: 1},
+    {line: 3, parent: 2},
+    {line: 4, parent: 1},
+    {line: 5, parent: -1},
+  ])
+})
+
+test('relationsFromLines resets nesting at prose but tolerates blank lines', () => {
+  const relations = relationsFromLines([
+    '- [ ] first list',
+    '',
+    '  - [ ] still a child',
+    'Some prose.',
+    '  - [ ] indented but a new list',
+  ])
+
+  assert.deepEqual(relations, [
+    {line: 0, parent: -1},
+    {line: 2, parent: 0},
+    {line: 4, parent: -1},
+  ])
+})
+
+test('insertUnderHeading honours explicit heading marks when creating', () => {
+  const result = insertUnderHeading(['# Board'], '### Doing', [['- [ ] moved']])
+
+  assert.deepEqual(result, ['# Board', '', '### Doing', '', '- [ ] moved'])
 })
