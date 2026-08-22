@@ -11,6 +11,9 @@ const normalizeHeading = (heading: string) =>
 const isEventsHeading = (heading: string) =>
   normalizeHeading(heading).replace(/:$/, '') === 'events'
 
+/** Sorts after every real ISO date, so undated projects follow dated ones. */
+const NO_DEADLINE = '9999-99-99'
+
 /**
  * A task can appear in more than one section (Today and its project group),
  * so each section trees its own copies — trees never share mutable children.
@@ -89,14 +92,22 @@ export const classifySections = (
           .filter(t => t.filePath === project.path)
           .sort((a, b) => a.line - b.line),
       ),
+      // Same urgency grammar as task due chips: red is for dates that have
+      // actually arrived, deadline-day included.
+      urgency:
+        project.deadline == null
+          ? null
+          : project.deadline <= config.today
+            ? ('arrived' as const)
+            : ('ahead' as const),
     }))
     .filter(group => group.tasks.length > 0)
     // Deadline outranks status: a dated commitment is more urgent information
     // than now/next/later, so dated projects lead, soonest first. Undated
     // projects keep the status order — deadlines are optional, never hiding.
     .sort((a, b) => {
-      const aDeadline = a.project.deadline ?? '9999-99-99'
-      const bDeadline = b.project.deadline ?? '9999-99-99'
+      const aDeadline = a.project.deadline ?? NO_DEADLINE
+      const bDeadline = b.project.deadline ?? NO_DEADLINE
       return (
         aDeadline.localeCompare(bDeadline) ||
         statusRank(a.project.status) - statusRank(b.project.status) ||

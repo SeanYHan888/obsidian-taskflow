@@ -54,7 +54,7 @@ A note in `Projects/Active/` with `status` frontmatter. Membership is location: 
 _Avoid_: project tags on task lines
 
 **Status (now / next / later)**:
-Project-level commitment frontmatter. `now` = being worked, `next` = queued, `later` = someday. Lifecycle continues to `done` / `dropped` on retirement to `Projects/Archive/`.
+Project-level commitment frontmatter. `now` = being worked, `next` = queued, `later` = someday. Lifecycle continues to `done` / `dropped` on retirement to `Projects/Archive/`. Orders the undated Backlogs and tiebreaks equal deadlines — a project deadline outranks it.
 
 **WIP limit**:
 How many projects `now` may hold (configurable, default 3). Exceeding it warns (red badge), never blocks.

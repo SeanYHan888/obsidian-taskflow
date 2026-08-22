@@ -336,6 +336,49 @@ test('projects with deadlines order soonest-first ahead of undated ones', () => 
   )
 })
 
+test('deadline urgency: ahead until today, arrived from today on, null when undated', () => {
+  const ahead: ProjectMeta = {
+    path: 'Projects/Active/llm-study.md',
+    name: 'llm-study',
+    status: 'later',
+    deadline: '2026-08-22',
+  }
+  const dueToday: ProjectMeta = {
+    path: 'Projects/Active/colm-paper.md',
+    name: 'colm-paper',
+    status: 'now',
+    deadline: '2026-08-21',
+  }
+  const past: ProjectMeta = {
+    path: 'Projects/Active/dev-setup.md',
+    name: 'dev-setup',
+    status: 'now',
+    deadline: '2026-08-19',
+  }
+  const undated: ProjectMeta = {
+    path: 'Projects/Active/build-knowledge-base.md',
+    name: 'build-knowledge-base',
+    status: 'now',
+    deadline: null,
+  }
+  const projects = [ahead, dueToday, past, undated]
+
+  const sections = classify(
+    projects.map(p => task({description: `work on ${p.name}`, filePath: p.path})),
+    projects,
+  )
+
+  assert.deepEqual(
+    sections.projects.map(g => [g.project.name, g.urgency]),
+    [
+      ['dev-setup', 'arrived'],
+      ['colm-paper', 'arrived'],
+      ['llm-study', 'ahead'],
+      ['build-knowledge-base', null],
+    ],
+  )
+})
+
 test('equal deadlines tiebreak by status rank then name; WIP count is unaffected', () => {
   const laterProject: ProjectMeta = {
     path: 'Projects/Active/llm-study.md',

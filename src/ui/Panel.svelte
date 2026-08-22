@@ -3,6 +3,7 @@
   import TaskRow from './TaskRow.svelte'
   import {dropIntent} from '../core/drop'
   import {countTaskTree, flattenTaskTree, locationKey} from '../core/hierarchy'
+  import {chipLabel} from '../core/schedule'
 
   import type {DropTarget} from '../core/drop'
   import type {TaskflowTask} from '../core/types'
@@ -260,13 +261,11 @@
             {#if group.project.deadline != null}
               <button
                 class="taskflow-chip taskflow-chip-button taskflow-chip-due"
-                class:taskflow-chip-past={group.project.deadline <= data.today}
+                class:taskflow-chip-past={group.urgency === 'arrived'}
                 aria-label="Project deadline"
                 onclick={ev => callbacks.onProjectMenu(group.project, ev)}
               >
-                {group.project.deadline === data.today
-                  ? 'today'
-                  : group.project.deadline.slice(5)}
+                {chipLabel(group.project.deadline, data.today)}
               </button>
             {/if}
             <button

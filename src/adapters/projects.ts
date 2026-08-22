@@ -7,14 +7,14 @@ import type {ProjectMeta, ProjectStatus} from '../core/types'
 
 const ACTIVE_STATUSES: ReadonlySet<string> = new Set(['now', 'next', 'later'])
 
-/**
- * Projects are notes in the projects folder; membership is location, status is
- * frontmatter. Retired statuses (done/dropped) fall out of the panel entirely.
- */
 /** Anything that isn't a plain ISO date string is treated as no deadline. */
 const readDeadline = (raw: unknown): string | null =>
   typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null
 
+/**
+ * Projects are notes in the projects folder; membership is location, status is
+ * frontmatter. Retired statuses (done/dropped) fall out of the panel entirely.
+ */
 export const readProjects = (app: App, projectsFolder: string): ProjectMeta[] => {
   return app.vault
     .getMarkdownFiles()

@@ -43,6 +43,10 @@ const addDays = (iso: string, days: number): string => {
  * reads the clock. Weekend means the coming Saturday, or today when today is
  * already the weekend.
  */
+/** One chip vocabulary panel-wide: 'today', or MM-DD for any other date. */
+export const chipLabel = (date: string, today: string): string =>
+  date === today ? 'today' : date.slice(5)
+
 export const resolveQuickDate = (kind: QuickDate, today: string): string => {
   if (kind === 'today') return today
   if (kind === 'tomorrow') return addDays(today, 1)

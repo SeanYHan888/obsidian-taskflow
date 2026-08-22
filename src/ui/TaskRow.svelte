@@ -1,6 +1,7 @@
 <script lang="ts">
   import TaskRow from './TaskRow.svelte'
   import {locationKey} from '../core/hierarchy'
+  import {chipLabel} from '../core/schedule'
 
   import type {TaskflowTask} from '../core/types'
   import type {RowContext} from './panel-types'
@@ -42,7 +43,7 @@
     selectedKeys?.has(locationKey(task.filePath, task.line)) ?? false,
   )
 
-  const chipText = (date: string) => (date === ctx.today ? 'today' : date.slice(5))
+  const chipText = (date: string) => chipLabel(date, ctx.today)
   const sourceLabel = $derived(
     ctx.sourceLabels[task.filePath] ?? task.filePath.split('/').pop() ?? '',
   )

@@ -28,6 +28,8 @@ export type ProjectMeta = {
 export type ProjectGroup = {
   project: ProjectMeta
   tasks: TaskflowTask[]
+  /** 'ahead' (amber) until the deadline, 'arrived' (red) from that day on, null when undated. */
+  urgency: 'ahead' | 'arrived' | null
 }
 
 export type ClassifyConfig = {

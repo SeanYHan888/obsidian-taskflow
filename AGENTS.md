@@ -23,7 +23,7 @@ Read `CONTEXT.md` (glossary — use its vocabulary) and `docs/adr/` before worki
   - **Overdue & slipped** = due before today, OR scheduled before today outside the Apple Sync note. (Overdue Reminders nag; missed calendar blocks never surface — intended asymmetry.)
   - **Inbox** (rendered inside To-do) = undated open tasks under a daily note's `# Inbox` heading only, excluding blank descriptions. Checkboxes under other headings are not Taskflow's business.
   - **Upcoming** (collapsed by default) = open tasks dated later than today, outside `Projects/Active/` (backlog rows already show their own date chips). Exists so no dated task is ever invisible.
-  - **Backlogs** = open tasks in `Projects/Active/`, grouped by project, `now` first, with a `n/3` WIP badge counting projects in `now` (red at 4+, warn never block).
+  - **Backlogs** = open tasks in `Projects/Active/`, grouped by project. Projects with a frontmatter `deadline` lead, soonest first (header chip amber while ahead, red once arrived); undated projects follow `now` first. A `n/limit` WIP badge counts projects in `now` (limit configurable, default 3; red past the limit, warn never block) — deadlines and the badge are hybrid pacing signals, both always on.
 - Sections are disjoint projections of one field (the date); tasks never "move" between them except by date edits or the passage of days.
 
 ## Tech stack
