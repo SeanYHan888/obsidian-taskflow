@@ -33,4 +33,7 @@ export type PanelCallbacks = {
   onPickDate: (task: TaskflowTask) => void
   onCancelTask: (task: TaskflowTask) => void
   onRescheduleAllSlipped: () => void
+  /** Triage: open the project picker for the selected inbox tasks. */
+  onBulkMove: (tasks: TaskflowTask[]) => void
+  onBulkScheduleMenu: (tasks: TaskflowTask[], ev: MouseEvent) => void
 }

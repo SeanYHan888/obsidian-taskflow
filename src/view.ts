@@ -1,13 +1,16 @@
-import {ItemView, Menu, TFile, debounce} from 'obsidian'
+import {ItemView, Menu, Notice, TFile, debounce} from 'obsidian'
 import {mount, unmount} from 'svelte'
 
 import Panel from './ui/Panel.svelte'
 import {PickDateModal} from './ui/pick-date-modal'
+import {NewProjectModal} from './ui/new-project-modal'
+import {ProjectPickerModal} from './ui/project-picker-modal'
 import {classifySections} from './core/classify'
 import {flattenTaskTree} from './core/hierarchy'
 import {resolveQuickDate} from './core/schedule'
 import {getTasksPlugin, readTasks, toggleTask} from './adapters/tasks-plugin'
 import {cancelTask, rescheduleTasks} from './adapters/edit-lines'
+import {createProjectFromTemplate, moveTasksToProject} from './adapters/move-tasks'
 import {readProjects} from './adapters/projects'
 
 import type {EventRef, WorkspaceLeaf} from 'obsidian'
@@ -62,12 +65,15 @@ export class TaskflowView extends ItemView {
           onCollapse: (key: SectionKey, collapsed: boolean) =>
             void this.setCollapsed(key, collapsed),
           onScheduleMenu: (task: TaskflowTask, ev: MouseEvent) =>
-            this.showScheduleMenu(task, ev),
+            this.showScheduleMenu([task], ev),
           onSchedule: (task: TaskflowTask, kind: QuickDate) =>
-            void this.reschedule(task, resolveQuickDate(kind, localToday())),
-          onPickDate: (task: TaskflowTask) => this.pickDate(task),
+            void this.reschedule([task], resolveQuickDate(kind, localToday())),
+          onPickDate: (task: TaskflowTask) => this.pickDate([task]),
           onCancelTask: (task: TaskflowTask) => void this.cancel(task),
           onRescheduleAllSlipped: () => void this.rescheduleAllSlipped(),
+          onBulkMove: (tasks: TaskflowTask[]) => this.bulkMove(tasks),
+          onBulkScheduleMenu: (tasks: TaskflowTask[], ev: MouseEvent) =>
+            this.showScheduleMenu(tasks, ev),
         },
       },
     }) as unknown as {update: (data: PanelData) => void}
@@ -143,11 +149,11 @@ export class TaskflowView extends ItemView {
     })
   }
 
-  private showScheduleMenu(task: TaskflowTask, ev: MouseEvent): void {
+  private showScheduleMenu(tasks: TaskflowTask[], ev: MouseEvent): void {
     const today = localToday()
     const menu = new Menu()
     const stamp = (kind: QuickDate) => () =>
-      void this.reschedule(task, resolveQuickDate(kind, today))
+      void this.reschedule(tasks, resolveQuickDate(kind, today))
     menu.addItem(item => item.setTitle('Today').setIcon('sun').onClick(stamp('today')))
     menu.addItem(item =>
       item.setTitle('Tomorrow').setIcon('sunrise').onClick(stamp('tomorrow')),
@@ -156,20 +162,51 @@ export class TaskflowView extends ItemView {
       item.setTitle('Weekend').setIcon('armchair').onClick(stamp('weekend')),
     )
     menu.addItem(item =>
-      item.setTitle('Pick a date…').setIcon('calendar').onClick(() => this.pickDate(task)),
+      item.setTitle('Pick a date…').setIcon('calendar').onClick(() => this.pickDate(tasks)),
     )
     menu.showAtMouseEvent(ev)
   }
 
-  private pickDate(task: TaskflowTask): void {
+  private pickDate(tasks: TaskflowTask[]): void {
     new PickDateModal(this.app, localToday(), date =>
-      void this.reschedule(task, date),
+      void this.reschedule(tasks, date),
     ).open()
   }
 
-  private async reschedule(task: TaskflowTask, date: string): Promise<void> {
-    await rescheduleTasks(this.app, [task], date)
+  private async reschedule(tasks: TaskflowTask[], date: string): Promise<void> {
+    await rescheduleTasks(this.app, tasks, date)
     this.refresh()
+  }
+
+  private bulkMove(tasks: TaskflowTask[]): void {
+    const settings = this.plugin.settings
+    new ProjectPickerModal(this.app, readProjects(this.app, settings.projectsFolder), choice => {
+      if (choice.kind === 'project') void this.moveTo(tasks, choice.project.path)
+      else new NewProjectModal(this.app, name => void this.createAndMove(tasks, name)).open()
+    }).open()
+  }
+
+  private async moveTo(tasks: TaskflowTask[], projectPath: string): Promise<void> {
+    const moved = await moveTasksToProject(
+      this.app,
+      tasks,
+      projectPath,
+      this.plugin.settings.moveTargetHeading,
+    )
+    if (moved > 0) new Notice(`Taskflow: moved ${moved} task${moved === 1 ? '' : 's'}`)
+    this.refresh()
+  }
+
+  private async createAndMove(tasks: TaskflowTask[], name: string): Promise<void> {
+    const settings = this.plugin.settings
+    const file = await createProjectFromTemplate(
+      this.app,
+      name,
+      settings.projectsFolder,
+      settings.projectTemplatePath,
+      localToday(),
+    )
+    if (file) await this.moveTo(tasks, file.path)
   }
 
   private async cancel(task: TaskflowTask): Promise<void> {

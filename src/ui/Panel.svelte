@@ -1,7 +1,7 @@
 <script lang="ts">
   import Section from './Section.svelte'
   import TaskRow from './TaskRow.svelte'
-  import {countTaskTree, locationKey} from '../core/hierarchy'
+  import {countTaskTree, flattenTaskTree, locationKey} from '../core/hierarchy'
 
   import type {PanelCallbacks, PanelData, RowContext} from './panel-types'
 
@@ -17,8 +17,31 @@
     appleSyncPath: '',
   })
 
+  let selecting = $state(false)
+  let selectedKeys: ReadonlySet<string> = $state(new Set())
+
   export const update = (next: PanelData) => {
     data = next
+    const valid = new Set(
+      flattenTaskTree(next.sections?.inbox ?? []).map(t => locationKey(t.filePath, t.line)),
+    )
+    selectedKeys = new Set([...selectedKeys].filter(k => valid.has(k)))
+  }
+
+  const selectedTasks = $derived(
+    data.sections
+      ? flattenTaskTree(data.sections.inbox).filter(t =>
+          selectedKeys.has(locationKey(t.filePath, t.line)),
+        )
+      : [],
+  )
+
+  const toggleSelect = (task: {filePath: string; line: number}) => {
+    const key = locationKey(task.filePath, task.line)
+    const next = new Set(selectedKeys)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    selectedKeys = next
   }
 
   const counts = $derived({
@@ -83,11 +106,40 @@
       key="inbox"
       count={counts.inbox}
       collapsed={data.collapsed.inbox ?? false}
+      actionLabel={selecting ? 'done' : 'select'}
+      onAction={() => {
+        selecting = !selecting
+        if (!selecting) selectedKeys = new Set()
+      }}
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.inbox as task (locationKey(task.filePath, task.line))}
-        <TaskRow {task} {ctx} />
+        <TaskRow
+          {task}
+          {ctx}
+          selectMode={selecting}
+          {selectedKeys}
+          onToggleSelect={toggleSelect}
+        />
       {/each}
+      {#if selecting && selectedTasks.length > 0}
+        <div class="taskflow-select-bar">
+          <span class="taskflow-select-count">{selectedTasks.length} selected</span>
+          <button
+            class="taskflow-action"
+            onclick={() => callbacks.onBulkMove(selectedTasks)}
+          >
+            move to project
+          </button>
+          <button
+            class="taskflow-action"
+            aria-label="Schedule selected"
+            onclick={ev => callbacks.onBulkScheduleMenu(selectedTasks, ev)}
+          >
+            ⏳
+          </button>
+        </div>
+      {/if}
     </Section>
 
     <Section

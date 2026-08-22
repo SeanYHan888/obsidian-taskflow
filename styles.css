@@ -323,3 +323,56 @@
 .taskflow-modal-submit {
   margin-left: 8px;
 }
+
+/* Triage select mode (v0.3) */
+
+.taskflow-panel .taskflow-select-box {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 2px solid var(--text-muted);
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  align-self: center;
+  font-size: 10px;
+  line-height: 1;
+  color: transparent;
+}
+
+.taskflow-panel .taskflow-select-box.taskflow-selected {
+  border-color: var(--interactive-accent);
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.taskflow-row-selected {
+  background: rgba(var(--color-blue-rgb), 0.08);
+}
+
+.taskflow-select-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 6px 2px;
+  padding: 5px 10px;
+  border-radius: var(--radius-s, 6px);
+  background: rgba(var(--color-blue-rgb), 0.12);
+}
+
+.taskflow-select-count {
+  color: var(--color-blue);
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  margin-right: auto;
+}
+
+.taskflow-modal-input {
+  width: 240px;
+}

@@ -10,16 +10,25 @@
     ctx,
     showSource = true,
     slippedActions = false,
+    selectMode = false,
+    selectedKeys = null,
+    onToggleSelect = null,
   }: {
     task: TaskflowTask
     ctx: RowContext
     showSource?: boolean
     slippedActions?: boolean
+    selectMode?: boolean
+    selectedKeys?: ReadonlySet<string> | null
+    onToggleSelect?: ((task: TaskflowTask) => void) | null
   } = $props()
 
   // The structural ADR-0003 guard: Apple Sync tasks get check-off only,
   // regardless of which section rendered this row.
-  const canSchedule = $derived(task.filePath !== ctx.appleSyncPath)
+  const canSchedule = $derived(task.filePath !== ctx.appleSyncPath && !selectMode)
+  const selected = $derived(
+    selectedKeys?.has(locationKey(task.filePath, task.line)) ?? false,
+  )
 
   const chipText = (date: string) => (date === ctx.today ? 'today' : date.slice(5))
   const sourceLabel = $derived(
@@ -27,18 +36,35 @@
   )
 </script>
 
-<div class="taskflow-row">
-  <button
-    class="taskflow-check"
-    aria-label="Complete task"
-    onclick={() => ctx.callbacks.onToggleTask(task)}
-  ></button>
-  <button class="taskflow-text" onclick={() => ctx.callbacks.onOpenTask(task)}>
-    <span class="taskflow-desc">{task.description}</span>
-    {#if showSource}
-      <span class="taskflow-source">{sourceLabel}</span>
-    {/if}
-  </button>
+<div class="taskflow-row" class:taskflow-row-selected={selected}>
+  {#if selectMode && onToggleSelect}
+    <button
+      class="taskflow-select-box"
+      class:taskflow-selected={selected}
+      role="checkbox"
+      aria-checked={selected}
+      aria-label="Select task"
+      onclick={() => onToggleSelect(task)}
+    >{selected ? '✓' : ''}</button>
+    <button class="taskflow-text" onclick={() => onToggleSelect(task)}>
+      <span class="taskflow-desc">{task.description}</span>
+      {#if showSource}
+        <span class="taskflow-source">{sourceLabel}</span>
+      {/if}
+    </button>
+  {:else}
+    <button
+      class="taskflow-check"
+      aria-label="Complete task"
+      onclick={() => ctx.callbacks.onToggleTask(task)}
+    ></button>
+    <button class="taskflow-text" onclick={() => ctx.callbacks.onOpenTask(task)}>
+      <span class="taskflow-desc">{task.description}</span>
+      {#if showSource}
+        <span class="taskflow-source">{sourceLabel}</span>
+      {/if}
+    </button>
+  {/if}
   {#if task.due != null}
     {#if canSchedule}
       <button
@@ -113,7 +139,15 @@
 {#if task.children.length > 0}
   <div class="taskflow-children">
     {#each task.children as child (locationKey(child.filePath, child.line))}
-      <TaskRow task={child} {ctx} {showSource} {slippedActions} />
+      <TaskRow
+        task={child}
+        {ctx}
+        {showSource}
+        {slippedActions}
+        {selectMode}
+        {selectedKeys}
+        {onToggleSelect}
+      />
     {/each}
   </div>
 {/if}

@@ -11,6 +11,7 @@ export type TaskflowSettings = {
   appleSyncPath: string
   inboxHeading: string
   moveTargetHeading: string
+  projectTemplatePath: string
   wipLimit: number
   collapsed: Partial<Record<SectionKey, boolean>>
 }
@@ -21,6 +22,7 @@ export const DEFAULT_SETTINGS: TaskflowSettings = {
   appleSyncPath: 'Indexes/System/Apple Sync.md',
   inboxHeading: 'Inbox',
   moveTargetHeading: 'Tasks',
+  projectTemplatePath: 'Templates/project.md',
   wipLimit: 3,
   collapsed: {},
 }
@@ -39,7 +41,13 @@ export class TaskflowSettingTab extends PluginSettingTab {
     const text = (
       name: string,
       desc: string,
-      key: 'dailyNotesFolder' | 'projectsFolder' | 'appleSyncPath' | 'inboxHeading' | 'moveTargetHeading',
+      key:
+        | 'dailyNotesFolder'
+        | 'projectsFolder'
+        | 'appleSyncPath'
+        | 'inboxHeading'
+        | 'moveTargetHeading'
+        | 'projectTemplatePath',
       placeholder: string,
     ) =>
       new Setting(this.containerEl)
@@ -77,6 +85,12 @@ export class TaskflowSettingTab extends PluginSettingTab {
       'Only tasks under this daily-note heading count as capture.',
       'inboxHeading',
       DEFAULT_SETTINGS.inboxHeading,
+    )
+    text(
+      'Project template',
+      'Note used by "New project…" during triage; {{title}} and {{date:YYYY-MM-DD}} are filled in.',
+      'projectTemplatePath',
+      DEFAULT_SETTINGS.projectTemplatePath,
     )
     text(
       'Move-target heading',
