@@ -41,6 +41,8 @@ export type ClassifyConfig = {
 export type Sections = {
   today: TaskflowTask[]
   slipped: TaskflowTask[]
+  /** Future-dated tasks outside the projects folder — visible while they wait. */
+  upcoming: TaskflowTask[]
   inbox: TaskflowTask[]
   projects: ProjectGroup[]
   /** Number of projects with status `now`, for the WIP badge. */

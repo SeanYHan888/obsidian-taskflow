@@ -114,20 +114,30 @@
       ⏳
     </button>
   {/if}
-  {#if quickToday && canSchedule && task.scheduled !== ctx.today}
-    <button
-      class="taskflow-quick-today"
-      aria-label="Schedule for today"
-      onclick={() => ctx.callbacks.onSchedule(task, 'today')}
-    >
-      → today
-    </button>
+  {#if quickToday && canSchedule}
+    {#if task.scheduled === ctx.today}
+      <button
+        class="taskflow-quick-today taskflow-quick-today-undo"
+        aria-label="Remove from To-do"
+        onclick={() => ctx.callbacks.onUnschedule(task)}
+      >
+        ✕ to-do
+      </button>
+    {:else}
+      <button
+        class="taskflow-quick-today"
+        aria-label="Move to To-do"
+        onclick={() => ctx.callbacks.onSchedule(task, 'today')}
+      >
+        → to-do
+      </button>
+    {/if}
   {/if}
 </div>
 {#if slippedActions && canSchedule}
   <div class="taskflow-actions">
     <button class="taskflow-action" onclick={() => ctx.callbacks.onSchedule(task, 'today')}>
-      today
+      to-do
     </button>
     <button class="taskflow-action" onclick={() => ctx.callbacks.onSchedule(task, 'tomorrow')}>
       tomorrow

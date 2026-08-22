@@ -1,6 +1,6 @@
 import {assert, test} from 'vitest'
 
-import {cancelLine, resolveQuickDate, setScheduled} from '../src/core/schedule'
+import {cancelLine, clearScheduled, resolveQuickDate, setScheduled} from '../src/core/schedule'
 
 test('setScheduled appends ⏳ to an undated line, touching nothing else', () => {
   assert.equal(
@@ -39,6 +39,22 @@ test('cancelLine flips an open checkbox to cancelled, preserving the rest', () =
 
 test('cancelLine leaves non-open lines alone', () => {
   assert.equal(cancelLine('- [x] already done'), '- [x] already done')
+})
+
+test('clearScheduled is the inverse of setScheduled', () => {
+  const line = '  - [ ] read mem-agent paper #research'
+  assert.equal(clearScheduled(setScheduled(line, '2026-08-22')), line)
+})
+
+test('clearScheduled keeps 📅 due dates and block refs intact', () => {
+  assert.equal(
+    clearScheduled('- [ ] submit form 📅 2026-08-25 ⏳ 2026-08-21 ^abc123'),
+    '- [ ] submit form 📅 2026-08-25 ^abc123',
+  )
+})
+
+test('clearScheduled leaves lines without ⏳ alone', () => {
+  assert.equal(clearScheduled('- [ ] no plan yet 📅 2026-08-25'), '- [ ] no plan yet 📅 2026-08-25')
 })
 
 test('resolveQuickDate handles today, tomorrow, and month rollover', () => {

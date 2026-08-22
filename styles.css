@@ -211,15 +211,39 @@
   margin: 4px 0 8px;
 }
 
-.taskflow-panel .taskflow-project-header {
+.taskflow-project-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: 3px 6px 3px 0;
+}
+
+.taskflow-panel .taskflow-project-fold {
+  flex-shrink: 0;
+  height: auto;
+  padding: 0 4px;
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.taskflow-panel .taskflow-project-fold:hover {
+  color: var(--text-normal);
+}
+
+.taskflow-panel .taskflow-project-open {
   display: flex;
   justify-content: flex-start;
   white-space: normal;
   height: auto;
   align-items: center;
   gap: 6px;
-  width: 100%;
-  padding: 3px 6px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
   background: transparent;
   box-shadow: none;
   border: none;
@@ -229,7 +253,7 @@
   font-weight: 600;
 }
 
-.taskflow-panel .taskflow-project-header:hover {
+.taskflow-panel .taskflow-project-open:hover {
   color: var(--text-accent);
 }
 
@@ -417,6 +441,14 @@
 
 .taskflow-panel .taskflow-quick-today:hover {
   background: var(--interactive-hover);
+}
+
+.taskflow-panel .taskflow-quick-today-undo {
+  color: var(--text-muted);
+}
+
+.taskflow-panel .taskflow-quick-today-undo:hover {
+  color: var(--text-error);
 }
 
 .taskflow-panel button:focus-visible,

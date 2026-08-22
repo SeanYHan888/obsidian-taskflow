@@ -57,14 +57,26 @@ export const classifySections = (
     .sort((a, b) => b.filePath.localeCompare(a.filePath) || a.line - b.line)
 
   const slippedDate = (t: TaskflowTask) => t.due ?? t.scheduled ?? ''
+  const isSlipped = (t: TaskflowTask) =>
+    !isToday(t) &&
+    ((t.due != null && t.due < config.today) ||
+      (t.scheduled != null && t.scheduled < config.today))
   const slipped = visible
+    .filter(isSlipped)
+    .sort((a, b) => slippedDate(a).localeCompare(slippedDate(b)))
+
+  // Every dated task stays visible somewhere: future-dated tasks outside the
+  // projects folder (whose groups already show them) wait here, not nowhere.
+  const upcomingDate = (t: TaskflowTask) => t.scheduled ?? t.due ?? ''
+  const upcoming = visible
     .filter(
       t =>
         !isToday(t) &&
-        ((t.due != null && t.due < config.today) ||
-          (t.scheduled != null && t.scheduled < config.today)),
+        !isSlipped(t) &&
+        (t.scheduled != null || t.due != null) &&
+        !inFolder(t.filePath, config.projectsFolder),
     )
-    .sort((a, b) => slippedDate(a).localeCompare(slippedDate(b)))
+    .sort((a, b) => upcomingDate(a).localeCompare(upcomingDate(b)))
 
   const statusRank = (status: ProjectMeta['status']) =>
     status === 'now' ? 0 : status === 'next' ? 1 : status === 'later' ? 2 : 3
@@ -88,6 +100,7 @@ export const classifySections = (
   return {
     today: toTree(today),
     slipped: toTree(slipped),
+    upcoming: toTree(upcoming),
     inbox: toTree(inbox),
     projects: projectGroups,
     wipNowCount: projects.filter(p => p.status === 'now').length,

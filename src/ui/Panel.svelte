@@ -13,6 +13,7 @@
     today: '',
     wipLimit: 3,
     collapsed: {},
+    collapsedProjects: {},
     sourceLabels: {},
     appleSyncPath: '',
   })
@@ -47,6 +48,7 @@
   const counts = $derived({
     today: data.sections ? countTaskTree(data.sections.today) : 0,
     slipped: data.sections ? countTaskTree(data.sections.slipped) : 0,
+    upcoming: data.sections ? countTaskTree(data.sections.upcoming) : 0,
     inbox: data.sections ? countTaskTree(data.sections.inbox) : 0,
     projects: data.sections
       ? data.sections.projects.reduce((sum, g) => sum + countTaskTree(g.tasks), 0)
@@ -136,12 +138,25 @@
       collapsed={data.collapsed.slipped ?? false}
       danger
       emptyText="All caught up — nothing slipped"
-      actionLabel="All → today"
+      actionLabel="All → to-do"
       onAction={callbacks.onRescheduleAllSlipped}
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.slipped as task (locationKey(task.filePath, task.line))}
         <TaskRow {task} {ctx} slippedActions />
+      {/each}
+    </Section>
+
+    <Section
+      title="Upcoming"
+      key="upcoming"
+      count={counts.upcoming}
+      collapsed={data.collapsed.upcoming ?? true}
+      emptyText="Nothing scheduled ahead"
+      onCollapse={callbacks.onCollapse}
+    >
+      {#each data.sections.upcoming as task (locationKey(task.filePath, task.line))}
+        <TaskRow {task} {ctx} />
       {/each}
     </Section>
 
@@ -156,22 +171,35 @@
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.projects as group (group.project.path)}
+        {@const folded = data.collapsedProjects[group.project.path] ?? false}
         <div class="taskflow-project">
-          <button
-            class="taskflow-project-header"
-            onclick={() => callbacks.onOpenFile(group.project.path)}
-          >
-            <span class="taskflow-project-name">{group.project.name}</span>
-            {#if group.project.status}
-              <span class="taskflow-status taskflow-status-{group.project.status}">
-                {group.project.status}
-              </span>
-            {/if}
-            <span class="taskflow-project-count">{countTaskTree(group.tasks)}</span>
-          </button>
-          {#each group.tasks as task (locationKey(task.filePath, task.line))}
-            <TaskRow {task} {ctx} showSource={false} quickToday />
-          {/each}
+          <div class="taskflow-project-header">
+            <button
+              class="taskflow-project-fold"
+              aria-label={folded ? 'Expand project' : 'Collapse project'}
+              aria-expanded={!folded}
+              onclick={() => callbacks.onCollapseProject(group.project.path, !folded)}
+            >
+              <span class="taskflow-collapse-icon" class:taskflow-collapsed={folded}>›</span>
+            </button>
+            <button
+              class="taskflow-project-open"
+              onclick={() => callbacks.onOpenFile(group.project.path)}
+            >
+              <span class="taskflow-project-name">{group.project.name}</span>
+              {#if group.project.status}
+                <span class="taskflow-status taskflow-status-{group.project.status}">
+                  {group.project.status}
+                </span>
+              {/if}
+              <span class="taskflow-project-count">{countTaskTree(group.tasks)}</span>
+            </button>
+          </div>
+          {#if !folded}
+            {#each group.tasks as task (locationKey(task.filePath, task.line))}
+              <TaskRow {task} {ctx} showSource={false} quickToday />
+            {/each}
+          {/if}
         </div>
       {/each}
     </Section>

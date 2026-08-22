@@ -9,7 +9,7 @@ import {classifySections} from './core/classify'
 import {flattenTaskTree} from './core/hierarchy'
 import {resolveQuickDate} from './core/schedule'
 import {getTasksPlugin, readTasks, toggleTask} from './adapters/tasks-plugin'
-import {cancelTask, rescheduleTasks} from './adapters/edit-lines'
+import {cancelTask, rescheduleTasks, unscheduleTasks} from './adapters/edit-lines'
 import {createProjectFromTemplate, moveTasksToProject} from './adapters/move-tasks'
 import {readProjects} from './adapters/projects'
 
@@ -64,10 +64,13 @@ export class TaskflowView extends ItemView {
           onOpenFile: (path: string) => void this.openFile(path),
           onCollapse: (key: SectionKey, collapsed: boolean) =>
             void this.setCollapsed(key, collapsed),
+          onCollapseProject: (path: string, collapsed: boolean) =>
+            void this.setProjectCollapsed(path, collapsed),
           onScheduleMenu: (task: TaskflowTask, ev: MouseEvent) =>
             this.showScheduleMenu([task], ev),
           onSchedule: (task: TaskflowTask, kind: QuickDate) =>
             void this.reschedule([task], resolveQuickDate(kind, localToday())),
+          onUnschedule: (task: TaskflowTask) => void this.unschedule([task]),
           onPickDate: (task: TaskflowTask) => this.pickDate([task]),
           onCancelTask: (task: TaskflowTask) => void this.cancel(task),
           onRescheduleAllSlipped: () => void this.rescheduleAllSlipped(),
@@ -112,6 +115,7 @@ export class TaskflowView extends ItemView {
         today,
         wipLimit: settings.wipLimit,
         collapsed: settings.collapsed,
+        collapsedProjects: settings.collapsedProjects,
         sourceLabels: {},
         appleSyncPath: settings.appleSyncPath,
       })
@@ -144,6 +148,7 @@ export class TaskflowView extends ItemView {
       today,
       wipLimit: settings.wipLimit,
       collapsed: settings.collapsed,
+      collapsedProjects: settings.collapsedProjects,
       sourceLabels,
       appleSyncPath: settings.appleSyncPath,
     })
@@ -154,7 +159,9 @@ export class TaskflowView extends ItemView {
     const menu = new Menu()
     const stamp = (kind: QuickDate) => () =>
       void this.reschedule(tasks, resolveQuickDate(kind, today))
-    menu.addItem(item => item.setTitle('Today').setIcon('sun').onClick(stamp('today')))
+    menu.addItem(item =>
+      item.setTitle('To-do (today)').setIcon('sun').onClick(stamp('today')),
+    )
     menu.addItem(item =>
       item.setTitle('Tomorrow').setIcon('sunrise').onClick(stamp('tomorrow')),
     )
@@ -164,6 +171,15 @@ export class TaskflowView extends ItemView {
     menu.addItem(item =>
       item.setTitle('Pick a date…').setIcon('calendar').onClick(() => this.pickDate(tasks)),
     )
+    if (tasks.some(t => t.scheduled != null)) {
+      menu.addSeparator()
+      menu.addItem(item =>
+        item
+          .setTitle('Remove date')
+          .setIcon('eraser')
+          .onClick(() => void this.unschedule(tasks)),
+      )
+    }
     menu.showAtMouseEvent(ev)
   }
 
@@ -175,6 +191,11 @@ export class TaskflowView extends ItemView {
 
   private async reschedule(tasks: TaskflowTask[], date: string): Promise<void> {
     await rescheduleTasks(this.app, tasks, date)
+    this.refresh()
+  }
+
+  private async unschedule(tasks: TaskflowTask[]): Promise<void> {
+    await unscheduleTasks(this.app, tasks)
     this.refresh()
   }
 
@@ -249,5 +270,12 @@ export class TaskflowView extends ItemView {
     await this.plugin.updateSettings({
       collapsed: {...this.plugin.settings.collapsed, [key]: collapsed},
     })
+  }
+
+  private async setProjectCollapsed(path: string, collapsed: boolean): Promise<void> {
+    const next = {...this.plugin.settings.collapsedProjects}
+    if (collapsed) next[path] = true
+    else delete next[path]
+    await this.plugin.updateSettings({collapsedProjects: next})
   }
 }

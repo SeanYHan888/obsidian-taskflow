@@ -8,6 +8,8 @@ export type PanelData = {
   today: string
   wipLimit: number
   collapsed: Partial<Record<SectionKey, boolean>>
+  /** Folded project groups, keyed by project note path. */
+  collapsedProjects: Record<string, boolean>
   /** filePath → label shown next to a task (project name or daily-note day). */
   sourceLabels: Record<string, string>
   /** Tasks here get check-off only — the note is machine-rewritten (ADR-0003). */
@@ -27,9 +29,12 @@ export type PanelCallbacks = {
   onOpenTask: (task: TaskflowTask) => void
   onOpenFile: (path: string) => void
   onCollapse: (key: SectionKey, collapsed: boolean) => void
+  onCollapseProject: (path: string, collapsed: boolean) => void
   /** Opens the quick-date menu (today / tomorrow / weekend / pick) at the event. */
   onScheduleMenu: (task: TaskflowTask, ev: MouseEvent) => void
   onSchedule: (task: TaskflowTask, kind: QuickDate) => void
+  /** Removes the ⏳ plan — puts a To-do task back to wherever it lives. */
+  onUnschedule: (task: TaskflowTask) => void
   onPickDate: (task: TaskflowTask) => void
   onCancelTask: (task: TaskflowTask) => void
   onRescheduleAllSlipped: () => void

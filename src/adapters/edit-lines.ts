@@ -1,6 +1,6 @@
 import {Notice, TFile} from 'obsidian'
 
-import {cancelLine, setScheduled} from '../core/schedule'
+import {cancelLine, clearScheduled, setScheduled} from '../core/schedule'
 
 import type {App} from 'obsidian'
 import type {TaskflowTask} from '../core/types'
@@ -49,3 +49,6 @@ export const rescheduleTasks = (app: App, tasks: TaskflowTask[], date: string) =
 
 export const cancelTask = (app: App, task: TaskflowTask) =>
   editTaskLines(app, [task], cancelLine)
+
+export const unscheduleTasks = (app: App, tasks: TaskflowTask[]) =>
+  editTaskLines(app, tasks, clearScheduled)

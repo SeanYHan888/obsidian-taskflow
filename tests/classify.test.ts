@@ -183,6 +183,60 @@ test('inbox holds undated daily-note tasks under the inbox heading, newest note 
   ])
 })
 
+test('upcoming holds future-dated non-project tasks sorted soonest first', () => {
+  const scheduledCapture = task({
+    description: 'already scheduled',
+    heading: 'Inbox',
+    scheduled: '2026-08-25',
+  })
+  const dueSooner = task({
+    description: 'renew passport',
+    filePath: 'Areas/admin.md',
+    due: '2026-08-23',
+  })
+  const projectFuture = task({
+    description: 'draft slides next week',
+    filePath: 'Projects/Active/colm-paper.md',
+    scheduled: '2026-08-24',
+  })
+  const datedToday = task({description: 'now', scheduled: '2026-08-21'})
+  const pastDue = task({description: 'late', due: '2026-08-19'})
+
+  const sections = classify([
+    scheduledCapture,
+    dueSooner,
+    projectFuture,
+    datedToday,
+    pastDue,
+  ])
+
+  assert.deepEqual(descriptions(sections.upcoming), [
+    'renew passport',
+    'already scheduled',
+  ])
+})
+
+test('a future apple sync calendar block never reaches upcoming', () => {
+  const futureBlock = task({
+    description: '09:00 - 10:00 standup (Work)',
+    scheduled: '2026-08-24',
+    filePath: CONFIG.appleSyncPath,
+    heading: '2026-08-24',
+  })
+  const futureReminder = task({
+    description: 'colm camera ready (Todo List)',
+    due: '2026-08-24',
+    filePath: CONFIG.appleSyncPath,
+    heading: 'Apple Reminders',
+  })
+
+  const sections = classify([futureBlock, futureReminder])
+
+  assert.deepEqual(descriptions(sections.upcoming), [
+    'colm camera ready (Todo List)',
+  ])
+})
+
 test('inbox heading matches case-insensitively and ignores # marks in the setting', () => {
   const captured = task({
     description: 'captured',

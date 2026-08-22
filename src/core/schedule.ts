@@ -23,6 +23,13 @@ export const setScheduled = (line: string, date: string): string => {
 export const cancelLine = (line: string): string =>
   line.replace(OPEN_CHECKBOX, '$1-$2')
 
+/**
+ * Removes the ⏳ scheduled date — the inverse of setScheduled. 📅 due dates
+ * are left alone: only the plan is withdrawn, never the deadline.
+ */
+export const clearScheduled = (line: string): string =>
+  line.replace(/\s*⏳\s*\d{4}-\d{2}-\d{2}/, '')
+
 const addDays = (iso: string, days: number): string => {
   const date = new Date(`${iso}T00:00:00`)
   date.setDate(date.getDate() + days)

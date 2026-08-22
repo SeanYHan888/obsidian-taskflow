@@ -3,7 +3,7 @@ import {PluginSettingTab, Setting} from 'obsidian'
 import type {App} from 'obsidian'
 import type TaskflowPlugin from './main'
 
-export type SectionKey = 'today' | 'slipped' | 'inbox' | 'projects'
+export type SectionKey = 'today' | 'slipped' | 'upcoming' | 'inbox' | 'projects'
 
 export type TaskflowSettings = {
   dailyNotesFolder: string
@@ -14,6 +14,8 @@ export type TaskflowSettings = {
   projectTemplatePath: string
   wipLimit: number
   collapsed: Partial<Record<SectionKey, boolean>>
+  /** Folded project groups, keyed by project note path. */
+  collapsedProjects: Record<string, boolean>
 }
 
 export const DEFAULT_SETTINGS: TaskflowSettings = {
@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: TaskflowSettings = {
   projectTemplatePath: 'Templates/project.md',
   wipLimit: 3,
   collapsed: {},
+  collapsedProjects: {},
 }
 
 export class TaskflowSettingTab extends PluginSettingTab {
