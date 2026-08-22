@@ -29,8 +29,9 @@ A task whose due date has passed. Always a debt, even in the Apple Sync note.
 
 ### Sections (the panel's projections)
 
-**Today**:
-Open tasks scheduled or due today. Nothing from the past, and no calendar blocks — the Apple Sync note's Calendar section never appears here. The execution surface.
+**To-do**:
+The panel's first section: open tasks scheduled or due today. Nothing from the past, and no calendar blocks — the Apple Sync note's Calendar section never appears here. The execution surface.
+_Avoid_: Today (renamed 2026-08-22; the underlying rule — dated today — is unchanged)
 
 **Overdue & slipped**:
 Open tasks due before today, or scheduled before today outside the Apple Sync note. A repair queue: reschedule, complete, or cancel.

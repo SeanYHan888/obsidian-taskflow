@@ -75,7 +75,7 @@
     </div>
   {:else if data.sections}
     <Section
-      title="Today"
+      title="To-do"
       key="today"
       count={counts.today}
       collapsed={data.collapsed.today ?? false}
@@ -84,22 +84,6 @@
     >
       {#each data.sections.today as task (locationKey(task.filePath, task.line))}
         <TaskRow {task} {ctx} />
-      {/each}
-    </Section>
-
-    <Section
-      title="Overdue & slipped"
-      key="slipped"
-      count={counts.slipped}
-      collapsed={data.collapsed.slipped ?? false}
-      danger
-      emptyText="All caught up — nothing slipped"
-      actionLabel="All → today"
-      onAction={callbacks.onRescheduleAllSlipped}
-      onCollapse={callbacks.onCollapse}
-    >
-      {#each data.sections.slipped as task (locationKey(task.filePath, task.line))}
-        <TaskRow {task} {ctx} slippedActions />
       {/each}
     </Section>
 
@@ -143,6 +127,22 @@
           </button>
         </div>
       {/if}
+    </Section>
+
+    <Section
+      title="Overdue & slipped"
+      key="slipped"
+      count={counts.slipped}
+      collapsed={data.collapsed.slipped ?? false}
+      danger
+      emptyText="All caught up — nothing slipped"
+      actionLabel="All → today"
+      onAction={callbacks.onRescheduleAllSlipped}
+      onCollapse={callbacks.onCollapse}
+    >
+      {#each data.sections.slipped as task (locationKey(task.filePath, task.line))}
+        <TaskRow {task} {ctx} slippedActions />
+      {/each}
     </Section>
 
     <Section

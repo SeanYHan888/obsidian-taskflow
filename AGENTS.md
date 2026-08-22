@@ -18,8 +18,8 @@ Read `CONTEXT.md` (glossary — use its vocabulary) and `docs/adr/` before worki
 
 - Tasks are checkbox lines; emoji format (`⏳` scheduled = planned day, `📅` due = hard deadline, `✅`/`[-]`). Never write dataview-style `[scheduled:: ]` fields.
 - Projects = notes in `Projects/Active/` with frontmatter `status: now|next|later`; location = membership (no project tags on task lines).
-- Section rules:
-  - **Today** = open tasks scheduled or due today. Excludes the Apple Sync note's Calendar section (calendar blocks are Day Planner's world; its Reminders section is included).
+- Section rules (panel order: To-do → Inbox → Overdue & slipped → Projects — capture sits directly under commitment):
+  - **To-do** (internal key `today`) = open tasks scheduled or due today. Excludes the Apple Sync note's Calendar section (calendar blocks are Day Planner's world; its Reminders section is included).
   - **Overdue & slipped** = due before today, OR scheduled before today outside the Apple Sync note. (Overdue Reminders nag; missed calendar blocks never surface — intended asymmetry.)
   - **Inbox** = undated open tasks under a daily note's `# Inbox` heading only, excluding blank descriptions. Checkboxes under other headings are not Taskflow's business.
   - **Backlogs** = open tasks in `Projects/Active/`, grouped by project, `now` first, with a `n/3` WIP badge counting projects in `now` (red at 4+, warn never block).
