@@ -14,7 +14,7 @@ export const cutTaskBlocks = (
   lines: string[],
   rootLines: number[],
   listItems: ListItemRelation[],
-): {remaining: string[]; blocks: string[][]} => {
+): {remaining: string[]; blocks: string[][]; removedLines: number[]} => {
   const descendantsByRoot = new Map<number, Set<number>>()
   for (const root of rootLines) {
     descendantsByRoot.set(root, collectDescendantLineNumbers(listItems, root))
@@ -45,6 +45,7 @@ export const cutTaskBlocks = (
   return {
     remaining: lines.filter((_, index) => !removed.has(index)),
     blocks,
+    removedLines: [...removed].sort((a, b) => a - b),
   }
 }
 
@@ -53,14 +54,18 @@ const normalizeHeading = (heading: string) =>
 
 /**
  * Appends blocks under the move-target heading: after the section's last
- * non-blank line, or right after the heading when the section is empty. A
- * missing heading is created at the end of the note (level 2).
+ * non-blank line, or right after the heading when the section is empty.
+ * Reports where the flat block landed so callers can journal the insertion.
+ * A missing heading is created at the end of the note (level 2) — unless
+ * `createMissing` is off, in which case a missing heading refuses with null
+ * (send-back never restructures a daily note).
  */
-export const insertUnderHeading = (
+export const insertUnderHeadingAt = (
   lines: string[],
   heading: string,
   blocks: string[][],
-): string[] => {
+  options: {createMissing: boolean} = {createMissing: true},
+): {lines: string[]; insertAt: number; inserted: string[]} | null => {
   const target = normalizeHeading(heading)
   const flat = blocks.flat()
 
@@ -76,12 +81,15 @@ export const insertUnderHeading = (
   }
 
   if (headingIndex === -1) {
+    if (!options.createMissing) return null
     const explicitMarks = heading.trim().match(/^#{1,6}(?=\s)/)?.[0]
     const headingLine = `${explicitMarks ?? '##'} ${heading.replace(/^#+\s*/, '').trim()}`
     const result = [...lines]
     if (result.length > 0 && result[result.length - 1].trim() !== '') result.push('')
-    result.push(headingLine, '', ...flat)
-    return result
+    result.push(headingLine, '')
+    const insertAt = result.length
+    result.push(...flat)
+    return {lines: result, insertAt, inserted: flat}
   }
 
   let sectionEnd = lines.length
@@ -101,5 +109,15 @@ export const insertUnderHeading = (
     }
   }
 
-  return [...lines.slice(0, insertAt), ...flat, ...lines.slice(insertAt)]
+  return {
+    lines: [...lines.slice(0, insertAt), ...flat, ...lines.slice(insertAt)],
+    insertAt,
+    inserted: flat,
+  }
 }
+
+export const insertUnderHeading = (
+  lines: string[],
+  heading: string,
+  blocks: string[][],
+): string[] => insertUnderHeadingAt(lines, heading, blocks)?.lines ?? lines

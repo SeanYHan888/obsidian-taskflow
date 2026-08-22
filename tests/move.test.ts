@@ -1,6 +1,6 @@
 import {assert, test} from 'vitest'
 
-import {cutTaskBlocks, insertUnderHeading} from '../src/core/move'
+import {cutTaskBlocks, insertUnderHeading, insertUnderHeadingAt} from '../src/core/move'
 import {relationsFromLines} from '../src/core/hierarchy'
 
 test('cutTaskBlocks removes a lone task and returns it as a block', () => {
@@ -160,4 +160,44 @@ test('insertUnderHeading honours explicit heading marks when creating', () => {
   const result = insertUnderHeading(['# Board'], '### Doing', [['- [ ] moved']])
 
   assert.deepEqual(result, ['# Board', '', '### Doing', '', '- [ ] moved'])
+})
+
+test('cutTaskBlocks reports which original line numbers were removed', () => {
+  const lines = ['# Inbox', '- [ ] alpha', '- [ ] keep', '- [ ] beta', '  - [ ] beta child']
+
+  const {removedLines} = cutTaskBlocks(lines, [1, 3], [
+    {line: 1, parent: -1},
+    {line: 2, parent: -1},
+    {line: 3, parent: -1},
+    {line: 4, parent: 3},
+  ])
+
+  assert.deepEqual(removedLines, [1, 3, 4])
+})
+
+test('insertUnderHeadingAt reports where the block landed', () => {
+  const lines = ['## Tasks', '- [ ] existing', '', '## Notes']
+
+  const result = insertUnderHeadingAt(lines, 'Tasks', [['- [ ] moved', '  - [ ] sub']])
+
+  assert.deepEqual(result?.lines, [
+    '## Tasks',
+    '- [ ] existing',
+    '- [ ] moved',
+    '  - [ ] sub',
+    '',
+    '## Notes',
+  ])
+  assert.equal(result?.insertAt, 2)
+  assert.deepEqual(result?.inserted, ['- [ ] moved', '  - [ ] sub'])
+})
+
+test('insertUnderHeadingAt refuses when the heading is missing and creation is off', () => {
+  const lines = ['# 08-22, Sat', '', '## Events:']
+
+  const result = insertUnderHeadingAt(lines, 'Inbox', [['- [ ] back to triage']], {
+    createMissing: false,
+  })
+
+  assert.equal(result, null)
 })

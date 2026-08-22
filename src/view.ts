@@ -1,19 +1,26 @@
-import {ItemView, Menu, Notice, TFile, debounce} from 'obsidian'
+import {ItemView, Menu, Notice, Platform, TFile, debounce} from 'obsidian'
 import {mount, unmount} from 'svelte'
 
 import Panel from './ui/Panel.svelte'
 import {PickDateModal} from './ui/pick-date-modal'
 import {NewProjectModal} from './ui/new-project-modal'
 import {ProjectPickerModal} from './ui/project-picker-modal'
-import {classifySections} from './core/classify'
+import {classifySections, inFolder} from './core/classify'
+import {dropIntent} from './core/drop'
 import {flattenTaskTree} from './core/hierarchy'
 import {resolveQuickDate} from './core/schedule'
 import {getTasksPlugin, readTasks, toggleTask} from './adapters/tasks-plugin'
 import {cancelTask, rescheduleTasks, unscheduleTasks} from './adapters/edit-lines'
-import {createProjectFromTemplate, moveTasksToProject} from './adapters/move-tasks'
+import {
+  createProjectFromTemplate,
+  moveTasksToProject,
+  sendTasksBackToInbox,
+} from './adapters/move-tasks'
 import {readProjects} from './adapters/projects'
 
 import type {EventRef, WorkspaceLeaf} from 'obsidian'
+import type {DropTarget} from './core/drop'
+import type {JournalEntry} from './core/journal'
 import type {QuickDate} from './core/schedule'
 import type {Sections, TaskflowTask} from './core/types'
 import type {PanelData} from './ui/panel-types'
@@ -77,6 +84,8 @@ export class TaskflowView extends ItemView {
           onBulkMove: (tasks: TaskflowTask[]) => this.bulkMove(tasks),
           onBulkScheduleMenu: (tasks: TaskflowTask[], ev: MouseEvent) =>
             this.showScheduleMenu(tasks, ev),
+          onDrop: (task: TaskflowTask, target: DropTarget, ev: DragEvent) =>
+            this.handleDrop(task, target, ev),
         },
       },
     }) as unknown as {update: (data: PanelData) => void}
@@ -116,6 +125,7 @@ export class TaskflowView extends ItemView {
         wipLimit: settings.wipLimit,
         collapsed: settings.collapsed,
         collapsedProjects: settings.collapsedProjects,
+        draggable: Platform.isDesktop,
         sourceLabels: {},
         appleSyncPath: settings.appleSyncPath,
       })
@@ -149,6 +159,7 @@ export class TaskflowView extends ItemView {
       wipLimit: settings.wipLimit,
       collapsed: settings.collapsed,
       collapsedProjects: settings.collapsedProjects,
+      draggable: Platform.isDesktop,
       sourceLabels,
       appleSyncPath: settings.appleSyncPath,
     })
@@ -171,8 +182,13 @@ export class TaskflowView extends ItemView {
     menu.addItem(item =>
       item.setTitle('Pick a date…').setIcon('calendar').onClick(() => this.pickDate(tasks)),
     )
-    if (tasks.some(t => t.scheduled != null)) {
+    const backToTriage =
+      tasks.length > 0 &&
+      tasks.every(t => inFolder(t.filePath, this.plugin.settings.projectsFolder))
+    if (tasks.some(t => t.scheduled != null) || backToTriage) {
       menu.addSeparator()
+    }
+    if (tasks.some(t => t.scheduled != null)) {
       menu.addItem(item =>
         item
           .setTitle('Remove date')
@@ -180,7 +196,45 @@ export class TaskflowView extends ItemView {
           .onClick(() => void this.unschedule(tasks)),
       )
     }
+    if (backToTriage) {
+      menu.addItem(item =>
+        item
+          .setTitle('Send back to inbox')
+          .setIcon('inbox')
+          .onClick(() => void this.sendBack(tasks)),
+      )
+    }
     menu.showAtMouseEvent(ev)
+  }
+
+  /**
+   * A drop is a way of pointing at an edit that already exists: resolve the
+   * intent in core and dispatch to the same methods the buttons use.
+   */
+  private handleDrop(task: TaskflowTask, target: DropTarget, ev: DragEvent): void {
+    const settings = this.plugin.settings
+    const intent = dropIntent(task, target, {
+      appleSyncPath: settings.appleSyncPath,
+      projectsFolder: settings.projectsFolder,
+    })
+    if (intent.kind === 'schedule-today') void this.reschedule([task], localToday())
+    else if (intent.kind === 'remove-date') void this.unschedule([task])
+    else if (intent.kind === 'move-to-project') void this.moveTo([task], intent.path)
+    else if (intent.kind === 'send-back-to-inbox') void this.sendBack([task])
+    else if (intent.kind === 'ask-date') this.showScheduleMenu([task], ev)
+  }
+
+  /** Journals the action and shows its notice with an undo link attached. */
+  private record(entry: JournalEntry | null): void {
+    if (!entry) return
+    this.plugin.pushJournal(entry)
+    const fragment = document.createDocumentFragment()
+    fragment.append(`Taskflow: ${entry.label} — `)
+    const link = document.createElement('a')
+    link.textContent = 'undo'
+    link.addEventListener('click', () => void this.plugin.undo(entry))
+    fragment.append(link)
+    new Notice(fragment, 8000)
   }
 
   private pickDate(tasks: TaskflowTask[]): void {
@@ -190,12 +244,19 @@ export class TaskflowView extends ItemView {
   }
 
   private async reschedule(tasks: TaskflowTask[], date: string): Promise<void> {
-    await rescheduleTasks(this.app, tasks, date)
+    this.record(await rescheduleTasks(this.app, tasks, date))
     this.refresh()
   }
 
   private async unschedule(tasks: TaskflowTask[]): Promise<void> {
-    await unscheduleTasks(this.app, tasks)
+    this.record(await unscheduleTasks(this.app, tasks))
+    this.refresh()
+  }
+
+  private async sendBack(tasks: TaskflowTask[]): Promise<void> {
+    this.record(
+      (await sendTasksBackToInbox(this.app, tasks, this.plugin.settings.inboxHeading)).entry,
+    )
     this.refresh()
   }
 
@@ -208,13 +269,13 @@ export class TaskflowView extends ItemView {
   }
 
   private async moveTo(tasks: TaskflowTask[], projectPath: string): Promise<void> {
-    const moved = await moveTasksToProject(
+    const {entry} = await moveTasksToProject(
       this.app,
       tasks,
       projectPath,
       this.plugin.settings.moveTargetHeading,
     )
-    if (moved > 0) new Notice(`Taskflow: moved ${moved} task${moved === 1 ? '' : 's'}`)
+    this.record(entry)
     this.refresh()
   }
 
@@ -232,7 +293,7 @@ export class TaskflowView extends ItemView {
   }
 
   private async cancel(task: TaskflowTask): Promise<void> {
-    await cancelTask(this.app, task)
+    this.record(await cancelTask(this.app, task))
     this.refresh()
   }
 
@@ -246,7 +307,7 @@ export class TaskflowView extends ItemView {
       t => t.filePath !== appleSyncPath,
     )
     if (slipped.length === 0) return
-    await rescheduleTasks(this.app, slipped, localToday())
+    this.record(await rescheduleTasks(this.app, slipped, localToday()))
     this.refresh()
   }
 

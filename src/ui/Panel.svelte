@@ -3,6 +3,8 @@
   import TaskRow from './TaskRow.svelte'
   import {countTaskTree, flattenTaskTree, locationKey} from '../core/hierarchy'
 
+  import type {DropTarget} from '../core/drop'
+  import type {TaskflowTask} from '../core/types'
   import type {PanelCallbacks, PanelData, RowContext} from './panel-types'
 
   let {callbacks}: {callbacks: PanelCallbacks} = $props()
@@ -14,12 +16,21 @@
     wipLimit: 3,
     collapsed: {},
     collapsedProjects: {},
+    draggable: false,
     sourceLabels: {},
     appleSyncPath: '',
   })
 
   let selecting = $state(false)
   let selectedKeys: ReadonlySet<string> = $state(new Set())
+  let dragTask: TaskflowTask | null = $state(null)
+  let dragOverProject: string | null = $state(null)
+
+  const dropOn = (target: DropTarget) => (ev: DragEvent) => {
+    if (!dragTask) return
+    callbacks.onDrop(dragTask, target, ev)
+    dragTask = null
+  }
 
   export const update = (next: PanelData) => {
     data = next
@@ -59,6 +70,12 @@
     today: data.today,
     sourceLabels: data.sourceLabels,
     appleSyncPath: data.appleSyncPath,
+    draggable: data.draggable,
+    onDragStart: (task: TaskflowTask) => (dragTask = task),
+    onDragEnd: () => {
+      dragTask = null
+      dragOverProject = null
+    },
     callbacks,
   })
 
@@ -83,6 +100,8 @@
       collapsed={data.collapsed.today ?? false}
       emptyText="Nothing committed yet — pick 1–3 from a now project"
       onCollapse={callbacks.onCollapse}
+      dragActive={dragTask != null}
+      onDropTask={dropOn({kind: 'section', key: 'today'})}
     >
       {#each data.sections.today as task (locationKey(task.filePath, task.line))}
         <TaskRow {task} {ctx} />
@@ -101,6 +120,8 @@
         if (!selecting) selectedKeys = new Set()
       }}
       onCollapse={callbacks.onCollapse}
+      dragActive={dragTask != null}
+      onDropTask={dropOn({kind: 'section', key: 'inbox'})}
     >
       {#each data.sections.inbox as task (locationKey(task.filePath, task.line))}
         <TaskRow
@@ -154,6 +175,8 @@
       collapsed={data.collapsed.upcoming ?? true}
       emptyText="Nothing scheduled ahead"
       onCollapse={callbacks.onCollapse}
+      dragActive={dragTask != null}
+      onDropTask={dropOn({kind: 'section', key: 'upcoming'})}
     >
       {#each data.sections.upcoming as task (locationKey(task.filePath, task.line))}
         <TaskRow {task} {ctx} />
@@ -173,7 +196,25 @@
       {#each data.sections.projects as group (group.project.path)}
         {@const folded = data.collapsedProjects[group.project.path] ?? false}
         <div class="taskflow-project">
-          <div class="taskflow-project-header">
+          <div
+            class="taskflow-project-header"
+            class:taskflow-drop-ready={dragTask != null && dragTask.filePath !== group.project.path}
+            class:taskflow-drop-over={dragOverProject === group.project.path}
+            role="presentation"
+            ondragover={ev => {
+              if (!dragTask || dragTask.filePath === group.project.path) return
+              ev.preventDefault()
+              dragOverProject = group.project.path
+            }}
+            ondragleave={() => {
+              if (dragOverProject === group.project.path) dragOverProject = null
+            }}
+            ondrop={ev => {
+              ev.preventDefault()
+              dragOverProject = null
+              dropOn({kind: 'project', path: group.project.path})(ev)
+            }}
+          >
             <button
               class="taskflow-project-fold"
               aria-label={folded ? 'Expand project' : 'Collapse project'}

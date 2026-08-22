@@ -30,6 +30,10 @@
   // The structural ADR-0003 guard: Apple Sync tasks get check-off only,
   // regardless of which section rendered this row.
   const canSchedule = $derived(task.filePath !== ctx.appleSyncPath && !selectMode)
+  // Apple Sync rows refuse to lift — the same structural guard as canSchedule.
+  const rowDraggable = $derived(
+    ctx.draggable && !selectMode && task.filePath !== ctx.appleSyncPath,
+  )
   const selected = $derived(
     selectedKeys?.has(locationKey(task.filePath, task.line)) ?? false,
   )
@@ -41,7 +45,18 @@
 </script>
 
 <div class="taskflow-item" class:taskflow-item-nested={nested}>
-<div class="taskflow-row" class:taskflow-row-selected={selected}>
+<div
+  class="taskflow-row"
+  class:taskflow-row-selected={selected}
+  draggable={rowDraggable}
+  role={rowDraggable ? 'listitem' : undefined}
+  ondragstart={ev => {
+    ev.dataTransfer?.setData('text/plain', task.description)
+    if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move'
+    ctx.onDragStart(task)
+  }}
+  ondragend={() => ctx.onDragEnd()}
+>
   {#if selectMode && onToggleSelect}
     <button
       class="taskflow-select-box"
