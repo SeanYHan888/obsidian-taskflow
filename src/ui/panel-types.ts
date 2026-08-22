@@ -1,7 +1,7 @@
 import type {SectionKey} from '../settings'
 import type {DropTarget} from '../core/drop'
 import type {QuickDate} from '../core/schedule'
-import type {Sections, TaskflowTask} from '../core/types'
+import type {ProjectMeta, Sections, TaskflowTask} from '../core/types'
 
 export type PanelData = {
   sections: Sections | null
@@ -52,6 +52,6 @@ export type PanelCallbacks = {
   onBulkScheduleMenu: (tasks: TaskflowTask[], ev: MouseEvent) => void
   /** A drop names an existing edit; core resolves which one (dropIntent). */
   onDrop: (task: TaskflowTask, target: DropTarget, ev: DragEvent) => void
-  /** Project lifecycle menu: mark done / dropped and archive the note. */
-  onProjectMenu: (project: {path: string; name: string}, ev: MouseEvent) => void
+  /** Project lifecycle menu: status now/next/later, done/dropped + archive. */
+  onProjectMenu: (project: ProjectMeta, ev: MouseEvent) => void
 }

@@ -17,13 +17,13 @@ import {
   moveTasksToProject,
   sendTasksBackToInbox,
 } from './adapters/move-tasks'
-import {archiveProject, readProjects} from './adapters/projects'
+import {archiveProject, readProjects, setProjectStatus} from './adapters/projects'
 
 import type {EventRef, WorkspaceLeaf} from 'obsidian'
 import type {DropTarget} from './core/drop'
 import type {JournalEntry} from './core/journal'
 import type {QuickDate} from './core/schedule'
-import type {Sections, TaskflowTask} from './core/types'
+import type {ProjectMeta, ProjectStatus, Sections, TaskflowTask} from './core/types'
 import type {PanelData} from './ui/panel-types'
 import type {SectionKey} from './settings'
 import type TaskflowPlugin from './main'
@@ -87,7 +87,7 @@ export class TaskflowView extends ItemView {
             this.showScheduleMenu(tasks, ev),
           onDrop: (task: TaskflowTask, target: DropTarget, ev: DragEvent) =>
             this.handleDrop(task, target, ev),
-          onProjectMenu: (project: {path: string; name: string}, ev: MouseEvent) =>
+          onProjectMenu: (project: ProjectMeta, ev: MouseEvent) =>
             this.showProjectMenu(project, ev),
         },
       },
@@ -230,7 +230,7 @@ export class TaskflowView extends ItemView {
     else if (intent.kind === 'ask-date') this.showScheduleMenu([task], ev)
   }
 
-  private showProjectMenu(project: {path: string; name: string}, ev: MouseEvent): void {
+  private showProjectMenu(project: ProjectMeta, ev: MouseEvent): void {
     const menu = new Menu()
     menu.addItem(item =>
       item
@@ -238,6 +238,16 @@ export class TaskflowView extends ItemView {
         .setIcon('file-text')
         .onClick(() => void this.openFile(project.path)),
     )
+    menu.addSeparator()
+    for (const status of ['now', 'next', 'later'] as ProjectStatus[]) {
+      menu.addItem(item =>
+        item
+          .setTitle(status === project.status ? `${status} ✓` : status)
+          .setIcon(status === 'now' ? 'play' : status === 'next' ? 'clock' : 'moon')
+          .setDisabled(status === project.status)
+          .onClick(() => void this.changeStatus(project, status)),
+      )
+    }
     menu.addSeparator()
     menu.addItem(item =>
       item
@@ -252,6 +262,13 @@ export class TaskflowView extends ItemView {
         .onClick(() => this.retireProject(project, 'dropped')),
     )
     menu.showAtMouseEvent(ev)
+  }
+
+  private async changeStatus(project: ProjectMeta, status: ProjectStatus): Promise<void> {
+    if (await setProjectStatus(this.app, project.path, status)) {
+      new Notice(`Taskflow: ${project.name} → ${status}`)
+    }
+    this.refresh()
   }
 
   /**

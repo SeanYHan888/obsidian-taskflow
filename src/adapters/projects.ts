@@ -33,6 +33,23 @@ export const readProjects = (app: App, projectsFolder: string): ProjectMeta[] =>
     }))
 }
 
+/** Stamps an active status (now/next/later) into the project's frontmatter. */
+export const setProjectStatus = async (
+  app: App,
+  projectPath: string,
+  status: ProjectStatus,
+): Promise<boolean> => {
+  const file = app.vault.getAbstractFileByPath(projectPath)
+  if (!(file instanceof TFile)) {
+    new Notice(`Taskflow: project note not found: ${projectPath}`)
+    return false
+  }
+  await app.fileManager.processFrontMatter(file, frontmatter => {
+    frontmatter.status = status
+  })
+  return true
+}
+
 /**
  * Retires a project: stamps the terminal status into frontmatter and moves
  * the note to the archive folder (renameFile, so links keep working). Task
