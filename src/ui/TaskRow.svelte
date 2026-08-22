@@ -14,6 +14,7 @@
     selectedKeys = null,
     onToggleSelect = null,
     quickToday = false,
+    nested = false,
   }: {
     task: TaskflowTask
     ctx: RowContext
@@ -23,6 +24,7 @@
     selectedKeys?: ReadonlySet<string> | null
     onToggleSelect?: ((task: TaskflowTask) => void) | null
     quickToday?: boolean
+    nested?: boolean
   } = $props()
 
   // The structural ADR-0003 guard: Apple Sync tasks get check-off only,
@@ -38,6 +40,7 @@
   )
 </script>
 
+<div class="taskflow-item" class:taskflow-item-nested={nested}>
 <div class="taskflow-row" class:taskflow-row-selected={selected}>
   {#if selectMode && onToggleSelect}
     <button
@@ -157,7 +160,9 @@
         {selectedKeys}
         {onToggleSelect}
         {quickToday}
+        nested
       />
     {/each}
   </div>
 {/if}
+</div>

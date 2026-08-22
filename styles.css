@@ -28,7 +28,7 @@
   border: none;
   cursor: pointer;
   color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
+  font-size: var(--font-ui-small);
   font-weight: 600;
 }
 
@@ -77,7 +77,7 @@
 }
 
 .taskflow-section-body {
-  padding: 2px 0 0;
+  padding: 4px 0 0;
 }
 
 .taskflow-empty {
@@ -86,18 +86,31 @@
   font-size: var(--font-ui-smaller);
 }
 
-/* Task rows */
+/* Task cards (the old Checklist look: one card per top-level task) */
+
+.taskflow-item {
+  background: var(--interactive-normal);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin: 0 6px 8px;
+}
+
+.taskflow-item:not(.taskflow-item-nested):hover {
+  background: var(--interactive-hover);
+}
+
+.taskflow-item-nested {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+}
 
 .taskflow-row {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 3px 6px;
-  border-radius: 6px;
-}
-
-.taskflow-row:hover {
-  background: var(--interactive-hover);
+  padding: 2px 0;
 }
 
 .taskflow-panel .taskflow-check {
@@ -137,8 +150,8 @@
   cursor: pointer;
   text-align: left;
   color: var(--text-normal);
-  font-size: var(--font-ui-small);
-  line-height: 1.35;
+  font-size: var(--font-text-size, 16px);
+  line-height: 1.45;
 }
 
 .taskflow-desc {
@@ -163,7 +176,7 @@
   border-radius: 9px;
   background: rgba(var(--color-blue-rgb), 0.15);
   color: var(--color-blue);
-  font-size: var(--font-ui-smaller);
+  font-size: var(--font-ui-small);
   white-space: nowrap;
 }
 
@@ -186,9 +199,10 @@
 }
 
 .taskflow-children {
-  margin-left: 18px;
+  margin-left: 12px;
   border-left: 1px solid var(--background-modifier-border);
-  padding-left: 4px;
+  padding-left: 8px;
+  margin-top: 2px;
 }
 
 /* Project groups */
@@ -211,7 +225,7 @@
   border: none;
   cursor: pointer;
   color: var(--text-normal);
-  font-size: var(--font-ui-small);
+  font-size: var(--font-ui-medium, 15px);
   font-weight: 600;
 }
 
@@ -268,7 +282,7 @@
 .taskflow-actions {
   display: flex;
   gap: 4px;
-  padding: 0 6px 4px 29px;
+  padding: 4px 0 2px 23px;
 }
 
 .taskflow-panel .taskflow-action {
