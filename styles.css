@@ -376,3 +376,69 @@
 .taskflow-modal-input {
   width: 240px;
 }
+
+/* Polish (v0.4) */
+
+.taskflow-panel .taskflow-quick-today {
+  flex-shrink: 0;
+  align-self: center;
+  display: inline-block;
+  height: auto;
+  padding: 0 7px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  color: var(--text-accent);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.taskflow-row:hover .taskflow-quick-today,
+.taskflow-panel .taskflow-quick-today:focus-visible {
+  opacity: 1;
+}
+
+.taskflow-panel .taskflow-quick-today:hover {
+  background: rgba(var(--color-blue-rgb), 0.12);
+}
+
+.taskflow-panel button:focus-visible,
+.taskflow-header-action:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+  opacity: 1;
+}
+
+/* Mobile: bigger tap targets, affordances always visible */
+
+.is-mobile .taskflow-row {
+  padding: 7px 6px;
+}
+
+.is-mobile .taskflow-panel .taskflow-check,
+.is-mobile .taskflow-panel .taskflow-select-box {
+  flex: 0 0 19px;
+  min-width: 19px;
+  max-width: 19px;
+  width: 19px;
+  height: 19px;
+  min-height: 19px;
+  max-height: 19px;
+  padding: 0;
+}
+
+.is-mobile .taskflow-panel .taskflow-add-date,
+.is-mobile .taskflow-panel .taskflow-quick-today {
+  opacity: 0.7;
+}
+
+.is-mobile .taskflow-panel .taskflow-action {
+  padding: 4px 12px;
+}
+
+.is-mobile .taskflow-actions {
+  padding-bottom: 8px;
+}

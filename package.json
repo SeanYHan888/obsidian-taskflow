@@ -1,6 +1,6 @@
 {
   "name": "taskflow",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "description": "Obsidian sidebar panel for a daily-note to project task pipeline.",
   "main": "main.js",
   "scripts": {

@@ -13,6 +13,7 @@
     selectMode = false,
     selectedKeys = null,
     onToggleSelect = null,
+    quickToday = false,
   }: {
     task: TaskflowTask
     ctx: RowContext
@@ -21,6 +22,7 @@
     selectMode?: boolean
     selectedKeys?: ReadonlySet<string> | null
     onToggleSelect?: ((task: TaskflowTask) => void) | null
+    quickToday?: boolean
   } = $props()
 
   // The structural ADR-0003 guard: Apple Sync tasks get check-off only,
@@ -100,13 +102,22 @@
         {chipText(task.scheduled)}
       </span>
     {/if}
-  {:else if canSchedule && task.due == null}
+  {:else if canSchedule && task.due == null && !quickToday}
     <button
       class="taskflow-add-date"
       aria-label="Schedule task"
       onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
     >
       ⏳
+    </button>
+  {/if}
+  {#if quickToday && canSchedule && task.scheduled !== ctx.today}
+    <button
+      class="taskflow-quick-today"
+      aria-label="Schedule for today"
+      onclick={() => ctx.callbacks.onSchedule(task, 'today')}
+    >
+      → today
     </button>
   {/if}
 </div>
@@ -145,6 +156,7 @@
         {selectMode}
         {selectedKeys}
         {onToggleSelect}
+        {quickToday}
       />
     {/each}
   </div>

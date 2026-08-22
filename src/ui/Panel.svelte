@@ -79,6 +79,7 @@
       key="today"
       count={counts.today}
       collapsed={data.collapsed.today ?? false}
+      emptyText="Nothing committed yet — pick 1–3 from a now project"
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.today as task (locationKey(task.filePath, task.line))}
@@ -92,6 +93,7 @@
       count={counts.slipped}
       collapsed={data.collapsed.slipped ?? false}
       danger
+      emptyText="All caught up — nothing slipped"
       actionLabel="All → today"
       onAction={callbacks.onRescheduleAllSlipped}
       onCollapse={callbacks.onCollapse}
@@ -106,6 +108,7 @@
       key="inbox"
       count={counts.inbox}
       collapsed={data.collapsed.inbox ?? false}
+      emptyText="Inbox zero"
       actionLabel={selecting ? 'done' : 'select'}
       onAction={() => {
         selecting = !selecting
@@ -147,6 +150,7 @@
       key="projects"
       count={counts.projects}
       collapsed={data.collapsed.projects ?? false}
+      emptyText="No open project tasks"
       badge={wipBadge}
       badgeDanger={data.sections.wipNowCount > data.wipLimit}
       onCollapse={callbacks.onCollapse}
@@ -166,7 +170,7 @@
             <span class="taskflow-project-count">{countTaskTree(group.tasks)}</span>
           </button>
           {#each group.tasks as task (locationKey(task.filePath, task.line))}
-            <TaskRow {task} {ctx} showSource={false} />
+            <TaskRow {task} {ctx} showSource={false} quickToday />
           {/each}
         </div>
       {/each}

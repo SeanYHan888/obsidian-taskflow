@@ -12,6 +12,7 @@
     badgeDanger = false,
     actionLabel = null,
     onAction = null,
+    emptyText = 'Nothing here',
     onCollapse,
     children,
   }: {
@@ -24,6 +25,7 @@
     badgeDanger?: boolean
     actionLabel?: string | null
     onAction?: (() => void) | null
+    emptyText?: string
     onCollapse: (key: SectionKey, collapsed: boolean) => void
     children: Snippet
   } = $props()
@@ -63,7 +65,7 @@
   {#if !collapsed}
     <div class="taskflow-section-body">
       {#if count === 0}
-        <div class="taskflow-empty">Nothing here</div>
+        <div class="taskflow-empty">{emptyText}</div>
       {:else}
         {@render children()}
       {/if}
