@@ -2,6 +2,7 @@ import {ItemView, Menu, Notice, Platform, TFile, debounce} from 'obsidian'
 import {mount, unmount} from 'svelte'
 
 import Panel from './ui/Panel.svelte'
+import {ConfirmModal} from './ui/confirm-modal'
 import {PickDateModal} from './ui/pick-date-modal'
 import {NewProjectModal} from './ui/new-project-modal'
 import {ProjectPickerModal} from './ui/project-picker-modal'
@@ -16,7 +17,7 @@ import {
   moveTasksToProject,
   sendTasksBackToInbox,
 } from './adapters/move-tasks'
-import {readProjects} from './adapters/projects'
+import {archiveProject, readProjects} from './adapters/projects'
 
 import type {EventRef, WorkspaceLeaf} from 'obsidian'
 import type {DropTarget} from './core/drop'
@@ -86,6 +87,8 @@ export class TaskflowView extends ItemView {
             this.showScheduleMenu(tasks, ev),
           onDrop: (task: TaskflowTask, target: DropTarget, ev: DragEvent) =>
             this.handleDrop(task, target, ev),
+          onProjectMenu: (project: {path: string; name: string}, ev: MouseEvent) =>
+            this.showProjectMenu(project, ev),
         },
       },
     }) as unknown as {update: (data: PanelData) => void}
@@ -225,6 +228,66 @@ export class TaskflowView extends ItemView {
     else if (intent.kind === 'move-to-project') void this.moveTo([task], intent.path)
     else if (intent.kind === 'send-back-to-inbox') void this.sendBack([task])
     else if (intent.kind === 'ask-date') this.showScheduleMenu([task], ev)
+  }
+
+  private showProjectMenu(project: {path: string; name: string}, ev: MouseEvent): void {
+    const menu = new Menu()
+    menu.addItem(item =>
+      item
+        .setTitle('Open project note')
+        .setIcon('file-text')
+        .onClick(() => void this.openFile(project.path)),
+    )
+    menu.addSeparator()
+    menu.addItem(item =>
+      item
+        .setTitle('Mark done & archive')
+        .setIcon('check-circle')
+        .onClick(() => this.retireProject(project, 'done')),
+    )
+    menu.addItem(item =>
+      item
+        .setTitle('Mark dropped & archive')
+        .setIcon('circle-off')
+        .onClick(() => this.retireProject(project, 'dropped')),
+    )
+    menu.showAtMouseEvent(ev)
+  }
+
+  /**
+   * Retiring is not journaled (frontmatter + file move, not task lines) —
+   * the note itself, moved intact, is the undo. Open tasks are never edited;
+   * when some remain, they confirm first, because an archived note's tasks
+   * leave the panel.
+   */
+  private retireProject(project: {path: string; name: string}, status: 'done' | 'dropped'): void {
+    const group = this.lastSections?.projects.find(g => g.project.path === project.path)
+    const openCount = group ? flattenTaskTree(group.tasks).length : 0
+    const archive = async () => {
+      const archived = await archiveProject(
+        this.app,
+        project.path,
+        status,
+        this.plugin.settings.archiveFolder,
+      )
+      if (archived) {
+        new Notice(
+          `Taskflow: ${project.name} marked ${status} — archived to ${this.plugin.settings.archiveFolder}`,
+        )
+      }
+      this.refresh()
+    }
+    if (openCount === 0) {
+      void archive()
+      return
+    }
+    new ConfirmModal(
+      this.app,
+      `Mark ${project.name} ${status}?`,
+      `${openCount} open task${openCount === 1 ? ' remains' : 's remain'} and will leave the panel with the note. The lines themselves are kept untouched.`,
+      `Mark ${status} & archive`,
+      () => void archive(),
+    ).open()
   }
 
   /** Journals the action and shows its notice with an undo link attached. */

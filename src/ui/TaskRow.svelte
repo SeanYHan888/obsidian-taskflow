@@ -91,7 +91,7 @@
     {#if canSchedule}
       <button
         class="taskflow-chip taskflow-chip-button taskflow-chip-due"
-        class:taskflow-chip-past={task.due < ctx.today}
+        class:taskflow-chip-past={task.due <= ctx.today}
         aria-label="Schedule task"
         onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
       >
@@ -100,7 +100,7 @@
     {:else}
       <span
         class="taskflow-chip taskflow-chip-due"
-        class:taskflow-chip-past={task.due < ctx.today}
+        class:taskflow-chip-past={task.due <= ctx.today}
       >
         {chipText(task.due)}
       </span>

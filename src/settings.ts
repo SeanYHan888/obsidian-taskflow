@@ -8,6 +8,7 @@ export type SectionKey = 'today' | 'slipped' | 'upcoming' | 'inbox' | 'projects'
 export type TaskflowSettings = {
   dailyNotesFolder: string
   projectsFolder: string
+  archiveFolder: string
   appleSyncPath: string
   inboxHeading: string
   moveTargetHeading: string
@@ -21,6 +22,7 @@ export type TaskflowSettings = {
 export const DEFAULT_SETTINGS: TaskflowSettings = {
   dailyNotesFolder: 'Daily Notes',
   projectsFolder: 'Projects/Active',
+  archiveFolder: 'Projects/Archive',
   appleSyncPath: 'Indexes/System/Apple Sync.md',
   inboxHeading: 'Inbox',
   moveTargetHeading: 'Tasks',
@@ -70,6 +72,12 @@ export class TaskflowSettingTab extends PluginSettingTab {
       'Notes here are projects; membership is location, status is frontmatter.',
       'projectsFolder',
       DEFAULT_SETTINGS.projectsFolder,
+    )
+    text(
+      'Archive folder',
+      'Where retired project notes go when marked done or dropped.',
+      'archiveFolder',
+      DEFAULT_SETTINGS.archiveFolder,
     )
     text(
       'Apple Sync note',

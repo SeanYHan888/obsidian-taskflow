@@ -232,6 +232,10 @@
             class="taskflow-project-header"
             class:taskflow-drop-ready={dropValid({kind: 'project', path: group.project.path})}
             class:taskflow-drop-over={dragOverProject === group.project.path}
+            oncontextmenu={ev => {
+              ev.preventDefault()
+              callbacks.onProjectMenu(group.project, ev)
+            }}
           >
             <button
               class="taskflow-project-fold"
@@ -252,6 +256,13 @@
                 </span>
               {/if}
               <span class="taskflow-project-count">{countTaskTree(group.tasks)}</span>
+            </button>
+            <button
+              class="taskflow-project-menu"
+              aria-label="Project actions"
+              onclick={ev => callbacks.onProjectMenu(group.project, ev)}
+            >
+              …
             </button>
           </div>
           {#if !folded}

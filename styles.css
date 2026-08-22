@@ -199,9 +199,11 @@
   filter: brightness(1.25);
 }
 
+/* A deadline ahead is amber — attention, not alarm. Red is reserved for
+   dates that have actually arrived (past, and due-today). */
 .taskflow-panel .taskflow-chip-due {
-  background: rgba(var(--color-red-rgb), 0.12);
-  color: var(--color-red);
+  background: rgba(var(--color-orange-rgb), 0.14);
+  color: var(--color-orange);
 }
 
 .taskflow-panel .taskflow-chip-past {
@@ -225,6 +227,30 @@
 .taskflow-project-name {
   font-size: var(--font-ui-medium, 15px);
   font-weight: 600;
+}
+
+.taskflow-panel .taskflow-project-menu {
+  flex-shrink: 0;
+  height: auto;
+  padding: 0 6px;
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 600;
+  opacity: 0;
+}
+
+.taskflow-project-header:hover .taskflow-project-menu,
+.taskflow-panel .taskflow-project-menu:focus-visible {
+  opacity: 1;
+}
+
+.taskflow-panel .taskflow-project-menu:hover {
+  color: var(--text-normal);
+  background: var(--interactive-hover);
+  border-radius: 6px;
 }
 
 .taskflow-project-header {
