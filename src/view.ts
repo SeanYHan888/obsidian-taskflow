@@ -17,7 +17,12 @@ import {
   moveTasksToProject,
   sendTasksBackToInbox,
 } from './adapters/move-tasks'
-import {archiveProject, readProjects, setProjectStatus} from './adapters/projects'
+import {
+  archiveProject,
+  readProjects,
+  setProjectDeadline,
+  setProjectStatus,
+} from './adapters/projects'
 
 import type {EventRef, WorkspaceLeaf} from 'obsidian'
 import type {DropTarget} from './core/drop'
@@ -251,6 +256,21 @@ export class TaskflowView extends ItemView {
     menu.addSeparator()
     menu.addItem(item =>
       item
+        .setTitle(project.deadline == null ? 'Set deadline…' : `Deadline ${project.deadline}…`)
+        .setIcon('calendar-clock')
+        .onClick(() => this.pickProjectDeadline(project)),
+    )
+    if (project.deadline != null) {
+      menu.addItem(item =>
+        item
+          .setTitle('Clear deadline')
+          .setIcon('eraser')
+          .onClick(() => void this.changeDeadline(project, null)),
+      )
+    }
+    menu.addSeparator()
+    menu.addItem(item =>
+      item
         .setTitle('Mark done & archive')
         .setIcon('check-circle')
         .onClick(() => this.retireProject(project, 'done')),
@@ -267,6 +287,28 @@ export class TaskflowView extends ItemView {
   private async changeStatus(project: ProjectMeta, status: ProjectStatus): Promise<void> {
     if (await setProjectStatus(this.app, project.path, status)) {
       new Notice(`Taskflow: ${project.name} → ${status}`)
+    }
+    this.refresh()
+  }
+
+  private pickProjectDeadline(project: ProjectMeta): void {
+    new PickDateModal(
+      this.app,
+      project.deadline ?? localToday(),
+      date => void this.changeDeadline(project, date),
+      'Project deadline…',
+      'Set deadline',
+    ).open()
+  }
+
+  /** Like status flips, deadline edits are frontmatter — not journaled. */
+  private async changeDeadline(project: ProjectMeta, deadline: string | null): Promise<void> {
+    if (await setProjectDeadline(this.app, project.path, deadline)) {
+      new Notice(
+        deadline == null
+          ? `Taskflow: ${project.name} deadline cleared`
+          : `Taskflow: ${project.name} deadline → ${deadline}`,
+      )
     }
     this.refresh()
   }

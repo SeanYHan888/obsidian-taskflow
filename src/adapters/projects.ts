@@ -11,25 +11,31 @@ const ACTIVE_STATUSES: ReadonlySet<string> = new Set(['now', 'next', 'later'])
  * Projects are notes in the projects folder; membership is location, status is
  * frontmatter. Retired statuses (done/dropped) fall out of the panel entirely.
  */
+/** Anything that isn't a plain ISO date string is treated as no deadline. */
+const readDeadline = (raw: unknown): string | null =>
+  typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null
+
 export const readProjects = (app: App, projectsFolder: string): ProjectMeta[] => {
   return app.vault
     .getMarkdownFiles()
     .filter(file => inFolder(file.path, projectsFolder))
     .map(file => {
-      const rawStatus = app.metadataCache.getFileCache(file)?.frontmatter?.status
+      const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter
+      const rawStatus = frontmatter?.status
       const status =
         typeof rawStatus === 'string' && ACTIVE_STATUSES.has(rawStatus)
           ? (rawStatus as ProjectStatus)
           : typeof rawStatus === 'string'
             ? undefined
             : null
-      return {file, status}
+      return {file, status, deadline: readDeadline(frontmatter?.deadline)}
     })
     .filter(({status}) => status !== undefined)
-    .map(({file, status}) => ({
+    .map(({file, status, deadline}) => ({
       path: file.path,
       name: file.basename,
       status: status as ProjectStatus | null,
+      deadline,
     }))
 }
 
@@ -46,6 +52,27 @@ export const setProjectStatus = async (
   }
   await app.fileManager.processFrontMatter(file, frontmatter => {
     frontmatter.status = status
+  })
+  return true
+}
+
+/**
+ * Stamps (or clears, on null) the project's deadline in frontmatter. Like
+ * status flips, not journaled — the frontmatter is the text-editable record.
+ */
+export const setProjectDeadline = async (
+  app: App,
+  projectPath: string,
+  deadline: string | null,
+): Promise<boolean> => {
+  const file = app.vault.getAbstractFileByPath(projectPath)
+  if (!(file instanceof TFile)) {
+    new Notice(`Taskflow: project note not found: ${projectPath}`)
+    return false
+  }
+  await app.fileManager.processFrontMatter(file, frontmatter => {
+    if (deadline == null) delete frontmatter.deadline
+    else frontmatter.deadline = deadline
   })
   return true
 }

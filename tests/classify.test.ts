@@ -254,26 +254,31 @@ test('projects group by note ordered now, next, later, then alphabetically', () 
     path: 'Projects/Active/colm-paper.md',
     name: 'colm-paper',
     status: 'now',
+    deadline: null,
   }
   const devSetup: ProjectMeta = {
     path: 'Projects/Active/dev-setup.md',
     name: 'dev-setup',
     status: 'next',
+    deadline: null,
   }
   const llmStudy: ProjectMeta = {
     path: 'Projects/Active/llm-study.md',
     name: 'llm-study',
     status: 'later',
+    deadline: null,
   }
   const knowledgeBase: ProjectMeta = {
     path: 'Projects/Active/build-knowledge-base.md',
     name: 'build-knowledge-base',
     status: 'now',
+    deadline: null,
   }
   const emptyProject: ProjectMeta = {
     path: 'Projects/Active/obsidian-fix.md',
     name: 'obsidian-fix',
     status: 'now',
+    deadline: null,
   }
 
   const sections = classify(
@@ -296,11 +301,76 @@ test('projects group by note ordered now, next, later, then alphabetically', () 
   assert.equal(sections.wipNowCount, 3)
 })
 
+test('projects with deadlines order soonest-first ahead of undated ones', () => {
+  const undatedNow: ProjectMeta = {
+    path: 'Projects/Active/colm-paper.md',
+    name: 'colm-paper',
+    status: 'now',
+    deadline: null,
+  }
+  const dueSoon: ProjectMeta = {
+    path: 'Projects/Active/llm-study.md',
+    name: 'llm-study',
+    status: 'later',
+    deadline: '2026-08-25',
+  }
+  const dueLater: ProjectMeta = {
+    path: 'Projects/Active/dev-setup.md',
+    name: 'dev-setup',
+    status: 'now',
+    deadline: '2026-09-10',
+  }
+
+  const sections = classify(
+    [
+      task({description: 'camera ready paper', filePath: undatedNow.path}),
+      task({description: 'study attention', filePath: dueSoon.path}),
+      task({description: 'install dotfiles', filePath: dueLater.path}),
+    ],
+    [undatedNow, dueSoon, dueLater],
+  )
+
+  assert.deepEqual(
+    sections.projects.map(g => g.project.name),
+    ['llm-study', 'dev-setup', 'colm-paper'],
+  )
+})
+
+test('equal deadlines tiebreak by status rank then name; WIP count is unaffected', () => {
+  const laterProject: ProjectMeta = {
+    path: 'Projects/Active/llm-study.md',
+    name: 'llm-study',
+    status: 'later',
+    deadline: '2026-08-25',
+  }
+  const nowProject: ProjectMeta = {
+    path: 'Projects/Active/colm-paper.md',
+    name: 'colm-paper',
+    status: 'now',
+    deadline: '2026-08-25',
+  }
+
+  const sections = classify(
+    [
+      task({description: 'study attention', filePath: laterProject.path}),
+      task({description: 'camera ready paper', filePath: nowProject.path}),
+    ],
+    [laterProject, nowProject],
+  )
+
+  assert.deepEqual(
+    sections.projects.map(g => g.project.name),
+    ['colm-paper', 'llm-study'],
+  )
+  assert.equal(sections.wipNowCount, 1)
+})
+
 test('a project task dated today appears in both today and its project group', () => {
   const colm: ProjectMeta = {
     path: 'Projects/Active/colm-paper.md',
     name: 'colm-paper',
     status: 'now',
+    deadline: null,
   }
   const crossCutting = task({
     description: 'test model for lsc-dpo',
@@ -321,6 +391,7 @@ test('sections preserve subtask hierarchy and promote orphaned children', () => 
     path: 'Projects/Active/colm-paper.md',
     name: 'colm-paper',
     status: 'now',
+    deadline: null,
   }
   const parent = task({
     description: 'camera ready paper',

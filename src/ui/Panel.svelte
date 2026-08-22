@@ -257,6 +257,18 @@
               {/if}
               <span class="taskflow-project-count">{countTaskTree(group.tasks)}</span>
             </button>
+            {#if group.project.deadline != null}
+              <button
+                class="taskflow-chip taskflow-chip-button taskflow-chip-due"
+                class:taskflow-chip-past={group.project.deadline <= data.today}
+                aria-label="Project deadline"
+                onclick={ev => callbacks.onProjectMenu(group.project, ev)}
+              >
+                {group.project.deadline === data.today
+                  ? 'today'
+                  : group.project.deadline.slice(5)}
+              </button>
+            {/if}
             <button
               class="taskflow-project-menu"
               aria-label="Project actions"

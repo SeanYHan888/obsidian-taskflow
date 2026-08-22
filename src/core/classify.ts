@@ -91,11 +91,18 @@ export const classifySections = (
       ),
     }))
     .filter(group => group.tasks.length > 0)
-    .sort(
-      (a, b) =>
+    // Deadline outranks status: a dated commitment is more urgent information
+    // than now/next/later, so dated projects lead, soonest first. Undated
+    // projects keep the status order — deadlines are optional, never hiding.
+    .sort((a, b) => {
+      const aDeadline = a.project.deadline ?? '9999-99-99'
+      const bDeadline = b.project.deadline ?? '9999-99-99'
+      return (
+        aDeadline.localeCompare(bDeadline) ||
         statusRank(a.project.status) - statusRank(b.project.status) ||
-        a.project.name.localeCompare(b.project.name),
-    )
+        a.project.name.localeCompare(b.project.name)
+      )
+    })
 
   return {
     today: toTree(today),

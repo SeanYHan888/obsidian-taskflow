@@ -57,7 +57,10 @@ _Avoid_: project tags on task lines
 Project-level commitment frontmatter. `now` = being worked, `next` = queued, `later` = someday. Lifecycle continues to `done` / `dropped` on retirement to `Projects/Archive/`.
 
 **WIP limit**:
-At most 3 projects in `now`. Exceeding it warns (red badge), never blocks.
+How many projects `now` may hold (configurable, default 3). Exceeding it warns (red badge), never blocks.
+
+**Project deadline**:
+Optional `deadline` frontmatter (ISO date) on a project note — a project-level commitment date, distinct from a task's due (📅) field. Dated projects lead the Backlogs soonest-first; undated ones follow in status order. The header chip is amber while ahead, red once arrived — the same urgency grammar as task due chips. Coexists with the WIP badge (hybrid pacing: both signals, neither blocks).
 
 **Triage**:
 The act of emptying the Inbox: moving a task to a project, stamping a date, or cancelling it.

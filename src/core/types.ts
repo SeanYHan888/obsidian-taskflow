@@ -21,6 +21,8 @@ export type ProjectMeta = {
   path: string
   name: string
   status: ProjectStatus | null
+  /** Project-level commitment date from frontmatter (ISO), or null. Distinct from a task's due (📅) field. */
+  deadline: string | null
 }
 
 export type ProjectGroup = {

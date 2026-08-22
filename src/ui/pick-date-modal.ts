@@ -7,12 +7,14 @@ export class PickDateModal extends Modal {
     app: App,
     private defaultDate: string,
     private onPick: (date: string) => void,
+    private title = 'Schedule for…',
+    private submitLabel = 'Schedule',
   ) {
     super(app)
   }
 
   onOpen(): void {
-    this.titleEl.setText('Schedule for…')
+    this.titleEl.setText(this.title)
     const input = this.contentEl.createEl('input', {type: 'date'})
     input.value = this.defaultDate
     const submit = () => {
@@ -23,7 +25,7 @@ export class PickDateModal extends Modal {
       if (ev.key === 'Enter') submit()
     })
     const button = this.contentEl.createEl('button', {
-      text: 'Schedule',
+      text: this.submitLabel,
       cls: 'taskflow-modal-submit',
     })
     button.addEventListener('click', submit)
