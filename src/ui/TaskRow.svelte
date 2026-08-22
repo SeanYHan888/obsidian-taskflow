@@ -102,7 +102,7 @@
         {chipText(task.scheduled)}
       </span>
     {/if}
-  {:else if canSchedule && task.due == null && !quickToday}
+  {:else if canSchedule && task.due == null}
     <button
       class="taskflow-add-date"
       aria-label="Schedule task"

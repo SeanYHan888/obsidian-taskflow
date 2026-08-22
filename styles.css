@@ -402,7 +402,7 @@
 }
 
 .taskflow-panel .taskflow-quick-today:hover {
-  background: rgba(var(--color-blue-rgb), 0.12);
+  background: var(--interactive-hover);
 }
 
 .taskflow-panel button:focus-visible,
@@ -441,4 +441,30 @@
 
 .is-mobile .taskflow-actions {
   padding-bottom: 8px;
+}
+
+/* Narrow panels: long source labels truncate instead of squeezing the text */
+
+.taskflow-source {
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Mobile: 19px visuals, ~44px touch areas via invisible overlay */
+
+.is-mobile .taskflow-panel .taskflow-check,
+.is-mobile .taskflow-panel .taskflow-select-box {
+  position: relative;
+}
+
+.is-mobile .taskflow-panel .taskflow-check::before,
+.is-mobile .taskflow-panel .taskflow-select-box::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+}
+
+.is-mobile .taskflow-row {
+  min-height: 36px;
 }

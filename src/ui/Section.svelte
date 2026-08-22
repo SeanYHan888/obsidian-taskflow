@@ -35,9 +35,11 @@
   <button class="taskflow-section-header" onclick={() => onCollapse(key, !collapsed)}>
     <span class="taskflow-collapse-icon" class:taskflow-collapsed={collapsed}>›</span>
     <span class="taskflow-section-title">{title}</span>
-    <span class="taskflow-count" class:taskflow-count-danger={danger && count > 0}>
-      {count}
-    </span>
+    {#if count > 0}
+      <span class="taskflow-count" class:taskflow-count-danger={danger}>
+        {count}
+      </span>
+    {/if}
     {#if actionLabel && onAction && count > 0 && !collapsed}
       <span
         class="taskflow-header-action"
