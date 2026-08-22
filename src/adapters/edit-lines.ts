@@ -57,10 +57,10 @@ const editTaskLines = async (
   return records
 }
 
-const entry = (label: string, records: LineRecord[]): JournalEntry | null =>
+const toJournalEntry = (label: string, records: LineRecord[]): JournalEntry | null =>
   records.length > 0 ? {label, records} : null
 
-const plural = (n: number) => `${n} task${n === 1 ? '' : 's'}`
+export const plural = (n: number) => `${n} task${n === 1 ? '' : 's'}`
 
 export const rescheduleTasks = async (
   app: App,
@@ -68,12 +68,12 @@ export const rescheduleTasks = async (
   date: string,
 ): Promise<JournalEntry | null> => {
   const records = await editTaskLines(app, tasks, line => setScheduled(line, date))
-  return entry(`scheduled ${plural(records.length)} → ${date}`, records)
+  return toJournalEntry(`scheduled ${plural(records.length)} → ${date}`, records)
 }
 
 export const cancelTask = async (app: App, task: TaskflowTask): Promise<JournalEntry | null> => {
   const records = await editTaskLines(app, [task], cancelLine)
-  return entry('cancelled 1 task', records)
+  return toJournalEntry('cancelled 1 task', records)
 }
 
 export const unscheduleTasks = async (
@@ -81,5 +81,5 @@ export const unscheduleTasks = async (
   tasks: TaskflowTask[],
 ): Promise<JournalEntry | null> => {
   const records = await editTaskLines(app, tasks, clearScheduled)
-  return entry(`removed the date from ${plural(records.length)}`, records)
+  return toJournalEntry(`removed the date from ${plural(records.length)}`, records)
 }

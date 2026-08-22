@@ -92,3 +92,19 @@ test('apple sync tasks accept no drop at all', () => {
     {kind: 'none'},
   )
 })
+
+test('a due-only task on Inbox is no target — 📅 is read, never written', () => {
+  assert.deepEqual(
+    dropIntent(dailyTask({due: '2026-08-25'}), {kind: 'section', key: 'inbox'}, CONFIG),
+    {kind: 'none'},
+  )
+})
+
+test('backlog tasks accept the time targets like any other row', () => {
+  assert.deepEqual(dropIntent(projectTask(), {kind: 'section', key: 'today'}, CONFIG), {
+    kind: 'schedule-today',
+  })
+  assert.deepEqual(dropIntent(projectTask(), {kind: 'section', key: 'upcoming'}, CONFIG), {
+    kind: 'ask-date',
+  })
+})

@@ -1,6 +1,6 @@
 import {assert, test} from 'vitest'
 
-import {cutTaskBlocks, insertUnderHeading, insertUnderHeadingAt} from '../src/core/move'
+import {cutTaskBlocks, insertUnderHeadingAt} from '../src/core/move'
 import {relationsFromLines} from '../src/core/hierarchy'
 
 test('cutTaskBlocks removes a lone task and returns it as a block', () => {
@@ -63,7 +63,7 @@ test('cutTaskBlocks handles multiple selections in file order', () => {
   assert.deepEqual(remaining, ['- [ ] beta'])
 })
 
-test('insertUnderHeading appends after the last task in the section', () => {
+test('insertUnderHeadingAt appends after the last task in the section', () => {
   const lines = [
     '# My Project',
     '',
@@ -74,7 +74,7 @@ test('insertUnderHeading appends after the last task in the section', () => {
     '## Notes',
   ]
 
-  const result = insertUnderHeading(lines, 'Tasks', [['- [ ] moved', '  - [ ] sub']])
+  const result = insertUnderHeadingAt(lines, 'Tasks', [['- [ ] moved', '  - [ ] sub']])?.lines
 
   assert.deepEqual(result, [
     '# My Project',
@@ -89,18 +89,18 @@ test('insertUnderHeading appends after the last task in the section', () => {
   ])
 })
 
-test('insertUnderHeading matches the setting with or without # marks', () => {
+test('insertUnderHeadingAt matches the setting with or without # marks', () => {
   const lines = ['## Tasks', '- [ ] a']
 
-  const result = insertUnderHeading(lines, '## tasks', [['- [ ] b']])
+  const result = insertUnderHeadingAt(lines, '## tasks', [['- [ ] b']])?.lines
 
   assert.deepEqual(result, ['## Tasks', '- [ ] a', '- [ ] b'])
 })
 
-test('insertUnderHeading creates a missing heading at the end of the note', () => {
+test('insertUnderHeadingAt creates a missing heading at the end of the note', () => {
   const lines = ['# My Project', '', 'Some prose.']
 
-  const result = insertUnderHeading(lines, 'Tasks', [['- [ ] moved']])
+  const result = insertUnderHeadingAt(lines, 'Tasks', [['- [ ] moved']])?.lines
 
   assert.deepEqual(result, [
     '# My Project',
@@ -113,10 +113,10 @@ test('insertUnderHeading creates a missing heading at the end of the note', () =
   ])
 })
 
-test('insertUnderHeading places into an empty section right after the heading', () => {
+test('insertUnderHeadingAt places into an empty section right after the heading', () => {
   const lines = ['## Tasks', '', '## Notes']
 
-  const result = insertUnderHeading(lines, 'Tasks', [['- [ ] first']])
+  const result = insertUnderHeadingAt(lines, 'Tasks', [['- [ ] first']])?.lines
 
   assert.deepEqual(result, ['## Tasks', '- [ ] first', '', '## Notes'])
 })
@@ -156,8 +156,8 @@ test('relationsFromLines resets nesting at prose but tolerates blank lines', () 
   ])
 })
 
-test('insertUnderHeading honours explicit heading marks when creating', () => {
-  const result = insertUnderHeading(['# Board'], '### Doing', [['- [ ] moved']])
+test('insertUnderHeadingAt honours explicit heading marks when creating', () => {
+  const result = insertUnderHeadingAt(['# Board'], '### Doing', [['- [ ] moved']])?.lines
 
   assert.deepEqual(result, ['# Board', '', '### Doing', '', '- [ ] moved'])
 })

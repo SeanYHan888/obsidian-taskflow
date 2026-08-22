@@ -55,7 +55,7 @@ export default class TaskflowPlugin extends Plugin {
     const {stale} = await undoEntry(this.app, target)
     new Notice(
       stale > 0
-        ? `Taskflow: undid "${target.label}" — ${stale} line${stale === 1 ? '' : 's'} changed since and stayed put`
+        ? `Taskflow: undid "${target.label}" — ${stale} line${stale === 1 ? '' : 's'} changed since last refresh — skipped`
         : `Taskflow: undid "${target.label}"`,
     )
     this.refreshViews()

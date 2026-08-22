@@ -89,3 +89,15 @@ test('re-inserting a removed line clamps to the end of a shrunken note', () => {
   assert.equal(result.reverted, 1)
   assert.equal(result.stale, 0)
 })
+
+test('a removed line already restored by hand is not duplicated — skipped as stale', () => {
+  const lines = ['# Inbox', '- [ ] alpha', '- [ ] keep']
+
+  const result = undoRecordsInFile(lines, [
+    {kind: 'remove', file: 'Daily Notes/08-22.md', line: 1, text: '- [ ] alpha'},
+  ])
+
+  assert.deepEqual(result.lines, ['# Inbox', '- [ ] alpha', '- [ ] keep'])
+  assert.equal(result.reverted, 0)
+  assert.equal(result.stale, 1)
+})

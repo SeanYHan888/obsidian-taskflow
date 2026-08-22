@@ -17,6 +17,8 @@ export type PanelData = {
   sourceLabels: Record<string, string>
   /** Tasks here get check-off only — the note is machine-rewritten (ADR-0003). */
   appleSyncPath: string
+  /** Membership is location (CONTEXT.md); drop validity needs it too. */
+  projectsFolder: string
 }
 
 /** Everything a task row needs regardless of which section rendered it. */

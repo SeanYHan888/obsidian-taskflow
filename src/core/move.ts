@@ -116,8 +116,3 @@ export const insertUnderHeadingAt = (
   }
 }
 
-export const insertUnderHeading = (
-  lines: string[],
-  heading: string,
-  blocks: string[][],
-): string[] => insertUnderHeadingAt(lines, heading, blocks)?.lines ?? lines

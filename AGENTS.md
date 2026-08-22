@@ -1,6 +1,6 @@
 # Taskflow
 
-The core GUI for Sean's daily-note → project task system: an Obsidian sidebar panel with four sections (Today / Overdue & slipped / Inbox triage / Project backlogs) over the vault's task pipeline.
+The core GUI for Sean's daily-note → project task system: an Obsidian sidebar panel with five sections (To-do / Inbox triage / Overdue & slipped / Upcoming / Project backlogs) over the vault's task pipeline.
 
 Originally forked from `delashum/obsidian-checklist-plugin` — its card-list visual language (group headers, subtask hierarchy from `82579e9`) is kept; the tag-based data layer is replaced. History preserved; MIT credit retained. This is now a standalone plugin: repo `SeanYHan888/obsidian-taskflow`.
 
@@ -18,10 +18,11 @@ Read `CONTEXT.md` (glossary — use its vocabulary) and `docs/adr/` before worki
 
 - Tasks are checkbox lines; emoji format (`⏳` scheduled = planned day, `📅` due = hard deadline, `✅`/`[-]`). Never write dataview-style `[scheduled:: ]` fields.
 - Projects = notes in `Projects/Active/` with frontmatter `status: now|next|later`; location = membership (no project tags on task lines).
-- Section rules (panel order: To-do → Inbox → Overdue & slipped → Projects — capture sits directly under commitment):
+- Section rules (panel order: To-do → Inbox → Overdue & slipped → Upcoming → Projects — capture sits directly under commitment):
   - **To-do** (internal key `today`) = open tasks scheduled or due today. Excludes the Apple Sync note's Calendar section (calendar blocks are Day Planner's world; its Reminders section is included).
   - **Overdue & slipped** = due before today, OR scheduled before today outside the Apple Sync note. (Overdue Reminders nag; missed calendar blocks never surface — intended asymmetry.)
   - **Inbox** = undated open tasks under a daily note's `# Inbox` heading only, excluding blank descriptions. Checkboxes under other headings are not Taskflow's business.
+  - **Upcoming** (collapsed by default) = open tasks dated later than today, outside `Projects/Active/` (backlog rows already show their own date chips). Exists so no dated task is ever invisible.
   - **Backlogs** = open tasks in `Projects/Active/`, grouped by project, `now` first, with a `n/3` WIP badge counting projects in `now` (red at 4+, warn never block).
 - Sections are disjoint projections of one field (the date); tasks never "move" between them except by date edits or the passage of days.
 

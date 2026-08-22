@@ -57,12 +57,17 @@ export const undoRecordsInFile = (
 
   // Removed lines are re-inserted at ascending pre-removal indices, which
   // reconstructs the original layout exactly. Restoring content is the
-  // non-destructive direction, so it never needs a verification gate — a
-  // shrunken note just clamps the index.
+  // non-destructive direction, so the only gate is against duplication: a
+  // line the note already contains again (restored by hand since) is
+  // skipped as stale rather than doubled. A shrunken note clamps the index.
   const removes = records
     .filter(r => r.kind === 'remove')
     .sort((a, b) => a.line - b.line)
   for (const record of removes) {
+    if (result.includes(record.text)) {
+      stale++
+      continue
+    }
     result.splice(Math.min(record.line, result.length), 0, record.text)
     reverted++
   }

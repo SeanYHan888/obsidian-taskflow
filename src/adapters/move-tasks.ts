@@ -1,5 +1,6 @@
 import {Notice, TFile, moment} from 'obsidian'
 
+import {plural} from './edit-lines'
 import {relationsFromLines} from '../core/hierarchy'
 import {cutTaskBlocks, insertUnderHeadingAt} from '../core/move'
 
@@ -9,157 +10,38 @@ import type {TaskflowTask} from '../core/types'
 
 export type MoveResult = {moved: number; entry: JournalEntry | null}
 
-const plural = (n: number) => `${n} task${n === 1 ? '' : 's'}`
+type RelocateOutcome = {
+  moved: number
+  duplicated: number
+  skipped: number
+  headingMissing: boolean
+  records: LineRecord[]
+}
 
 /**
- * Moves tasks (each with its subtask children) into a project note's
- * move-target heading. Descendants come from relations parsed out of the exact
- * content being edited — never a cache that could lag the file.
+ * The one relocation shape both directions share: cut task blocks (each with
+ * its subtask children) out of their source notes and append them under a
+ * heading in the target note. Descendants come from relations parsed out of
+ * the exact content being edited — never a cache that could lag the file.
  *
  * Ordering is duplicate-safe, never lossy: per source file, blocks are
- * appended to the project first and cut from the source second, and the cut
- * re-verifies every line of every block against what was appended. A file that
- * changed in the window keeps its lines (leaving a duplicate to clean up) and
- * says so; a task whose root no longer matches what was selected is skipped
- * entirely.
+ * appended to the target first and cut from the source second, and the cut
+ * re-verifies the whole source against the pre-append snapshot. A file that
+ * changed in the window keeps its lines (leaving a duplicate to clean up);
+ * a task whose line no longer matches what was selected is skipped entirely.
+ * Every landed and cut line becomes a journal record.
  */
-export const moveTasksToProject = async (
+const relocateTaskBlocks = async (
   app: App,
   tasks: TaskflowTask[],
-  projectPath: string,
-  targetHeading: string,
-): Promise<MoveResult> => {
-  const projectFile = app.vault.getAbstractFileByPath(projectPath)
-  if (!(projectFile instanceof TFile)) {
-    new Notice(`Taskflow: project note not found: ${projectPath}`)
-    return {moved: 0, entry: null}
-  }
-
+  targetFile: TFile,
+  heading: string,
+  createMissing: boolean,
+): Promise<RelocateOutcome> => {
   const byFile = new Map<string, TaskflowTask[]>()
   let skipped = 0
   for (const task of tasks) {
-    if (task.filePath === projectPath) {
-      skipped++
-      continue
-    }
-    byFile.set(task.filePath, [...(byFile.get(task.filePath) ?? []), task])
-  }
-
-  let moved = 0
-  let duplicated = 0
-  const records: LineRecord[] = []
-  for (const [path, fileTasks] of [...byFile.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-    const file = app.vault.getAbstractFileByPath(path)
-    if (!(file instanceof TFile)) {
-      skipped += fileTasks.length
-      continue
-    }
-
-    const snapshotLines = (await app.vault.read(file)).split('\n')
-    const valid = fileTasks.filter(t => snapshotLines[t.line] === t.originalMarkdown)
-    skipped += fileTasks.length - valid.length
-    if (valid.length === 0) continue
-
-    const {blocks, removedLines} = cutTaskBlocks(
-      snapshotLines,
-      valid.map(t => t.line),
-      relationsFromLines(snapshotLines),
-    )
-
-    await app.vault.process(projectFile, data => {
-      const inserted = insertUnderHeadingAt(data.split('\n'), targetHeading, blocks)
-      if (!inserted) return data
-      inserted.inserted.forEach((text, i) =>
-        records.push({kind: 'insert', file: projectPath, line: inserted.insertAt + i, text}),
-      )
-      return inserted.lines.join('\n')
-    })
-
-    let cut = false
-    await app.vault.process(file, data => {
-      const lines = data.split('\n')
-      if (
-        lines.length !== snapshotLines.length ||
-        lines.some((line, i) => line !== snapshotLines[i])
-      ) {
-        return data
-      }
-      cut = true
-      return cutTaskBlocks(lines, valid.map(t => t.line), relationsFromLines(lines))
-        .remaining.join('\n')
-    })
-    if (cut) {
-      moved += blocks.length
-      for (const line of removedLines) {
-        records.push({kind: 'remove', file: path, line, text: snapshotLines[line]})
-      }
-    } else {
-      duplicated += blocks.length
-    }
-  }
-
-  if (duplicated > 0) {
-    new Notice(
-      `Taskflow: ${duplicated} task${duplicated === 1 ? '' : 's'} copied but not cut — the source note changed mid-move; remove the originals by hand`,
-    )
-  }
-  if (skipped > 0) {
-    new Notice(
-      `Taskflow: ${skipped} task${skipped === 1 ? '' : 's'} not moved (changed since selection, or already in the target note)`,
-    )
-  }
-  const total = moved + duplicated
-  const projectName = (projectPath.split('/').pop() ?? projectPath).replace(/\.md$/, '')
-  return {
-    moved: total,
-    entry:
-      records.length > 0
-        ? {label: `moved ${plural(total)} to ${projectName}`, records}
-        : null,
-  }
-}
-
-/**
- * Today's daily note path, resolved the way the Daily Notes core plugin does:
- * its configured folder and moment format (which may contain subfolders).
- */
-export const todayDailyNotePath = (app: App): string => {
-  const internal = (
-    app as unknown as {
-      internalPlugins?: {
-        getPluginById?: (id: string) => {instance?: {options?: {folder?: string; format?: string}}} | null
-      }
-    }
-  ).internalPlugins?.getPluginById?.('daily-notes')
-  const options = internal?.instance?.options ?? {}
-  const folder = (options.folder ?? '').replace(/\/$/, '')
-  const name = moment().format(options.format || 'YYYY-MM-DD')
-  return `${folder ? folder + '/' : ''}${name}.md`
-}
-
-/**
- * The inverse of moveTasksToProject: cut backlog tasks (with their subtask
- * children) out of their project notes and append them under today's daily
- * note's inbox heading — back into triage. Refuses when today's note or its
- * inbox heading is missing: the panel edits task lines only, it never creates
- * or restructures notes. Same duplicate-safe append-then-cut ordering.
- */
-export const sendTasksBackToInbox = async (
-  app: App,
-  tasks: TaskflowTask[],
-  inboxHeading: string,
-): Promise<MoveResult> => {
-  const dailyPath = todayDailyNotePath(app)
-  const dailyFile = app.vault.getAbstractFileByPath(dailyPath)
-  if (!(dailyFile instanceof TFile)) {
-    new Notice(`Taskflow: today's daily note not found (${dailyPath}) — create it first`)
-    return {moved: 0, entry: null}
-  }
-
-  const byFile = new Map<string, TaskflowTask[]>()
-  let skipped = 0
-  for (const task of tasks) {
-    if (task.filePath === dailyPath) {
+    if (task.filePath === targetFile.path) {
       skipped++
       continue
     }
@@ -189,19 +71,17 @@ export const sendTasksBackToInbox = async (
     )
 
     let appended = false
-    await app.vault.process(dailyFile, data => {
-      const inserted = insertUnderHeadingAt(data.split('\n'), inboxHeading, blocks, {
-        createMissing: false,
-      })
-      if (!inserted) {
+    await app.vault.process(targetFile, data => {
+      const insertion = insertUnderHeadingAt(data.split('\n'), heading, blocks, {createMissing})
+      if (!insertion) {
         headingMissing = true
         return data
       }
       appended = true
-      inserted.inserted.forEach((text, i) =>
-        records.push({kind: 'insert', file: dailyPath, line: inserted.insertAt + i, text}),
+      insertion.inserted.forEach((text, i) =>
+        records.push({kind: 'insert', file: targetFile.path, line: insertion.insertAt + i, text}),
       )
-      return inserted.lines.join('\n')
+      return insertion.lines.join('\n')
     })
     if (!appended) break
 
@@ -228,24 +108,103 @@ export const sendTasksBackToInbox = async (
     }
   }
 
-  if (headingMissing) {
+  return {moved, duplicated, skipped, headingMissing, records}
+}
+
+const toEntry = (label: string, records: LineRecord[]): JournalEntry | null =>
+  records.length > 0 ? {label, records} : null
+
+/** Move to project (CONTEXT.md): triage's filing edit, and drag's project drop. */
+export const moveTasksToProject = async (
+  app: App,
+  tasks: TaskflowTask[],
+  projectPath: string,
+  targetHeading: string,
+): Promise<MoveResult> => {
+  const projectFile = app.vault.getAbstractFileByPath(projectPath)
+  if (!(projectFile instanceof TFile)) {
+    new Notice(`Taskflow: project note not found: ${projectPath}`)
+    return {moved: 0, entry: null}
+  }
+
+  const outcome = await relocateTaskBlocks(app, tasks, projectFile, targetHeading, true)
+
+  if (outcome.duplicated > 0) {
+    new Notice(
+      `Taskflow: ${plural(outcome.duplicated)} copied but not cut — the source note changed mid-move; remove the originals by hand`,
+    )
+  }
+  if (outcome.skipped > 0) {
+    new Notice(
+      `Taskflow: ${plural(outcome.skipped)} not moved (changed since selection, or already in the target note)`,
+    )
+  }
+  const total = outcome.moved + outcome.duplicated
+  const projectName = (projectPath.split('/').pop() ?? projectPath).replace(/\.md$/, '')
+  return {
+    moved: total,
+    entry: toEntry(`moved ${plural(total)} to ${projectName}`, outcome.records),
+  }
+}
+
+/**
+ * Today's daily note path, resolved the way the Daily Notes core plugin does:
+ * its configured folder and moment format (which may contain subfolders).
+ * The one walk into Obsidian's private internals lives here.
+ */
+export const todayDailyNotePath = (app: App): string => {
+  const internal = (
+    app as unknown as {
+      internalPlugins?: {
+        getPluginById?: (id: string) => {instance?: {options?: {folder?: string; format?: string}}} | null
+      }
+    }
+  ).internalPlugins?.getPluginById?.('daily-notes')
+  const options = internal?.instance?.options ?? {}
+  const folder = (options.folder ?? '').replace(/\/$/, '')
+  const name = moment().format(options.format || 'YYYY-MM-DD')
+  return `${folder ? folder + '/' : ''}${name}.md`
+}
+
+/**
+ * The inverse of moveTasksToProject: backlog tasks return to today's daily
+ * note under the inbox heading — back into triage. Refuses when today's note
+ * or its inbox heading is missing: the panel edits task lines only, it never
+ * creates or restructures notes.
+ */
+export const sendTasksBackToInbox = async (
+  app: App,
+  tasks: TaskflowTask[],
+  inboxHeading: string,
+): Promise<MoveResult> => {
+  const dailyPath = todayDailyNotePath(app)
+  const dailyFile = app.vault.getAbstractFileByPath(dailyPath)
+  if (!(dailyFile instanceof TFile)) {
+    new Notice(`Taskflow: today's daily note not found (${dailyPath}) — create it first`)
+    return {moved: 0, entry: null}
+  }
+
+  const outcome = await relocateTaskBlocks(app, tasks, dailyFile, inboxHeading, false)
+
+  if (outcome.headingMissing) {
     new Notice(
       `Taskflow: no "${inboxHeading}" heading in today's daily note — nothing sent back`,
     )
   }
-  if (duplicated > 0) {
+  if (outcome.duplicated > 0) {
     new Notice(
-      `Taskflow: ${plural(duplicated)} copied but not cut — the project note changed mid-move; remove the originals by hand`,
+      `Taskflow: ${plural(outcome.duplicated)} copied but not cut — the project note changed mid-move; remove the originals by hand`,
     )
   }
-  if (skipped > 0) {
-    new Notice(`Taskflow: ${plural(skipped)} not sent back (changed since, or already in today's note)`)
+  if (outcome.skipped > 0) {
+    new Notice(
+      `Taskflow: ${plural(outcome.skipped)} not sent back (changed since, or already in today's note)`,
+    )
   }
-  const total = moved + duplicated
+  const total = outcome.moved + outcome.duplicated
   return {
     moved: total,
-    entry:
-      records.length > 0 ? {label: `sent ${plural(total)} back to inbox`, records} : null,
+    entry: toEntry(`sent ${plural(total)} back to inbox`, outcome.records),
   }
 }
 

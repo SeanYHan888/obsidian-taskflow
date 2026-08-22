@@ -46,7 +46,9 @@ export const dropIntent = (
   if (target.key === 'upcoming') return {kind: 'ask-date'}
   if (target.key === 'inbox') {
     if (inFolder(task.filePath, config.projectsFolder)) return {kind: 'send-back-to-inbox'}
-    if (task.scheduled != null || task.due != null) return {kind: 'remove-date'}
+    // Only ⏳ can be withdrawn — 📅 is read, never written, so a due-only
+    // task has nothing the Inbox drop could edit.
+    if (task.scheduled != null) return {kind: 'remove-date'}
   }
   return {kind: 'none'}
 }

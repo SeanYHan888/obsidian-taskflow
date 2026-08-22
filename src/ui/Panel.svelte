@@ -1,6 +1,7 @@
 <script lang="ts">
   import Section from './Section.svelte'
   import TaskRow from './TaskRow.svelte'
+  import {dropIntent} from '../core/drop'
   import {countTaskTree, flattenTaskTree, locationKey} from '../core/hierarchy'
 
   import type {DropTarget} from '../core/drop'
@@ -19,6 +20,7 @@
     draggable: false,
     sourceLabels: {},
     appleSyncPath: '',
+    projectsFolder: '',
   })
 
   let selecting = $state(false)
@@ -31,6 +33,14 @@
     callbacks.onDrop(dragTask, target, ev)
     dragTask = null
   }
+
+  // Story 16: only targets whose drop would actually do something light up.
+  const dropValid = (target: DropTarget): boolean =>
+    dragTask != null &&
+    dropIntent(dragTask, target, {
+      appleSyncPath: data.appleSyncPath,
+      projectsFolder: data.projectsFolder,
+    }).kind !== 'none'
 
   export const update = (next: PanelData) => {
     data = next
@@ -100,7 +110,7 @@
       collapsed={data.collapsed.today ?? false}
       emptyText="Nothing committed yet — pick 1–3 from a now project"
       onCollapse={callbacks.onCollapse}
-      dragActive={dragTask != null}
+      dragActive={dropValid({kind: 'section', key: 'today'})}
       onDropTask={dropOn({kind: 'section', key: 'today'})}
     >
       {#each data.sections.today as task (locationKey(task.filePath, task.line))}
@@ -120,7 +130,7 @@
         if (!selecting) selectedKeys = new Set()
       }}
       onCollapse={callbacks.onCollapse}
-      dragActive={dragTask != null}
+      dragActive={dropValid({kind: 'section', key: 'inbox'})}
       onDropTask={dropOn({kind: 'section', key: 'inbox'})}
     >
       {#each data.sections.inbox as task (locationKey(task.filePath, task.line))}
@@ -175,7 +185,7 @@
       collapsed={data.collapsed.upcoming ?? true}
       emptyText="Nothing scheduled ahead"
       onCollapse={callbacks.onCollapse}
-      dragActive={dragTask != null}
+      dragActive={dropValid({kind: 'section', key: 'upcoming'})}
       onDropTask={dropOn({kind: 'section', key: 'upcoming'})}
     >
       {#each data.sections.upcoming as task (locationKey(task.filePath, task.line))}
@@ -198,11 +208,11 @@
         <div class="taskflow-project">
           <div
             class="taskflow-project-header"
-            class:taskflow-drop-ready={dragTask != null && dragTask.filePath !== group.project.path}
+            class:taskflow-drop-ready={dropValid({kind: 'project', path: group.project.path})}
             class:taskflow-drop-over={dragOverProject === group.project.path}
             role="presentation"
             ondragover={ev => {
-              if (!dragTask || dragTask.filePath === group.project.path) return
+              if (!dropValid({kind: 'project', path: group.project.path})) return
               ev.preventDefault()
               dragOverProject = group.project.path
             }}

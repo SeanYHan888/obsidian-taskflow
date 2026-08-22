@@ -1,6 +1,6 @@
 # Taskflow
 
-The sidebar panel that projects the vault's daily-note → project task workflow into four sections. Every task lives in exactly one markdown file; every view (this panel included) is a projection. Taskflow is the reminder; Day Planner is the calendar — time blocks are never Taskflow's business.
+The sidebar panel that projects the vault's daily-note → project task workflow into five sections. Every task lives in exactly one markdown file; every view (this panel included) is a projection. Taskflow is the reminder; Day Planner is the calendar — time blocks are never Taskflow's business.
 
 ## Language
 
@@ -39,6 +39,10 @@ Open tasks due before today, or scheduled before today outside the Apple Sync no
 **Inbox**:
 Undated open tasks under a daily note's `# Inbox` heading. A triage queue: give each task a date, a project, or a cancellation. Checkboxes under other headings are not Taskflow's business.
 _Avoid_: capture list, unsorted
+
+**Upcoming**:
+Open tasks dated later than today, outside the projects folder — visible while they wait, so scheduling ahead never makes a task disappear. Collapsed by default.
+_Avoid_: scheduled (as a section name — ⏳ is the field, Upcoming is the projection)
 
 **Backlog**:
 The open tasks in one project's note. Grouped by project in the panel's fourth section.

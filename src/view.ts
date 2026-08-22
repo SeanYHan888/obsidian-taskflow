@@ -128,6 +128,7 @@ export class TaskflowView extends ItemView {
         draggable: Platform.isDesktop,
         sourceLabels: {},
         appleSyncPath: settings.appleSyncPath,
+        projectsFolder: settings.projectsFolder,
       })
       return
     }
@@ -162,6 +163,7 @@ export class TaskflowView extends ItemView {
       draggable: Platform.isDesktop,
       sourceLabels,
       appleSyncPath: settings.appleSyncPath,
+      projectsFolder: settings.projectsFolder,
     })
   }
 
