@@ -1,6 +1,6 @@
 # Taskflow
 
-The sidebar panel that projects the vault's daily-note → project task workflow into five sections. Every task lives in exactly one markdown file; every view (this panel included) is a projection. Taskflow is the reminder; Day Planner is the calendar — time blocks are never Taskflow's business.
+The sidebar panel that projects the vault's daily-note → project task workflow into four sections. Every task lives in exactly one markdown file; every view (this panel included) is a projection. Taskflow is the reminder; Day Planner is the calendar — time blocks are never Taskflow's business.
 
 ## Language
 
@@ -30,14 +30,14 @@ A task whose due date has passed. Always a debt, even in the Apple Sync note.
 ### Sections (the panel's projections)
 
 **To-do**:
-The panel's first section: open tasks scheduled or due today. Nothing from the past, and no calendar blocks — the Apple Sync note's Calendar section never appears here. The execution surface.
-_Avoid_: Today (renamed 2026-08-22; the underlying rule — dated today — is unchanged)
+The panel's first section: open tasks scheduled or due today, followed by the undated inbox captures. Nothing from the past, and no calendar blocks — the Apple Sync note's Calendar section never appears here. The execution surface and the triage queue, one working list (merged 2026-08-22).
+_Avoid_: Today (renamed 2026-08-22; the dated-today rule is unchanged)
 
 **Overdue & slipped**:
 Open tasks due before today, or scheduled before today outside the Apple Sync note. A repair queue: reschedule, complete, or cancel.
 
 **Inbox**:
-Undated open tasks under a daily note's `# Inbox` heading. A triage queue: give each task a date, a project, or a cancellation. Checkboxes under other headings are not Taskflow's business.
+Undated open tasks under a daily note's `# Inbox` heading, rendered at the tail of the To-do section. A triage queue: give each task a date, a project, or a cancellation. Checkboxes under other headings are not Taskflow's business.
 _Avoid_: capture list, unsorted
 
 **Upcoming**:

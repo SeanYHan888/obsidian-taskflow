@@ -22,6 +22,8 @@ export type DropIntent =
 export type DropConfig = {
   appleSyncPath: string
   projectsFolder: string
+  /** ISO date injected by the caller — core never reads the clock. */
+  today: string
 }
 
 type DroppedTask = {
@@ -42,13 +44,13 @@ export const dropIntent = (
     return {kind: 'move-to-project', path: target.path}
   }
 
-  if (target.key === 'today') return {kind: 'schedule-today'}
-  if (target.key === 'upcoming') return {kind: 'ask-date'}
-  if (target.key === 'inbox') {
-    if (inFolder(task.filePath, config.projectsFolder)) return {kind: 'send-back-to-inbox'}
-    // Only ⏳ can be withdrawn — 📅 is read, never written, so a due-only
-    // task has nothing the Inbox drop could edit.
-    if (task.scheduled != null) return {kind: 'remove-date'}
+  if (target.key === 'today') {
+    // A task already dated today lives in To-do — nothing to stamp.
+    if (task.scheduled === config.today || task.due === config.today) return {kind: 'none'}
+    return {kind: 'schedule-today'}
   }
+  if (target.key === 'upcoming') return {kind: 'ask-date'}
+  // Capture renders inside To-do (2026-08-22 merge), so the Inbox key has no
+  // header to drop on; remove-date and send-back-to-inbox live in the menu.
   return {kind: 'none'}
 }

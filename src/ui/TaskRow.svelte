@@ -28,8 +28,12 @@
   } = $props()
 
   // The structural ADR-0003 guard: Apple Sync tasks get check-off only,
-  // regardless of which section rendered this row.
+  // regardless of which section rendered this row — including select mode,
+  // which the merged To-do section now extends over its reminders.
   const canSchedule = $derived(task.filePath !== ctx.appleSyncPath && !selectMode)
+  const selectable = $derived(
+    selectMode && onToggleSelect != null && task.filePath !== ctx.appleSyncPath,
+  )
   // Apple Sync rows refuse to lift — the same structural guard as canSchedule.
   const rowDraggable = $derived(
     ctx.draggable && !selectMode && task.filePath !== ctx.appleSyncPath,
@@ -57,7 +61,7 @@
   }}
   ondragend={() => ctx.onDragEnd()}
 >
-  {#if selectMode && onToggleSelect}
+  {#if selectable && onToggleSelect}
     <button
       class="taskflow-select-box"
       class:taskflow-selected={selected}
@@ -76,7 +80,7 @@
   <button
     class="taskflow-text"
     onclick={() =>
-      selectMode && onToggleSelect ? onToggleSelect(task) : ctx.callbacks.onOpenTask(task)}
+      selectable && onToggleSelect ? onToggleSelect(task) : ctx.callbacks.onOpenTask(task)}
   >
     <span class="taskflow-desc">{task.description}</span>
     {#if showSource}

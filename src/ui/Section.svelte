@@ -40,24 +40,37 @@
   const droppable = $derived(dragActive && onDropTask != null)
 </script>
 
-<section class="taskflow-section">
+<!-- The whole section catches drops, not just the header line — a drop
+     anywhere over the section means the same thing. -->
+<section
+  class="taskflow-section"
+  role={droppable ? 'region' : undefined}
+  ondragenter={ev => {
+    if (droppable) ev.preventDefault()
+  }}
+  ondragover={ev => {
+    if (!droppable) return
+    ev.preventDefault()
+    dragOver = true
+  }}
+  ondragleave={ev => {
+    if (ev.currentTarget instanceof Node && ev.relatedTarget instanceof Node) {
+      if (ev.currentTarget.contains(ev.relatedTarget)) return
+    }
+    dragOver = false
+  }}
+  ondrop={ev => {
+    if (!droppable) return
+    ev.preventDefault()
+    dragOver = false
+    onDropTask?.(ev)
+  }}
+>
   <button
     class="taskflow-section-header"
     class:taskflow-drop-ready={droppable}
     class:taskflow-drop-over={droppable && dragOver}
     onclick={() => onCollapse(key, !collapsed)}
-    ondragover={ev => {
-      if (!droppable) return
-      ev.preventDefault()
-      dragOver = true
-    }}
-    ondragleave={() => (dragOver = false)}
-    ondrop={ev => {
-      if (!droppable) return
-      ev.preventDefault()
-      dragOver = false
-      onDropTask?.(ev)
-    }}
   >
     <span class="taskflow-collapse-icon" class:taskflow-collapsed={collapsed}>›</span>
     <span class="taskflow-section-title">{title}</span>

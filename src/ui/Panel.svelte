@@ -40,21 +40,26 @@
     dropIntent(dragTask, target, {
       appleSyncPath: data.appleSyncPath,
       projectsFolder: data.projectsFolder,
+      today: data.today,
     }).kind !== 'none'
 
   export const update = (next: PanelData) => {
     data = next
     const valid = new Set(
-      flattenTaskTree(next.sections?.inbox ?? []).map(t => locationKey(t.filePath, t.line)),
+      [
+        ...flattenTaskTree(next.sections?.today ?? []),
+        ...flattenTaskTree(next.sections?.inbox ?? []),
+      ].map(t => locationKey(t.filePath, t.line)),
     )
     selectedKeys = new Set([...selectedKeys].filter(k => valid.has(k)))
   }
 
   const selectedTasks = $derived(
     data.sections
-      ? flattenTaskTree(data.sections.inbox).filter(t =>
-          selectedKeys.has(locationKey(t.filePath, t.line)),
-        )
+      ? [
+          ...flattenTaskTree(data.sections.today),
+          ...flattenTaskTree(data.sections.inbox),
+        ].filter(t => selectedKeys.has(locationKey(t.filePath, t.line)))
       : [],
   )
 
@@ -106,33 +111,27 @@
     <Section
       title="To-do"
       key="today"
-      count={counts.today}
+      count={counts.today + counts.inbox}
       collapsed={data.collapsed.today ?? false}
-      emptyText="Nothing committed yet — pick 1–3 from a now project"
-      onCollapse={callbacks.onCollapse}
-      dragActive={dropValid({kind: 'section', key: 'today'})}
-      onDropTask={dropOn({kind: 'section', key: 'today'})}
-    >
-      {#each data.sections.today as task (locationKey(task.filePath, task.line))}
-        <TaskRow {task} {ctx} />
-      {/each}
-    </Section>
-
-    <Section
-      title="Inbox"
-      key="inbox"
-      count={counts.inbox}
-      collapsed={data.collapsed.inbox ?? false}
-      emptyText="Inbox zero"
+      emptyText="Nothing to do — capture in today's note or pull from a project"
       actionLabel={selecting ? 'done' : 'select'}
       onAction={() => {
         selecting = !selecting
         if (!selecting) selectedKeys = new Set()
       }}
       onCollapse={callbacks.onCollapse}
-      dragActive={dropValid({kind: 'section', key: 'inbox'})}
-      onDropTask={dropOn({kind: 'section', key: 'inbox'})}
+      dragActive={dropValid({kind: 'section', key: 'today'})}
+      onDropTask={dropOn({kind: 'section', key: 'today'})}
     >
+      {#each data.sections.today as task (locationKey(task.filePath, task.line))}
+        <TaskRow
+          {task}
+          {ctx}
+          selectMode={selecting}
+          {selectedKeys}
+          onToggleSelect={toggleSelect}
+        />
+      {/each}
       {#each data.sections.inbox as task (locationKey(task.filePath, task.line))}
         <TaskRow
           {task}
@@ -205,25 +204,34 @@
     >
       {#each data.sections.projects as group (group.project.path)}
         {@const folded = data.collapsedProjects[group.project.path] ?? false}
-        <div class="taskflow-project">
+        <div
+          class="taskflow-project"
+          role="presentation"
+          ondragenter={ev => {
+            if (dropValid({kind: 'project', path: group.project.path})) ev.preventDefault()
+          }}
+          ondragover={ev => {
+            if (!dropValid({kind: 'project', path: group.project.path})) return
+            ev.preventDefault()
+            dragOverProject = group.project.path
+          }}
+          ondragleave={ev => {
+            if (ev.currentTarget instanceof Node && ev.relatedTarget instanceof Node) {
+              if (ev.currentTarget.contains(ev.relatedTarget)) return
+            }
+            if (dragOverProject === group.project.path) dragOverProject = null
+          }}
+          ondrop={ev => {
+            if (!dropValid({kind: 'project', path: group.project.path})) return
+            ev.preventDefault()
+            dragOverProject = null
+            dropOn({kind: 'project', path: group.project.path})(ev)
+          }}
+        >
           <div
             class="taskflow-project-header"
             class:taskflow-drop-ready={dropValid({kind: 'project', path: group.project.path})}
             class:taskflow-drop-over={dragOverProject === group.project.path}
-            role="presentation"
-            ondragover={ev => {
-              if (!dropValid({kind: 'project', path: group.project.path})) return
-              ev.preventDefault()
-              dragOverProject = group.project.path
-            }}
-            ondragleave={() => {
-              if (dragOverProject === group.project.path) dragOverProject = null
-            }}
-            ondrop={ev => {
-              ev.preventDefault()
-              dragOverProject = null
-              dropOn({kind: 'project', path: group.project.path})(ev)
-            }}
           >
             <button
               class="taskflow-project-fold"

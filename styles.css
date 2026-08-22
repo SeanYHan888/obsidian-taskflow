@@ -36,12 +36,23 @@
   color: var(--text-normal);
 }
 
+/* Type hierarchy: SECTION LABEL (small caps, muted) → Project name
+   (medium, bold) → task text (note-sized). Sections are labels, not
+   content — they whisper; projects and tasks carry the weight. */
+.taskflow-section-title {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: var(--font-ui-smaller, 12px);
+  font-weight: 600;
+}
+
 .taskflow-collapse-icon {
   display: inline-block;
   transform: rotate(90deg);
   transition: transform 0.12s ease;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1;
+  color: var(--text-faint);
 }
 
 .taskflow-collapse-icon.taskflow-collapsed {
@@ -208,7 +219,12 @@
 /* Project groups */
 
 .taskflow-project {
-  margin: 4px 0 8px;
+  margin: 6px 0 12px;
+}
+
+.taskflow-project-name {
+  font-size: var(--font-ui-medium, 15px);
+  font-weight: 600;
 }
 
 .taskflow-project-header {

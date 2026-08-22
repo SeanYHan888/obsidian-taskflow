@@ -218,6 +218,7 @@ export class TaskflowView extends ItemView {
     const intent = dropIntent(task, target, {
       appleSyncPath: settings.appleSyncPath,
       projectsFolder: settings.projectsFolder,
+      today: localToday(),
     })
     if (intent.kind === 'schedule-today') void this.reschedule([task], localToday())
     else if (intent.kind === 'remove-date') void this.unschedule([task])
@@ -262,8 +263,12 @@ export class TaskflowView extends ItemView {
     this.refresh()
   }
 
-  private bulkMove(tasks: TaskflowTask[]): void {
+  // The select UI already refuses Apple Sync rows; this filter is the
+  // structural backstop for the machine-rewritten note (ADR-0003).
+  private bulkMove(allTasks: TaskflowTask[]): void {
     const settings = this.plugin.settings
+    const tasks = allTasks.filter(t => t.filePath !== settings.appleSyncPath)
+    if (tasks.length === 0) return
     new ProjectPickerModal(this.app, readProjects(this.app, settings.projectsFolder), choice => {
       if (choice.kind === 'project') void this.moveTo(tasks, choice.project.path)
       else new NewProjectModal(this.app, name => void this.createAndMove(tasks, name)).open()

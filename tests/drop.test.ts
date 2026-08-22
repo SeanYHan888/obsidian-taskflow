@@ -7,6 +7,7 @@ import type {DropConfig} from '../src/core/drop'
 const CONFIG: DropConfig = {
   appleSyncPath: 'Indexes/System/Apple Sync.md',
   projectsFolder: 'Projects/Active',
+  today: '2026-08-22',
 }
 
 const dailyTask = (overrides: {scheduled?: string | null; due?: string | null} = {}) => ({
@@ -29,6 +30,17 @@ test('dropping on To-do means stamp ⏳ today', () => {
   )
 })
 
+test('a task already dated today has nothing to gain from the To-do drop', () => {
+  assert.deepEqual(
+    dropIntent(dailyTask({scheduled: '2026-08-22'}), {kind: 'section', key: 'today'}, CONFIG),
+    {kind: 'none'},
+  )
+  assert.deepEqual(
+    dropIntent(dailyTask({due: '2026-08-22'}), {kind: 'section', key: 'today'}, CONFIG),
+    {kind: 'none'},
+  )
+})
+
 test('dropping on a project header means move to that project', () => {
   assert.deepEqual(
     dropIntent(dailyTask(), {kind: 'project', path: 'Projects/Active/colm-paper.md'}, CONFIG),
@@ -43,23 +55,13 @@ test('dropping a task on its own project does nothing', () => {
   )
 })
 
-test('dropping a dated daily task on Inbox means remove the date', () => {
+test('the merged To-do section leaves the inbox key with no drop meaning', () => {
   assert.deepEqual(
-    dropIntent(dailyTask({scheduled: '2026-08-23'}), {kind: 'section', key: 'inbox'}, CONFIG),
-    {kind: 'remove-date'},
+    dropIntent(dailyTask({scheduled: '2026-08-25'}), {kind: 'section', key: 'inbox'}, CONFIG),
+    {kind: 'none'},
   )
-})
-
-test('dropping a backlog task on Inbox means send it back to triage', () => {
   assert.deepEqual(
     dropIntent(projectTask(), {kind: 'section', key: 'inbox'}, CONFIG),
-    {kind: 'send-back-to-inbox'},
-  )
-})
-
-test('dropping an undated inbox task on Inbox does nothing', () => {
-  assert.deepEqual(
-    dropIntent(dailyTask(), {kind: 'section', key: 'inbox'}, CONFIG),
     {kind: 'none'},
   )
 })
@@ -82,6 +84,15 @@ test('slipped and the projects section itself are not targets', () => {
   )
 })
 
+test('backlog tasks accept the time targets like any other row', () => {
+  assert.deepEqual(dropIntent(projectTask(), {kind: 'section', key: 'today'}, CONFIG), {
+    kind: 'schedule-today',
+  })
+  assert.deepEqual(dropIntent(projectTask(), {kind: 'section', key: 'upcoming'}, CONFIG), {
+    kind: 'ask-date',
+  })
+})
+
 test('apple sync tasks accept no drop at all', () => {
   const appleTask = {filePath: CONFIG.appleSyncPath, scheduled: null, due: '2026-08-25'}
   assert.deepEqual(dropIntent(appleTask, {kind: 'section', key: 'today'}, CONFIG), {
@@ -91,20 +102,4 @@ test('apple sync tasks accept no drop at all', () => {
     dropIntent(appleTask, {kind: 'project', path: 'Projects/Active/colm-paper.md'}, CONFIG),
     {kind: 'none'},
   )
-})
-
-test('a due-only task on Inbox is no target — 📅 is read, never written', () => {
-  assert.deepEqual(
-    dropIntent(dailyTask({due: '2026-08-25'}), {kind: 'section', key: 'inbox'}, CONFIG),
-    {kind: 'none'},
-  )
-})
-
-test('backlog tasks accept the time targets like any other row', () => {
-  assert.deepEqual(dropIntent(projectTask(), {kind: 'section', key: 'today'}, CONFIG), {
-    kind: 'schedule-today',
-  })
-  assert.deepEqual(dropIntent(projectTask(), {kind: 'section', key: 'upcoming'}, CONFIG), {
-    kind: 'ask-date',
-  })
 })
