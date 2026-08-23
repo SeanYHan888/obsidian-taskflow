@@ -1,4 +1,4 @@
-import {inFolder} from './classify'
+import {isMachineManaged} from './machine-note'
 
 /**
  * Drag and drop adds no write paths: a drop is a way of pointing at an edit
@@ -20,7 +20,8 @@ export type DropIntent =
   | {kind: 'none'}
 
 export type DropConfig = {
-  appleSyncPath: string
+  /** The machine-managed note (see core/machine-note.ts), or '' when none. */
+  machineNotePath: string
   projectsFolder: string
   /** ISO date injected by the caller — core never reads the clock. */
   today: string
@@ -37,7 +38,7 @@ export const dropIntent = (
   target: DropTarget,
   config: DropConfig,
 ): DropIntent => {
-  if (task.filePath === config.appleSyncPath) return {kind: 'none'}
+  if (isMachineManaged(task.filePath, config)) return {kind: 'none'}
 
   if (target.kind === 'project') {
     if (task.filePath === target.path) return {kind: 'none'}

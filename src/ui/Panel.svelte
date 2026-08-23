@@ -20,7 +20,7 @@
     collapsedProjects: {},
     draggable: false,
     sourceLabels: {},
-    appleSyncPath: '',
+    machineNotePath: '',
     projectsFolder: '',
   })
 
@@ -39,7 +39,7 @@
   const dropValid = (target: DropTarget): boolean =>
     dragTask != null &&
     dropIntent(dragTask, target, {
-      appleSyncPath: data.appleSyncPath,
+      machineNotePath: data.machineNotePath,
       projectsFolder: data.projectsFolder,
       today: data.today,
     }).kind !== 'none'
@@ -100,7 +100,7 @@
   const ctx: RowContext = $derived({
     today: data.today,
     sourceLabels: data.sourceLabels,
-    appleSyncPath: data.appleSyncPath,
+    machineNotePath: data.machineNotePath,
     draggable: data.draggable,
     onDragStart: (task: TaskflowTask) => (dragTask = task),
     onDragEnd: () => {

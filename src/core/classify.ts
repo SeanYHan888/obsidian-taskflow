@@ -1,4 +1,5 @@
 import {buildTaskTree} from './hierarchy'
+import {isCalendarBlock} from './machine-note'
 
 import type {ClassifyConfig, ProjectMeta, Sections, TaskflowTask} from './types'
 
@@ -26,9 +27,6 @@ export const classifySections = (
   projects: ProjectMeta[],
   config: ClassifyConfig,
 ): Sections => {
-  const isCalendarBlock = (t: TaskflowTask) =>
-    t.filePath === config.appleSyncPath && t.scheduled != null
-
   const isEventsBlock = (t: TaskflowTask) =>
     inFolder(t.filePath, config.dailyNotesFolder) &&
     t.heading != null &&
@@ -38,7 +36,7 @@ export const classifySections = (
     t =>
       t.open &&
       t.description.trim() !== '' &&
-      !isCalendarBlock(t) &&
+      !isCalendarBlock(t, config) &&
       !isEventsBlock(t),
   )
 

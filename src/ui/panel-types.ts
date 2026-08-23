@@ -15,8 +15,8 @@ export type PanelData = {
   draggable: boolean
   /** filePath → label shown next to a task (project name or daily-note day). */
   sourceLabels: Record<string, string>
-  /** Tasks here get check-off only — the note is machine-rewritten (ADR-0003). */
-  appleSyncPath: string
+  /** Machine-managed rows get check-off only (core/machine-note.ts, ADR-0003). */
+  machineNotePath: string
   /** Membership is location (CONTEXT.md); drop validity needs it too. */
   projectsFolder: string
 }
@@ -25,7 +25,7 @@ export type PanelData = {
 export type RowContext = {
   today: string
   sourceLabels: Record<string, string>
-  appleSyncPath: string
+  machineNotePath: string
   /** Desktop drag: rows lift, headers catch. The drag state lives in the panel. */
   draggable: boolean
   onDragStart: (task: TaskflowTask) => void

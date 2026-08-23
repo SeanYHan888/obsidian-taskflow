@@ -5,7 +5,7 @@ import {dropIntent} from '../src/core/drop'
 import type {DropConfig} from '../src/core/drop'
 
 const CONFIG: DropConfig = {
-  appleSyncPath: 'Indexes/System/Apple Sync.md',
+  machineNotePath: 'Indexes/System/Apple Sync.md',
   projectsFolder: 'Projects/Active',
   today: '2026-08-22',
 }
@@ -94,7 +94,7 @@ test('backlog tasks accept the time targets like any other row', () => {
 })
 
 test('apple sync tasks accept no drop at all', () => {
-  const appleTask = {filePath: CONFIG.appleSyncPath, scheduled: null, due: '2026-08-25'}
+  const appleTask = {filePath: CONFIG.machineNotePath, scheduled: null, due: '2026-08-25'}
   assert.deepEqual(dropIntent(appleTask, {kind: 'section', key: 'today'}, CONFIG), {
     kind: 'none',
   })

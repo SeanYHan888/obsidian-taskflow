@@ -37,7 +37,8 @@ export type ClassifyConfig = {
   today: string
   dailyNotesFolder: string
   projectsFolder: string
-  appleSyncPath: string
+  /** The machine-managed note (see core/machine-note.ts), or '' when none. */
+  machineNotePath: string
   /** Heading text without `#` marks; capture outside it is not Taskflow's business. */
   inboxHeading: string
 }

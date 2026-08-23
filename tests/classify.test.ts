@@ -8,7 +8,7 @@ const CONFIG: ClassifyConfig = {
   today: '2026-08-21',
   dailyNotesFolder: 'Daily Notes',
   projectsFolder: 'Projects/Active',
-  appleSyncPath: 'Indexes/System/Apple Sync.md',
+  machineNotePath: 'Indexes/System/Apple Sync.md',
   inboxHeading: 'Inbox',
 }
 
@@ -73,13 +73,13 @@ test('apple sync reminders appear in today but its calendar blocks never do', ()
   const reminder = task({
     description: 'colm camera ready (Todo List)',
     due: '2026-08-21',
-    filePath: CONFIG.appleSyncPath,
+    filePath: CONFIG.machineNotePath,
     heading: 'Apple Reminders',
   })
   const calendarBlock = task({
     description: '09:00 - 10:00 tiktok oa (Personal)',
     scheduled: '2026-08-21',
-    filePath: CONFIG.appleSyncPath,
+    filePath: CONFIG.machineNotePath,
     heading: '2026-08-21',
   })
 
@@ -94,7 +94,7 @@ test('slipped holds past-dated tasks sorted by date, overdue reminders included'
   const overdueReminder = task({
     description: 'colm camera ready (Todo List)',
     due: '2026-08-20',
-    filePath: CONFIG.appleSyncPath,
+    filePath: CONFIG.machineNotePath,
     heading: 'Apple Reminders',
   })
   const slippedTwoDaysAgo = task({
@@ -121,7 +121,7 @@ test('a missed apple sync calendar block is not slipped', () => {
   const missedBlock = task({
     description: '[All day] Trash and recycling',
     scheduled: '2026-08-20',
-    filePath: CONFIG.appleSyncPath,
+    filePath: CONFIG.machineNotePath,
     heading: '2026-08-20',
   })
 
@@ -220,13 +220,13 @@ test('a future apple sync calendar block never reaches upcoming', () => {
   const futureBlock = task({
     description: '09:00 - 10:00 standup (Work)',
     scheduled: '2026-08-24',
-    filePath: CONFIG.appleSyncPath,
+    filePath: CONFIG.machineNotePath,
     heading: '2026-08-24',
   })
   const futureReminder = task({
     description: 'colm camera ready (Todo List)',
     due: '2026-08-24',
-    filePath: CONFIG.appleSyncPath,
+    filePath: CONFIG.machineNotePath,
     heading: 'Apple Reminders',
   })
 

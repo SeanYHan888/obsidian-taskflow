@@ -9,9 +9,11 @@ export type TaskflowSettings = {
   dailyNotesFolder: string
   projectsFolder: string
   archiveFolder: string
-  appleSyncPath: string
+  /** Optional: a note some sync tool rewrites (see core/machine-note.ts). '' = none. */
+  machineNotePath: string
   inboxHeading: string
   moveTargetHeading: string
+  /** Optional: '' falls back to the built-in project scaffold. */
   projectTemplatePath: string
   wipLimit: number
   collapsed: Partial<Record<SectionKey, boolean>>
@@ -23,14 +25,17 @@ export const DEFAULT_SETTINGS: TaskflowSettings = {
   dailyNotesFolder: 'Daily Notes',
   projectsFolder: 'Projects/Active',
   archiveFolder: 'Projects/Archive',
-  appleSyncPath: 'Indexes/System/Apple Sync.md',
+  machineNotePath: '',
   inboxHeading: 'Inbox',
   moveTargetHeading: 'Tasks',
-  projectTemplatePath: 'Templates/project.md',
+  projectTemplatePath: '',
   wipLimit: 3,
   collapsed: {},
   collapsedProjects: {},
 }
+
+/** Pre-rename key (was Apple-Sync-specific); migrated on load, never written back. */
+export type LegacySettings = {appleSyncPath?: string}
 
 export class TaskflowSettingTab extends PluginSettingTab {
   constructor(
@@ -48,6 +53,8 @@ export class TaskflowSettingTab extends PluginSettingTab {
       desc: string,
       key: {[K in keyof TaskflowSettings]: TaskflowSettings[K] extends string ? K : never}[keyof TaskflowSettings],
       placeholder: string,
+      /** Optional fields may be blanked; required ones fall back to the default. */
+      optional = false,
     ) =>
       new Setting(this.containerEl)
         .setName(name)
@@ -57,19 +64,21 @@ export class TaskflowSettingTab extends PluginSettingTab {
             .setPlaceholder(placeholder)
             .setValue(this.plugin.settings[key])
             .onChange(async value => {
-              await this.plugin.updateSettings({[key]: value.trim() || placeholder})
+              await this.plugin.updateSettings({
+                [key]: value.trim() || (optional ? '' : placeholder),
+              })
             }),
         )
 
     text(
       'Daily notes folder',
-      'Where capture happens. Inbox only reads notes under this folder.',
+      'Where capture happens. The inbox only reads notes under this folder.',
       'dailyNotesFolder',
       DEFAULT_SETTINGS.dailyNotesFolder,
     )
     text(
       'Projects folder',
-      'Notes here are projects; membership is location, status is frontmatter.',
+      'Notes in this folder are projects. A task belongs to a project because its line lives in that note.',
       'projectsFolder',
       DEFAULT_SETTINGS.projectsFolder,
     )
@@ -80,26 +89,28 @@ export class TaskflowSettingTab extends PluginSettingTab {
       DEFAULT_SETTINGS.archiveFolder,
     )
     text(
-      'Apple Sync note',
-      'Machine-written note: its reminders are shown, its calendar blocks are not.',
-      'appleSyncPath',
-      DEFAULT_SETTINGS.appleSyncPath,
+      'Machine-managed note',
+      'Optional. A note some sync tool rewrites on its own (for example an Apple Reminders sync). Its dated reminders appear; its scheduled time blocks do not; its rows allow check-off only. Leave blank if no tool owns a note.',
+      'machineNotePath',
+      'Sync/Reminders.md',
+      true,
     )
     text(
       'Inbox heading',
-      'Only tasks under this daily-note heading count as capture.',
+      'Only tasks under this daily-note heading count as capture. Plain text match — any language works.',
       'inboxHeading',
       DEFAULT_SETTINGS.inboxHeading,
     )
     text(
       'Project template',
-      'Note used by "New project…" during triage; {{title}} and {{date:YYYY-MM-DD}} are filled in.',
+      'Optional. Note used by "New project…"; {{title}} and {{date:YYYY-MM-DD}} are filled in. Leave blank to use a built-in scaffold.',
       'projectTemplatePath',
-      DEFAULT_SETTINGS.projectTemplatePath,
+      'Templates/project.md',
+      true,
     )
     text(
       'Move-target heading',
-      'Where moved tasks land in a project note (used by triage; configurable for kanban-converted projects).',
+      'Where moved tasks land in a project note. Configurable so a project note can double as a kanban board.',
       'moveTargetHeading',
       DEFAULT_SETTINGS.moveTargetHeading,
     )

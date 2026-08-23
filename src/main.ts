@@ -5,7 +5,7 @@ import {DEFAULT_SETTINGS, TaskflowSettingTab} from './settings'
 import {TASKFLOW_VIEW_TYPE, TaskflowView} from './view'
 
 import type {JournalEntry} from './core/journal'
-import type {TaskflowSettings} from './settings'
+import type {LegacySettings, TaskflowSettings} from './settings'
 
 const JOURNAL_DEPTH = 50
 
@@ -15,7 +15,12 @@ export default class TaskflowPlugin extends Plugin {
   private journal: JournalEntry[] = []
 
   async onload(): Promise<void> {
-    const loaded = (await this.loadData()) as Partial<TaskflowSettings> | null
+    const loaded = (await this.loadData()) as (Partial<TaskflowSettings> & LegacySettings) | null
+    // Existing installs keep their machine-managed note across the key rename.
+    if (loaded?.appleSyncPath != null && loaded.machineNotePath == null) {
+      loaded.machineNotePath = loaded.appleSyncPath
+    }
+    delete loaded?.appleSyncPath
     this.settings = {...DEFAULT_SETTINGS, ...loaded}
 
     this.registerView(TASKFLOW_VIEW_TYPE, leaf => new TaskflowView(leaf, this))

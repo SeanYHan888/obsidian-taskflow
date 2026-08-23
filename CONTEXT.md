@@ -76,5 +76,9 @@ Day Planner's section of the daily note — time blocks, not tasks. Taskflow nev
 **Daily note**:
 A note under `Daily Notes/` (pattern `YYYY/MM/MM-DD, ddd`). Where tasks are captured.
 
+**Machine-managed note**:
+The one configured note some external tool rewrites on its own schedule (optional; blank means the vault has none). Two rules follow from "machine-rewritten," both stated once in `core/machine-note.ts`: its ⏳-dated lines are calendar blocks and are never projected, and its rows are read-only in the panel except check-off. Any sync tool that owns a note fits.
+_Avoid_: Apple Sync path (as the concept's name — Apple Sync is one instance)
+
 **Apple Sync note**:
-`Indexes/System/Apple Sync.md`, machine-written every 15 minutes by apple-planner-sync. Its Reminders section (📅) is Taskflow's business; its Calendar section (⏳ time blocks) is Day Planner's world and is never projected. Check-off propagates back to Apple Reminders; any other edit gets clobbered on next sync.
+`Indexes/System/Apple Sync.md`, machine-written every 15 minutes by apple-planner-sync — the machine-managed note in Sean's vault. Its Reminders section (📅) is Taskflow's business; its Calendar section (⏳ time blocks) is Day Planner's world and is never projected. Check-off propagates back to Apple Reminders; any other edit gets clobbered on next sync.

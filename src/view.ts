@@ -8,6 +8,7 @@ import {NewProjectModal} from './ui/new-project-modal'
 import {ProjectPickerModal} from './ui/project-picker-modal'
 import {classifySections, inFolder} from './core/classify'
 import {dropIntent} from './core/drop'
+import {editableTasks} from './core/machine-note'
 import {flattenTaskTree} from './core/hierarchy'
 import {resolveQuickDate} from './core/schedule'
 import {getTasksPlugin, readTasks, toggleTask} from './adapters/tasks-plugin'
@@ -136,7 +137,7 @@ export class TaskflowView extends ItemView {
         collapsedProjects: settings.collapsedProjects,
         draggable: Platform.isDesktop,
         sourceLabels: {},
-        appleSyncPath: settings.appleSyncPath,
+        machineNotePath: settings.machineNotePath,
         projectsFolder: settings.projectsFolder,
       })
       return
@@ -148,17 +149,14 @@ export class TaskflowView extends ItemView {
       today,
       dailyNotesFolder: settings.dailyNotesFolder,
       projectsFolder: settings.projectsFolder,
-      appleSyncPath: settings.appleSyncPath,
+      machineNotePath: settings.machineNotePath,
       inboxHeading: settings.inboxHeading,
     })
 
     const sourceLabels: Record<string, string> = {}
     for (const task of tasks) {
       if (sourceLabels[task.filePath]) continue
-      sourceLabels[task.filePath] =
-        task.filePath === settings.appleSyncPath
-          ? 'Apple Sync'
-          : (task.filePath.split('/').pop() ?? '').replace(/\.md$/, '')
+      sourceLabels[task.filePath] = (task.filePath.split('/').pop() ?? '').replace(/\.md$/, '')
     }
 
     this.lastSections = sections
@@ -171,7 +169,7 @@ export class TaskflowView extends ItemView {
       collapsedProjects: settings.collapsedProjects,
       draggable: Platform.isDesktop,
       sourceLabels,
-      appleSyncPath: settings.appleSyncPath,
+      machineNotePath: settings.machineNotePath,
       projectsFolder: settings.projectsFolder,
     })
   }
@@ -231,7 +229,7 @@ export class TaskflowView extends ItemView {
   private handleDrop(task: TaskflowTask, target: DropTarget, ev: DragEvent): void {
     const settings = this.plugin.settings
     const intent = dropIntent(task, target, {
-      appleSyncPath: settings.appleSyncPath,
+      machineNotePath: settings.machineNotePath,
       projectsFolder: settings.projectsFolder,
       today: localToday(),
     })
@@ -392,11 +390,9 @@ export class TaskflowView extends ItemView {
     this.refresh()
   }
 
-  // The select UI already refuses Apple Sync rows; this filter is the
-  // structural backstop for the machine-rewritten note (ADR-0003).
   private bulkMove(allTasks: TaskflowTask[]): void {
     const settings = this.plugin.settings
-    const tasks = allTasks.filter(t => t.filePath !== settings.appleSyncPath)
+    const tasks = editableTasks(allTasks, settings)
     if (tasks.length === 0) return
     new ProjectPickerModal(this.app, readProjects(this.app, settings.projectsFolder), choice => {
       if (choice.kind === 'project') void this.moveTo(tasks, choice.project.path)
@@ -438,10 +434,7 @@ export class TaskflowView extends ItemView {
   // so anything that changed since the last refresh is skipped, not guessed at.
   private async rescheduleAllSlipped(): Promise<void> {
     if (!this.lastSections) return
-    const appleSyncPath = this.plugin.settings.appleSyncPath
-    const slipped = flattenTaskTree(this.lastSections.slipped).filter(
-      t => t.filePath !== appleSyncPath,
-    )
+    const slipped = editableTasks(flattenTaskTree(this.lastSections.slipped), this.plugin.settings)
     if (slipped.length === 0) return
     this.record(await rescheduleTasks(this.app, slipped, localToday()))
     this.refresh()

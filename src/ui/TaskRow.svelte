@@ -1,6 +1,7 @@
 <script lang="ts">
   import TaskRow from './TaskRow.svelte'
   import {locationKey} from '../core/hierarchy'
+  import {rowAffordances} from '../core/machine-note'
   import {chipLabel} from '../core/schedule'
 
   import type {TaskflowTask} from '../core/types'
@@ -28,24 +29,27 @@
     nested?: boolean
   } = $props()
 
-  // The structural ADR-0003 guard: Apple Sync tasks get check-off only,
-  // regardless of which section rendered this row — including select mode,
-  // which the merged To-do section now extends over its reminders.
-  const canSchedule = $derived(task.filePath !== ctx.appleSyncPath && !selectMode)
-  const selectable = $derived(
-    selectMode && onToggleSelect != null && task.filePath !== ctx.appleSyncPath,
+  // Core owns the read-only guard (machine-managed rows get check-off only,
+  // ADR-0003) and the chip past-ness boundaries — the row just renders them.
+  const aff = $derived(
+    rowAffordances(task, {
+      machineNotePath: ctx.machineNotePath,
+      today: ctx.today,
+      selectMode,
+      dragEnabled: ctx.draggable,
+    }),
   )
-  // Apple Sync rows refuse to lift — the same structural guard as canSchedule.
-  const rowDraggable = $derived(
-    ctx.draggable && !selectMode && task.filePath !== ctx.appleSyncPath,
-  )
+  const canSchedule = $derived(aff.canSchedule)
+  const selectable = $derived(aff.selectable && onToggleSelect != null)
+  const rowDraggable = $derived(aff.draggable)
   const selected = $derived(
     selectedKeys?.has(locationKey(task.filePath, task.line)) ?? false,
   )
 
   const chipText = (date: string) => chipLabel(date, ctx.today)
   const sourceLabel = $derived(
-    ctx.sourceLabels[task.filePath] ?? task.filePath.split('/').pop() ?? '',
+    ctx.sourceLabels[task.filePath] ??
+      (task.filePath.split('/').pop() ?? '').replace(/\.md$/, ''),
   )
 </script>
 
@@ -95,7 +99,7 @@
     {#if canSchedule}
       <button
         class="taskflow-chip taskflow-chip-button taskflow-chip-due"
-        class:taskflow-chip-past={task.due <= ctx.today}
+        class:taskflow-chip-past={aff.duePast}
         aria-label="Schedule task"
         onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
       >
@@ -104,7 +108,7 @@
     {:else}
       <span
         class="taskflow-chip taskflow-chip-due"
-        class:taskflow-chip-past={task.due <= ctx.today}
+        class:taskflow-chip-past={aff.duePast}
       >
         {chipText(task.due)}
       </span>
@@ -114,7 +118,7 @@
     {#if canSchedule}
       <button
         class="taskflow-chip taskflow-chip-button"
-        class:taskflow-chip-past={task.scheduled < ctx.today}
+        class:taskflow-chip-past={aff.scheduledPast}
         aria-label="Reschedule"
         onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
       >
@@ -123,7 +127,7 @@
     {:else}
       <span
         class="taskflow-chip"
-        class:taskflow-chip-past={task.scheduled < ctx.today}
+        class:taskflow-chip-past={aff.scheduledPast}
       >
         {chipText(task.scheduled)}
       </span>
