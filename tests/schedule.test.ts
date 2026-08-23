@@ -1,6 +1,6 @@
 import {assert, test} from 'vitest'
 
-import {cancelLine, clearScheduled, resolveQuickDate, setScheduled} from '../src/core/schedule'
+import {cancelLine, chipLabel, clearScheduled, resolveQuickDate, setScheduled} from '../src/core/schedule'
 
 test('setScheduled appends ⏳ to an undated line, touching nothing else', () => {
   assert.equal(
@@ -67,4 +67,10 @@ test('resolveQuickDate weekend means the coming Saturday, or today mid-weekend',
   assert.equal(resolveQuickDate('weekend', '2026-08-17'), '2026-08-22')
   assert.equal(resolveQuickDate('weekend', '2026-08-22'), '2026-08-22')
   assert.equal(resolveQuickDate('weekend', '2026-08-23'), '2026-08-23')
+})
+
+test('chipLabel says today for today and MM-DD for any other date', () => {
+  assert.equal(chipLabel('2026-08-21', '2026-08-21'), 'today')
+  assert.equal(chipLabel('2026-08-25', '2026-08-21'), '08-25')
+  assert.equal(chipLabel('2026-08-19', '2026-08-21'), '08-19')
 })

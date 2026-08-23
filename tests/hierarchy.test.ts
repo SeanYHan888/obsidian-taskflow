@@ -4,6 +4,8 @@ import {
   buildTaskTree,
   collectDescendantLineNumbers,
   countTaskTree,
+  flattenTaskTree,
+  locationKey,
 } from '../src/core/hierarchy'
 
 type TestTodo = {
@@ -66,4 +68,18 @@ test('collectDescendantLineNumbers follows nested list-item relationships', () =
     [...descendants].sort((a, b) => a - b),
     [10, 11, 12, 13],
   )
+})
+
+test('flattenTaskTree lists roots and descendants depth-first', () => {
+  const child = {filePath: 'a.md', line: 11, children: []}
+  const root = {filePath: 'a.md', line: 10, children: [child]}
+  const sibling = {filePath: 'a.md', line: 20, children: []}
+  assert.deepEqual(
+    flattenTaskTree([root, sibling]).map(item => item.line),
+    [10, 11, 20],
+  )
+})
+
+test('locationKey is the file path and line, colon-joined', () => {
+  assert.equal(locationKey('Projects/Active/a.md', 12), 'Projects/Active/a.md:12')
 })

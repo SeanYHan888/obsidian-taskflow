@@ -13,8 +13,6 @@ export type PanelData = {
   collapsedProjects: Record<string, boolean>
   /** Rows can be dragged to section and project headers (desktop only). */
   draggable: boolean
-  /** filePath → label shown next to a task (project name or daily-note day). */
-  sourceLabels: Record<string, string>
   /** Machine-managed rows get check-off only (core/machine-note.ts, ADR-0003). */
   machineNotePath: string
   /** Membership is location (CONTEXT.md); drop validity needs it too. */
@@ -24,7 +22,6 @@ export type PanelData = {
 /** Everything a task row needs regardless of which section rendered it. */
 export type RowContext = {
   today: string
-  sourceLabels: Record<string, string>
   machineNotePath: string
   /** Desktop drag: rows lift, headers catch. The drag state lives in the panel. */
   draggable: boolean
@@ -40,6 +37,8 @@ export type PanelCallbacks = {
   onOpenFile: (path: string, ev?: MouseEvent) => void
   onCollapse: (key: SectionKey, collapsed: boolean) => void
   onCollapseProject: (path: string, collapsed: boolean) => void
+  /** Header click: fold, or jump to the note when the open-modifier is held. */
+  onProjectToggle: (path: string, folded: boolean, ev: MouseEvent) => void
   /** Opens the quick-date menu (today / tomorrow / weekend / pick) at the event. */
   onScheduleMenu: (task: TaskflowTask, ev: MouseEvent) => void
   onSchedule: (task: TaskflowTask, kind: QuickDate) => void

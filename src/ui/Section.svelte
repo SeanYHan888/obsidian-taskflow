@@ -1,4 +1,6 @@
 <script lang="ts">
+  import {stillInside} from './dnd'
+
   import type {Snippet} from 'svelte'
   import type {SectionKey} from '../settings'
 
@@ -54,9 +56,7 @@
     dragOver = true
   }}
   ondragleave={ev => {
-    if (ev.currentTarget instanceof Node && ev.relatedTarget instanceof Node) {
-      if (ev.currentTarget.contains(ev.relatedTarget)) return
-    }
+    if (stillInside(ev)) return
     dragOver = false
   }}
   ondrop={ev => {

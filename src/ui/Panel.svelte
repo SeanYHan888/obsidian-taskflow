@@ -1,9 +1,11 @@
 <script lang="ts">
   import Section from './Section.svelte'
   import TaskRow from './TaskRow.svelte'
+  import {stillInside} from './dnd'
   import {dropIntent} from '../core/drop'
-  import {countTaskTree, flattenTaskTree, locationKey} from '../core/hierarchy'
+  import {countTaskTree, locationKey} from '../core/hierarchy'
   import {chipLabel} from '../core/schedule'
+  import {pruneSelection, sectionCounts, selectionTasks, wipBadge} from '../core/sections'
 
   import type {DropTarget} from '../core/drop'
   import type {TaskflowTask} from '../core/types'
@@ -19,7 +21,6 @@
     collapsed: {},
     collapsedProjects: {},
     draggable: false,
-    sourceLabels: {},
     machineNotePath: '',
     projectsFolder: '',
   })
@@ -44,34 +45,12 @@
       today: data.today,
     }).kind !== 'none'
 
-  /** Every task a selection can span: To-do, its inbox tail, and the backlogs. */
-  const selectableTasks = (sections: PanelData['sections']): TaskflowTask[] =>
-    sections
-      ? [
-          ...flattenTaskTree(sections.today),
-          ...flattenTaskTree(sections.inbox),
-          ...sections.projects.flatMap(g => flattenTaskTree(g.tasks)),
-        ]
-      : []
-
   export const update = (next: PanelData) => {
     data = next
-    const valid = new Set(
-      selectableTasks(next.sections).map(t => locationKey(t.filePath, t.line)),
-    )
-    selectedKeys = new Set([...selectedKeys].filter(k => valid.has(k)))
+    selectedKeys = pruneSelection(next.sections, selectedKeys)
   }
 
-  // A task dated today renders in both To-do and its project group; the Map
-  // keeps one per location so a bulk action never edits the same line twice.
-  const selectedTasks = $derived.by(() => {
-    const byKey = new Map<string, TaskflowTask>()
-    for (const t of selectableTasks(data.sections)) {
-      const key = locationKey(t.filePath, t.line)
-      if (selectedKeys.has(key) && !byKey.has(key)) byKey.set(key, t)
-    }
-    return [...byKey.values()]
-  })
+  const selectedTasks = $derived(selectionTasks(data.sections, selectedKeys))
 
   /** One select mode for the whole panel — either header's toggle drives it. */
   const toggleSelecting = () => {
@@ -87,19 +66,10 @@
     selectedKeys = next
   }
 
-  const counts = $derived({
-    today: data.sections ? countTaskTree(data.sections.today) : 0,
-    slipped: data.sections ? countTaskTree(data.sections.slipped) : 0,
-    upcoming: data.sections ? countTaskTree(data.sections.upcoming) : 0,
-    inbox: data.sections ? countTaskTree(data.sections.inbox) : 0,
-    projects: data.sections
-      ? data.sections.projects.reduce((sum, g) => sum + countTaskTree(g.tasks), 0)
-      : 0,
-  })
+  const counts = $derived(sectionCounts(data.sections))
 
   const ctx: RowContext = $derived({
     today: data.today,
-    sourceLabels: data.sourceLabels,
     machineNotePath: data.machineNotePath,
     draggable: data.draggable,
     onDragStart: (task: TaskflowTask) => (dragTask = task),
@@ -110,11 +80,7 @@
     callbacks,
   })
 
-  const wipBadge = $derived(
-    data.sections && data.sections.wipNowCount > 0
-      ? `now ${data.sections.wipNowCount}/${data.wipLimit}`
-      : null,
-  )
+  const wip = $derived(wipBadge(data.sections, data.wipLimit))
 </script>
 
 <div class="taskflow-panel">
@@ -193,8 +159,8 @@
       count={counts.projects}
       collapsed={data.collapsed.projects ?? false}
       emptyText="No open project tasks"
-      badge={wipBadge}
-      badgeDanger={data.sections.wipNowCount > data.wipLimit}
+      badge={wip?.label ?? null}
+      badgeDanger={wip?.danger ?? false}
       actionLabel={selecting ? 'done' : 'select'}
       onAction={toggleSelecting}
       onCollapse={callbacks.onCollapse}
@@ -213,9 +179,7 @@
             dragOverProject = group.project.path
           }}
           ondragleave={ev => {
-            if (ev.currentTarget instanceof Node && ev.relatedTarget instanceof Node) {
-              if (ev.currentTarget.contains(ev.relatedTarget)) return
-            }
+            if (stillInside(ev)) return
             if (dragOverProject === group.project.path) dragOverProject = null
           }}
           ondrop={ev => {
@@ -240,10 +204,7 @@
             <button
               class="taskflow-project-toggle"
               aria-expanded={!folded}
-              onclick={ev =>
-                ev.metaKey || ev.ctrlKey
-                  ? callbacks.onOpenFile(group.project.path, ev)
-                  : callbacks.onCollapseProject(group.project.path, !folded)}
+              onclick={ev => callbacks.onProjectToggle(group.project.path, folded, ev)}
               onauxclick={ev => {
                 if (ev.button === 1) callbacks.onOpenFile(group.project.path, ev)
               }}

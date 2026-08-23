@@ -6,11 +6,13 @@ import {ConfirmModal} from './ui/confirm-modal'
 import {PickDateModal} from './ui/pick-date-modal'
 import {NewProjectModal} from './ui/new-project-modal'
 import {ProjectPickerModal} from './ui/project-picker-modal'
-import {classifySections, inFolder} from './core/classify'
+import {classifySections} from './core/classify'
 import {dropIntent} from './core/drop'
-import {editableTasks} from './core/machine-note'
 import {flattenTaskTree} from './core/hierarchy'
+import {editableTasks} from './core/machine-note'
+import {projectMenuSpec, scheduleMenuSpec} from './core/menus'
 import {resolveQuickDate} from './core/schedule'
+import {retirePlan} from './core/sections'
 import {getTasksPlugin, readTasks, toggleTask} from './adapters/tasks-plugin'
 import {cancelTask, rescheduleTasks, unscheduleTasks} from './adapters/edit-lines'
 import {
@@ -28,6 +30,7 @@ import {
 import type {EventRef, WorkspaceLeaf} from 'obsidian'
 import type {DropTarget} from './core/drop'
 import type {JournalEntry} from './core/journal'
+import type {MenuAction, MenuItemSpec} from './core/menus'
 import type {QuickDate} from './core/schedule'
 import type {ProjectMeta, ProjectStatus, Sections, TaskflowTask} from './core/types'
 import type {PanelData} from './ui/panel-types'
@@ -81,6 +84,10 @@ export class TaskflowView extends ItemView {
             void this.setCollapsed(key, collapsed),
           onCollapseProject: (path: string, collapsed: boolean) =>
             void this.setProjectCollapsed(path, collapsed),
+          onProjectToggle: (path: string, folded: boolean, ev: MouseEvent) =>
+            Keymap.isModEvent(ev)
+              ? void this.openFile(path, undefined, ev)
+              : void this.setProjectCollapsed(path, !folded),
           onScheduleMenu: (task: TaskflowTask, ev: MouseEvent) =>
             this.showScheduleMenu([task], ev),
           onSchedule: (task: TaskflowTask, kind: QuickDate) =>
@@ -136,7 +143,6 @@ export class TaskflowView extends ItemView {
         collapsed: settings.collapsed,
         collapsedProjects: settings.collapsedProjects,
         draggable: Platform.isDesktop,
-        sourceLabels: {},
         machineNotePath: settings.machineNotePath,
         projectsFolder: settings.projectsFolder,
       })
@@ -153,12 +159,6 @@ export class TaskflowView extends ItemView {
       inboxHeading: settings.inboxHeading,
     })
 
-    const sourceLabels: Record<string, string> = {}
-    for (const task of tasks) {
-      if (sourceLabels[task.filePath]) continue
-      sourceLabels[task.filePath] = (task.filePath.split('/').pop() ?? '').replace(/\.md$/, '')
-    }
-
     this.lastSections = sections
     this.panel.update({
       sections,
@@ -168,58 +168,38 @@ export class TaskflowView extends ItemView {
       collapsed: settings.collapsed,
       collapsedProjects: settings.collapsedProjects,
       draggable: Platform.isDesktop,
-      sourceLabels,
       machineNotePath: settings.machineNotePath,
       projectsFolder: settings.projectsFolder,
     })
   }
 
-  private showScheduleMenu(tasks: TaskflowTask[], ev: MouseEvent): void {
-    const today = localToday()
+  /** Turns a core menu spec into an Obsidian Menu at the event's position. */
+  private runMenu(spec: MenuItemSpec[], ev: MouseEvent, run: (action: MenuAction) => void): void {
     const menu = new Menu()
-    const stamp = (kind: QuickDate) => () =>
-      void this.reschedule(tasks, resolveQuickDate(kind, today))
-    menu.addItem(item =>
-      item.setTitle('To-do (today)').setIcon('sun').onClick(stamp('today')),
-    )
-    menu.addItem(item =>
-      item.setTitle('Tomorrow').setIcon('sunrise').onClick(stamp('tomorrow')),
-    )
-    menu.addItem(item =>
-      item.setTitle('Weekend').setIcon('armchair').onClick(stamp('weekend')),
-    )
-    menu.addItem(item =>
-      item.setTitle('Pick a date…').setIcon('calendar').onClick(() => this.pickDate(tasks)),
-    )
-    const fromProject =
-      tasks.length > 0 &&
-      tasks.every(t => inFolder(t.filePath, this.plugin.settings.projectsFolder))
-    if (tasks.some(t => t.scheduled != null) || fromProject) {
-      menu.addSeparator()
-    }
-    if (tasks.some(t => t.scheduled != null)) {
-      menu.addItem(item =>
-        item
-          .setTitle('Remove date')
-          .setIcon('eraser')
-          .onClick(() => void this.unschedule(tasks)),
-      )
-    }
-    if (fromProject) {
-      menu.addItem(item =>
-        item
-          .setTitle('Move to project…')
-          .setIcon('folder-input')
-          .onClick(() => this.bulkMove(tasks)),
-      )
-      menu.addItem(item =>
-        item
-          .setTitle('Send back to inbox')
-          .setIcon('inbox')
-          .onClick(() => void this.sendBack(tasks)),
-      )
+    for (const entry of spec) {
+      if (entry.kind === 'separator') menu.addSeparator()
+      else {
+        menu.addItem(item =>
+          item
+            .setTitle(entry.title)
+            .setIcon(entry.icon)
+            .setDisabled(entry.disabled ?? false)
+            .onClick(() => run(entry.action)),
+        )
+      }
     }
     menu.showAtMouseEvent(ev)
+  }
+
+  private showScheduleMenu(tasks: TaskflowTask[], ev: MouseEvent): void {
+    this.runMenu(scheduleMenuSpec(tasks, this.plugin.settings), ev, action => {
+      if (action.type === 'schedule')
+        void this.reschedule(tasks, resolveQuickDate(action.kind, localToday()))
+      else if (action.type === 'pick-date') this.pickDate(tasks)
+      else if (action.type === 'remove-date') void this.unschedule(tasks)
+      else if (action.type === 'move-to-project') this.bulkMove(tasks)
+      else if (action.type === 'send-back') void this.sendBack(tasks)
+    })
   }
 
   /**
@@ -228,10 +208,12 @@ export class TaskflowView extends ItemView {
    */
   private handleDrop(task: TaskflowTask, target: DropTarget, ev: DragEvent): void {
     const settings = this.plugin.settings
+    // The same clock snapshot the panel highlighted targets with — validity
+    // and execution must agree, even across midnight.
     const intent = dropIntent(task, target, {
       machineNotePath: settings.machineNotePath,
       projectsFolder: settings.projectsFolder,
-      today: localToday(),
+      today: this.lastToday,
     })
     if (intent.kind === 'schedule-today') void this.reschedule([task], localToday())
     else if (intent.kind === 'remove-date') void this.unschedule([task])
@@ -241,52 +223,13 @@ export class TaskflowView extends ItemView {
   }
 
   private showProjectMenu(project: ProjectMeta, ev: MouseEvent): void {
-    const menu = new Menu()
-    menu.addItem(item =>
-      item
-        .setTitle('Open project note')
-        .setIcon('file-text')
-        .onClick(() => void this.openFile(project.path)),
-    )
-    menu.addSeparator()
-    for (const status of ['now', 'next', 'later'] as ProjectStatus[]) {
-      menu.addItem(item =>
-        item
-          .setTitle(status === project.status ? `${status} ✓` : status)
-          .setIcon(status === 'now' ? 'play' : status === 'next' ? 'clock' : 'moon')
-          .setDisabled(status === project.status)
-          .onClick(() => void this.changeStatus(project, status)),
-      )
-    }
-    menu.addSeparator()
-    menu.addItem(item =>
-      item
-        .setTitle(project.deadline == null ? 'Set deadline…' : `Deadline ${project.deadline}…`)
-        .setIcon('calendar-clock')
-        .onClick(() => this.pickProjectDeadline(project)),
-    )
-    if (project.deadline != null) {
-      menu.addItem(item =>
-        item
-          .setTitle('Clear deadline')
-          .setIcon('eraser')
-          .onClick(() => void this.changeDeadline(project, null)),
-      )
-    }
-    menu.addSeparator()
-    menu.addItem(item =>
-      item
-        .setTitle('Mark done & archive')
-        .setIcon('check-circle')
-        .onClick(() => this.retireProject(project, 'done')),
-    )
-    menu.addItem(item =>
-      item
-        .setTitle('Mark dropped & archive')
-        .setIcon('circle-off')
-        .onClick(() => this.retireProject(project, 'dropped')),
-    )
-    menu.showAtMouseEvent(ev)
+    this.runMenu(projectMenuSpec(project), ev, action => {
+      if (action.type === 'open-note') void this.openFile(project.path)
+      else if (action.type === 'set-status') void this.changeStatus(project, action.status)
+      else if (action.type === 'pick-deadline') this.pickProjectDeadline(project)
+      else if (action.type === 'clear-deadline') void this.changeDeadline(project, null)
+      else if (action.type === 'retire') this.retireProject(project, action.status)
+    })
   }
 
   private async changeStatus(project: ProjectMeta, status: ProjectStatus): Promise<void> {
@@ -325,8 +268,7 @@ export class TaskflowView extends ItemView {
    * leave the panel.
    */
   private retireProject(project: {path: string; name: string}, status: 'done' | 'dropped'): void {
-    const group = this.lastSections?.projects.find(g => g.project.path === project.path)
-    const openCount = group ? flattenTaskTree(group.tasks).length : 0
+    const {openCount, needsConfirm} = retirePlan(this.lastSections, project.path)
     const archive = async () => {
       const archived = await archiveProject(
         this.app,
@@ -341,7 +283,7 @@ export class TaskflowView extends ItemView {
       }
       this.refresh()
     }
-    if (openCount === 0) {
+    if (!needsConfirm) {
       void archive()
       return
     }
@@ -373,21 +315,24 @@ export class TaskflowView extends ItemView {
     ).open()
   }
 
-  private async reschedule(tasks: TaskflowTask[], date: string): Promise<void> {
-    this.record(await rescheduleTasks(this.app, tasks, date))
+  /** The uniform write pipeline: run the edit, journal + notice it, reproject. */
+  private async act(run: () => Promise<JournalEntry | null>): Promise<void> {
+    this.record(await run())
     this.refresh()
   }
 
-  private async unschedule(tasks: TaskflowTask[]): Promise<void> {
-    this.record(await unscheduleTasks(this.app, tasks))
-    this.refresh()
+  private reschedule(tasks: TaskflowTask[], date: string): Promise<void> {
+    return this.act(() => rescheduleTasks(this.app, tasks, date))
   }
 
-  private async sendBack(tasks: TaskflowTask[]): Promise<void> {
-    this.record(
+  private unschedule(tasks: TaskflowTask[]): Promise<void> {
+    return this.act(() => unscheduleTasks(this.app, tasks))
+  }
+
+  private sendBack(tasks: TaskflowTask[]): Promise<void> {
+    return this.act(async () =>
       (await sendTasksBackToInbox(this.app, tasks, this.plugin.settings.inboxHeading)).entry,
     )
-    this.refresh()
   }
 
   private bulkMove(allTasks: TaskflowTask[]): void {
@@ -400,15 +345,17 @@ export class TaskflowView extends ItemView {
     }).open()
   }
 
-  private async moveTo(tasks: TaskflowTask[], projectPath: string): Promise<void> {
-    const {entry} = await moveTasksToProject(
-      this.app,
-      tasks,
-      projectPath,
-      this.plugin.settings.moveTargetHeading,
+  private moveTo(tasks: TaskflowTask[], projectPath: string): Promise<void> {
+    return this.act(async () =>
+      (
+        await moveTasksToProject(
+          this.app,
+          tasks,
+          projectPath,
+          this.plugin.settings.moveTargetHeading,
+        )
+      ).entry,
     )
-    this.record(entry)
-    this.refresh()
   }
 
   private async createAndMove(tasks: TaskflowTask[], name: string): Promise<void> {
@@ -424,9 +371,8 @@ export class TaskflowView extends ItemView {
     if (file) await this.moveTo(tasks, file.path)
   }
 
-  private async cancel(task: TaskflowTask): Promise<void> {
-    this.record(await cancelTask(this.app, task))
-    this.refresh()
+  private cancel(task: TaskflowTask): Promise<void> {
+    return this.act(() => cancelTask(this.app, task))
   }
 
   // Bulk-writes from the last projection, not a fresh read — safe because
@@ -436,8 +382,7 @@ export class TaskflowView extends ItemView {
     if (!this.lastSections) return
     const slipped = editableTasks(flattenTaskTree(this.lastSections.slipped), this.plugin.settings)
     if (slipped.length === 0) return
-    this.record(await rescheduleTasks(this.app, slipped, localToday()))
-    this.refresh()
+    await this.reschedule(slipped, localToday())
   }
 
   private async toggle(task: TaskflowTask): Promise<void> {

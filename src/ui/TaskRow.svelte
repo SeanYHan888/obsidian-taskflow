@@ -1,6 +1,7 @@
 <script lang="ts">
   import TaskRow from './TaskRow.svelte'
   import {locationKey} from '../core/hierarchy'
+  import {sourceLabel as labelFor} from '../core/labels'
   import {rowAffordances} from '../core/machine-note'
   import {chipLabel} from '../core/schedule'
 
@@ -47,10 +48,7 @@
   )
 
   const chipText = (date: string) => chipLabel(date, ctx.today)
-  const sourceLabel = $derived(
-    ctx.sourceLabels[task.filePath] ??
-      (task.filePath.split('/').pop() ?? '').replace(/\.md$/, ''),
-  )
+  const sourceLabel = $derived(labelFor(task.filePath))
 </script>
 
 <div class="taskflow-item" class:taskflow-item-nested={nested}>
