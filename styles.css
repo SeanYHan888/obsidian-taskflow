@@ -447,14 +447,18 @@
   background: rgba(var(--color-blue-rgb), 0.08);
 }
 
+/* Sticks to the panel bottom so the selection's actions stay in reach no
+   matter which section the selected rows are scrolled off in. */
 .taskflow-select-bar {
+  position: sticky;
+  bottom: 4px;
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 6px 6px 2px;
   padding: 5px 10px;
   border-radius: var(--radius-s, 6px);
-  background: rgba(var(--color-blue-rgb), 0.12);
+  background: color-mix(in srgb, var(--background-primary) 85%, var(--color-blue));
 }
 
 .taskflow-select-count {

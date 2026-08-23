@@ -44,25 +44,40 @@
       today: data.today,
     }).kind !== 'none'
 
+  /** Every task a selection can span: To-do, its inbox tail, and the backlogs. */
+  const selectableTasks = (sections: PanelData['sections']): TaskflowTask[] =>
+    sections
+      ? [
+          ...flattenTaskTree(sections.today),
+          ...flattenTaskTree(sections.inbox),
+          ...sections.projects.flatMap(g => flattenTaskTree(g.tasks)),
+        ]
+      : []
+
   export const update = (next: PanelData) => {
     data = next
     const valid = new Set(
-      [
-        ...flattenTaskTree(next.sections?.today ?? []),
-        ...flattenTaskTree(next.sections?.inbox ?? []),
-      ].map(t => locationKey(t.filePath, t.line)),
+      selectableTasks(next.sections).map(t => locationKey(t.filePath, t.line)),
     )
     selectedKeys = new Set([...selectedKeys].filter(k => valid.has(k)))
   }
 
-  const selectedTasks = $derived(
-    data.sections
-      ? [
-          ...flattenTaskTree(data.sections.today),
-          ...flattenTaskTree(data.sections.inbox),
-        ].filter(t => selectedKeys.has(locationKey(t.filePath, t.line)))
-      : [],
-  )
+  // A task dated today renders in both To-do and its project group; the Map
+  // keeps one per location so a bulk action never edits the same line twice.
+  const selectedTasks = $derived.by(() => {
+    const byKey = new Map<string, TaskflowTask>()
+    for (const t of selectableTasks(data.sections)) {
+      const key = locationKey(t.filePath, t.line)
+      if (selectedKeys.has(key) && !byKey.has(key)) byKey.set(key, t)
+    }
+    return [...byKey.values()]
+  })
+
+  /** One select mode for the whole panel — either header's toggle drives it. */
+  const toggleSelecting = () => {
+    selecting = !selecting
+    if (!selecting) selectedKeys = new Set()
+  }
 
   const toggleSelect = (task: {filePath: string; line: number}) => {
     const key = locationKey(task.filePath, task.line)
@@ -116,10 +131,7 @@
       collapsed={data.collapsed.today ?? false}
       emptyText="Nothing to do — capture in today's note or pull from a project"
       actionLabel={selecting ? 'done' : 'select'}
-      onAction={() => {
-        selecting = !selecting
-        if (!selecting) selectedKeys = new Set()
-      }}
+      onAction={toggleSelecting}
       onCollapse={callbacks.onCollapse}
       dragActive={dropValid({kind: 'section', key: 'today'})}
       onDropTask={dropOn({kind: 'section', key: 'today'})}
@@ -142,24 +154,6 @@
           onToggleSelect={toggleSelect}
         />
       {/each}
-      {#if selecting && selectedTasks.length > 0}
-        <div class="taskflow-select-bar">
-          <span class="taskflow-select-count">{selectedTasks.length} selected</span>
-          <button
-            class="taskflow-action"
-            onclick={() => callbacks.onBulkMove(selectedTasks)}
-          >
-            move to project
-          </button>
-          <button
-            class="taskflow-action"
-            aria-label="Schedule selected"
-            onclick={ev => callbacks.onBulkScheduleMenu(selectedTasks, ev)}
-          >
-            ⏳
-          </button>
-        </div>
-      {/if}
     </Section>
 
     <Section
@@ -201,6 +195,8 @@
       emptyText="No open project tasks"
       badge={wipBadge}
       badgeDanger={data.sections.wipNowCount > data.wipLimit}
+      actionLabel={selecting ? 'done' : 'select'}
+      onAction={toggleSelecting}
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.projects as group (group.project.path)}
@@ -288,11 +284,40 @@
           </div>
           {#if !folded}
             {#each group.tasks as task (locationKey(task.filePath, task.line))}
-              <TaskRow {task} {ctx} showSource={false} quickToday />
+              <TaskRow
+                {task}
+                {ctx}
+                showSource={false}
+                quickToday
+                selectMode={selecting}
+                {selectedKeys}
+                onToggleSelect={toggleSelect}
+              />
             {/each}
           {/if}
         </div>
       {/each}
     </Section>
+
+    <!-- One bar for the one selection, wherever its rows live — it follows
+         the panel bottom so a backlog-only selection still has its actions. -->
+    {#if selecting && selectedTasks.length > 0}
+      <div class="taskflow-select-bar">
+        <span class="taskflow-select-count">{selectedTasks.length} selected</span>
+        <button
+          class="taskflow-action"
+          onclick={() => callbacks.onBulkMove(selectedTasks)}
+        >
+          move to project
+        </button>
+        <button
+          class="taskflow-action"
+          aria-label="Schedule selected"
+          onclick={ev => callbacks.onBulkScheduleMenu(selectedTasks, ev)}
+        >
+          ⏳
+        </button>
+      </div>
+    {/if}
   {/if}
 </div>

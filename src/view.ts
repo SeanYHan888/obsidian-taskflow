@@ -193,10 +193,10 @@ export class TaskflowView extends ItemView {
     menu.addItem(item =>
       item.setTitle('Pick a date…').setIcon('calendar').onClick(() => this.pickDate(tasks)),
     )
-    const backToTriage =
+    const fromProject =
       tasks.length > 0 &&
       tasks.every(t => inFolder(t.filePath, this.plugin.settings.projectsFolder))
-    if (tasks.some(t => t.scheduled != null) || backToTriage) {
+    if (tasks.some(t => t.scheduled != null) || fromProject) {
       menu.addSeparator()
     }
     if (tasks.some(t => t.scheduled != null)) {
@@ -207,7 +207,13 @@ export class TaskflowView extends ItemView {
           .onClick(() => void this.unschedule(tasks)),
       )
     }
-    if (backToTriage) {
+    if (fromProject) {
+      menu.addItem(item =>
+        item
+          .setTitle('Move to project…')
+          .setIcon('folder-input')
+          .onClick(() => this.bulkMove(tasks)),
+      )
       menu.addItem(item =>
         item
           .setTitle('Send back to inbox')

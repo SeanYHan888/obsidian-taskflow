@@ -201,3 +201,23 @@ test('insertUnderHeadingAt refuses when the heading is missing and creation is o
 
   assert.equal(result, null)
 })
+
+test('a project-note source keeps date-bearing lines byte-identical through cut-and-append', () => {
+  const source = [
+    '# colm-paper',
+    '',
+    '## Tasks',
+    '- [ ] camera ready paper ⏳ 2026-08-25 📅 2026-08-30',
+    '  - [ ] fix figure 3 ⏳ 2026-08-24',
+    '- [ ] stays behind',
+  ]
+
+  const {blocks} = cutTaskBlocks(source, [3], relationsFromLines(source))
+  const target = ['# llm-study', '', '## Tasks', '- [ ] existing task']
+  const insertion = insertUnderHeadingAt(target, 'Tasks', blocks, {createMissing: false})
+
+  assert.deepEqual(insertion?.inserted, [
+    '- [ ] camera ready paper ⏳ 2026-08-25 📅 2026-08-30',
+    '  - [ ] fix figure 3 ⏳ 2026-08-24',
+  ])
+})

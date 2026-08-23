@@ -66,7 +66,7 @@ Optional `deadline` frontmatter (ISO date) on a project note — a project-level
 The act of emptying the Inbox: moving a task to a project, stamping a date, or cancelling it.
 
 **Move to project**:
-Physically cutting a task line (with its subtask children) out of a daily note into a project note's `## Tasks`. Not a copy, not a link.
+Physically cutting a task line (with its subtask children) out of its source note into a project note's `## Tasks`. Not a copy, not a link. The source may be a daily note (triage) or another project note (refiling) — the cut defines the move, not the source.
 
 **Events (`# Events:`)**:
 Day Planner's section of the daily note — time blocks, not tasks. Taskflow never reads or writes it.
