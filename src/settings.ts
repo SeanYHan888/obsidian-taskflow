@@ -72,7 +72,7 @@ export class TaskflowSettingTab extends PluginSettingTab {
 
     text(
       'Daily notes folder',
-      'Where capture happens. The inbox only reads notes under this folder.',
+      'Fallback for when the core Daily Notes plugin is off — otherwise its configured folder is used. The inbox only reads notes under this folder.',
       'dailyNotesFolder',
       DEFAULT_SETTINGS.dailyNotesFolder,
     )

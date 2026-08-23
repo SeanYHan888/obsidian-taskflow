@@ -1,25 +1,42 @@
 # Taskflow
 
-An Obsidian sidebar panel that turns daily-note capture into project execution. Four sections over your vault's tasks:
+An Obsidian sidebar panel that turns daily-note capture into project execution. Your markdown is the database; the panel is a projection of it — Taskflow keeps no task store of its own, mints no IDs, and edits a task line only when you act on it.
 
-1. **Today** — tasks scheduled (`⏳`) or due (`📅`) today. Nothing from the past.
-2. **Overdue & slipped** — past-due and past-scheduled tasks, with one-tap reschedule.
-3. **Inbox** — undated tasks captured in your daily notes. Multi-select them and move them into a project.
-4. **Projects** — open tasks in your active project notes, grouped by project, `now` → `next` → `later`, with a WIP badge.
+Four sections over your vault's tasks:
 
-Taskflow is stateless: your markdown is the database, the panel is a projection. It reads live from the [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin (emoji format) and completes tasks through the Tasks API, so done-dates and any downstream sync keep working. It is a task panel, not a calendar — time blocks belong to Day Planner.
+- **To-do** — open tasks scheduled (`⏳`) or due (`📅`) today, followed by your undated inbox captures. One working list: the day's commitments and the triage queue.
+- **Overdue & slipped** — tasks due before today or scheduled before today. A repair queue: reschedule with one tap, sweep everything to today, or cancel.
+- **Upcoming** — tasks dated later, visible while they wait, so scheduling ahead never makes a task disappear. Collapsed by default.
+- **Projects** — the open tasks in each project note, grouped by project. Projects with a `deadline` lead soonest-first; the rest follow their `status` (`now` / `next` / `later`), with a work-in-progress badge that warns (never blocks) past your limit.
+
+Everything the panel does is a plain text edit you could have made yourself, and every panel action has an undo — a session journal plus an undo link on each notice.
 
 ## Requirements
 
-- The [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin, in emoji format mode.
-- Projects as notes in a projects folder (default `Projects/Active/`) with `status: now|next|later` frontmatter.
-- Daily notes with an `# Inbox` heading for capture.
+- **[Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin** (emoji format). Taskflow reads tasks through it and completes tasks through its API, so done-dates, recurrence, and any downstream sync keep working. Without it the panel explains itself instead of rendering.
+- **Daily notes** (the core Daily Notes plugin) if you want capture: undated tasks under an `# Inbox` heading (configurable, plain text match — any language) in a daily note appear in the panel for triage. Taskflow follows the Daily Notes plugin's folder and date format automatically.
 
-Folder paths, headings, and the WIP limit are configurable in settings.
+Projects are optional: without a projects folder, Taskflow is a pure daily-note task panel, and the Backlogs section explains how to grow into the project workflow.
 
-## Status
+## 60-second setup
 
-Early development — v0.1 (read-only sections + check-off) in progress. Roadmap in the repo issues.
+1. Install and enable **Tasks**, then **Taskflow**.
+2. Open the panel (ribbon icon, or the "Open panel" command).
+3. Add `- [ ] try Taskflow ⏳ 2026-01-01` (today's date) to any note — it appears in To-do.
+4. Optional: create a `Projects/Active` folder (configurable) and give each project note a `status: now|next|later` frontmatter field. Select inbox tasks in the panel and move them into a project — the lines are physically cut into the project note, subtasks included.
+
+## The workflow model
+
+Tasks are checkbox lines in the [Tasks plugin's emoji format](https://publish.obsidian.md/tasks/Reference/Task+Formats/Tasks+Emoji+Format). `⏳` is the day you plan to work on it — slideable without guilt. `📅` is a real external deadline — rare, always a debt once it arrives. A task belongs to a project because its line lives in that project's note; there are no project tags. Triage means emptying the inbox: give each capture a date, a project, or a cancellation.
+
+## Playing well with others
+
+Taskflow interoperates through shared markdown, not APIs (see `docs/adr/0004`):
+
+- **Tasks** owns parsing and completion side effects.
+- **Day Planner** owns time: Taskflow never reads or writes daily-note `# Events:` sections.
+- **Kanban**: the heading that moved tasks land under is configurable, so a project note that becomes a board keeps working.
+- **Sync tools**: if some tool machine-writes a note in your vault (an Apple Reminders sync, for example), point the "Machine-managed note" setting at it — its dated reminders show and nag, its scheduled time-blocks stay hidden, and its rows allow check-off only, so the next sync never clobbers a panel edit.
 
 ## Credits
 

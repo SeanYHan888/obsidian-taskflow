@@ -1,11 +1,13 @@
 import type {SectionKey} from '../settings'
 import type {DropTarget} from '../core/drop'
 import type {QuickDate} from '../core/schedule'
+import type {SetupMessageKey} from '../core/setup'
 import type {ProjectMeta, Sections, TaskflowTask} from '../core/types'
 
 export type PanelData = {
   sections: Sections | null
-  tasksPluginMissing: boolean
+  /** Environment message keys (core/setup.ts); the panel renders them as copy. */
+  setup: SetupMessageKey[]
   today: string
   wipLimit: number
   collapsed: Partial<Record<SectionKey, boolean>>
@@ -17,6 +19,8 @@ export type PanelData = {
   machineNotePath: string
   /** Membership is location (CONTEXT.md); drop validity needs it too. */
   projectsFolder: string
+  /** For the template-missing hint; '' means the built-in scaffold. */
+  templatePath: string
 }
 
 /** Everything a task row needs regardless of which section rendered it. */

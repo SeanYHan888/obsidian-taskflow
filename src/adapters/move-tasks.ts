@@ -146,22 +146,36 @@ export const moveTasksToProject = async (
 }
 
 /**
- * Today's daily note path, resolved the way the Daily Notes core plugin does:
- * its configured folder and moment format (which may contain subfolders).
- * The one walk into Obsidian's private internals lives here.
+ * The Daily Notes core plugin's configuration — the single source of truth
+ * for where daily notes live (#6): classification filters by the same folder
+ * send-back writes to, so the two halves of triage can never disagree. Null
+ * when the plugin is off. The one walk into Obsidian's private internals
+ * lives here.
  */
-export const todayDailyNotePath = (app: App, today: string): string => {
+export const dailyNotesConfig = (app: App): {folder: string; format: string} | null => {
   const internal = (
     app as unknown as {
       internalPlugins?: {
-        getPluginById?: (id: string) => {instance?: {options?: {folder?: string; format?: string}}} | null
+        getPluginById?: (id: string) => {
+          enabled?: boolean
+          instance?: {options?: {folder?: string; format?: string}}
+        } | null
       }
     }
   ).internalPlugins?.getPluginById?.('daily-notes')
-  const options = internal?.instance?.options ?? {}
-  const folder = (options.folder ?? '').replace(/\/$/, '')
-  const name = moment(today).format(options.format || 'YYYY-MM-DD')
-  return `${folder ? folder + '/' : ''}${name}.md`
+  if (!internal || internal.enabled === false || !internal.instance) return null
+  const options = internal.instance.options ?? {}
+  return {
+    folder: (options.folder ?? '').replace(/\/$/, ''),
+    format: options.format || 'YYYY-MM-DD',
+  }
+}
+
+/** Today's daily note path, resolved the way the Daily Notes plugin does (the format may contain subfolders). */
+export const todayDailyNotePath = (app: App, today: string): string => {
+  const config = dailyNotesConfig(app) ?? {folder: '', format: 'YYYY-MM-DD'}
+  const name = moment(today).format(config.format)
+  return `${config.folder ? config.folder + '/' : ''}${name}.md`
 }
 
 /**
@@ -207,26 +221,20 @@ export const sendTasksBackToInbox = async (
   }
 }
 
-const FALLBACK_TEMPLATE = (name: string, today: string, headingLine: string) => `---
-created: "${today}"
-type: project
-project_id: "${name}"
+/** The built-in scaffold: only what Taskflow itself reads — a status and the move-target heading. No vault-specific frontmatter conventions (#6). */
+const FALLBACK_TEMPLATE = (name: string, headingLine: string) => `---
 status: later
-tags:
-  - project
 ---
 # ${name}
 
 ${headingLine}
-
-## Notes
 `
 
 /**
- * Creates a project note from the template (project_id = note name,
- * status: later). Falls back to a minimal frontmatter — using the configured
- * move-target heading, never a hardcoded one — when the template is missing.
- * Returns the existing note if the name is already taken.
+ * Creates a project note from the configured template, or from the built-in
+ * scaffold when no template is set or the note is missing — "New project…"
+ * never dead-ends (#6). The heading comes from the move-target setting,
+ * never hardcoded. Returns the existing note if the name is already taken.
  */
 export const createProjectFromTemplate = async (
   app: App,
@@ -238,15 +246,19 @@ export const createProjectFromTemplate = async (
 ): Promise<TFile | null> => {
   const name = rawName.replace(/[\\/:#^[\]|]/g, ' ').trim()
   if (!name) return null
-  const path = `${projectsFolder.replace(/\/$/, '')}/${name}.md`
+  const folder = projectsFolder.replace(/\/$/, '')
+  const path = `${folder}/${name}.md`
 
   const existing = app.vault.getAbstractFileByPath(path)
   if (existing instanceof TFile) {
     new Notice(`Taskflow: project "${name}" already exists — moving into it`)
     return existing
   }
+  if (folder && !app.vault.getAbstractFileByPath(folder)) {
+    await app.vault.createFolder(folder)
+  }
 
-  const templateFile = app.vault.getAbstractFileByPath(templatePath)
+  const templateFile = templatePath ? app.vault.getAbstractFileByPath(templatePath) : null
   if (templateFile instanceof TFile) {
     const content = (await app.vault.read(templateFile))
       .replaceAll('{{title}}', name)
@@ -256,5 +268,5 @@ export const createProjectFromTemplate = async (
 
   const explicitMarks = targetHeading.trim().match(/^#{1,6}(?=\s)/)?.[0]
   const headingLine = `${explicitMarks ?? '##'} ${targetHeading.replace(/^#+\s*/, '').trim()}`
-  return app.vault.create(path, FALLBACK_TEMPLATE(name, today, headingLine))
+  return app.vault.create(path, FALLBACK_TEMPLATE(name, headingLine))
 }

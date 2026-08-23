@@ -9,7 +9,7 @@ Read `CONTEXT.md` (glossary — use its vocabulary) and `docs/adr/` before worki
 ## Design rules (non-negotiable)
 
 - **Stateless projection.** No task cache, no synthetic IDs in `data.json`. Read tasks from the Obsidian Tasks plugin API (`getTasks()`) + project frontmatter from the metadata cache; write by editing source lines (complete via the Tasks API so ✅ done-dates and Apple Reminders write-back keep working). See ADR-0001.
-- **Taskflow is the reminder; Day Planner is the calendar.** The panel never reads or writes `# Events:` sections, and never projects the Apple Calendar section of the Apple Sync note. Apple *Reminders* are in scope. See ADR-0003.
+- **Taskflow is the reminder; Day Planner is the calendar.** The panel never reads or writes `# Events:` sections, and never projects the machine-managed note's scheduled time-blocks (in Sean's vault: the Apple Sync note's Calendar section). Its dated reminders are in scope. See ADR-0003 (as amended) and `core/machine-note.ts`.
 - **Face, not organ.** The panel replaces only the vault's `Indexes/System/Work Queue.md` query note (which stays as fallback). Tasks, Bases, Day Planner, and templates own everything else.
 - **Interop-clean.** Personal-first (workflow model hardcoded, paths in settings), but never assume Taskflow owns a note's layout — e.g. a project note may become an obsidian-kanban board, so the move-to-project target heading is a setting (default `## Tasks`).
 - The workflow being served is documented in the vault: `Indexes/System/Project Workflow.md` (vault repo: `SeanYHan888/obsidian-vault`, branch `pipeline-panel`).
@@ -28,7 +28,7 @@ Read `CONTEXT.md` (glossary — use its vocabulary) and `docs/adr/` before worki
 
 ## Tech stack
 
-TypeScript 5 (strict) + Svelte 5 (runes) + esbuild + Vitest. See ADR-0002. The brain is framework-free: `src/core/` is pure TS (section classification, date rules, line-move logic) with zero Svelte/Obsidian imports; `src/adapters/` wraps the Tasks API, metadata cache, and vault edits; `src/ui/` is thin Svelte.
+TypeScript 5 (strict) + Svelte 5 (runes) + esbuild + Vitest. See ADR-0002. The brain is framework-free: `src/core/` is pure TS (classification, date rules, line moves, menu specs, section queries, setup state) with zero Svelte/Obsidian imports, and declares the three ports it consumes (`core/ports.ts`: task source, project store, line editor — see ADR-0004). `src/adapters/` implements them (`adapters/compose.ts` does the wiring; Tasks-plugin internals live only in `adapters/tasks-plugin.ts`); `src/view.ts` is the composition root; `src/ui/` is thin Svelte. New capabilities arrive as core functions plus port methods, never as view-layer logic.
 
 ## Roadmap (each version ships usable; tracked as GitHub issues)
 

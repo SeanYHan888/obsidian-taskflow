@@ -27,10 +27,12 @@ export const classifySections = (
   projects: ProjectMeta[],
   config: ClassifyConfig,
 ): Sections => {
+  // '' means the vault root (the Daily Notes plugin's default location).
+  const underDailyNotes = (t: TaskflowTask) =>
+    config.dailyNotesFolder === '' || inFolder(t.filePath, config.dailyNotesFolder)
+
   const isEventsBlock = (t: TaskflowTask) =>
-    inFolder(t.filePath, config.dailyNotesFolder) &&
-    t.heading != null &&
-    isEventsHeading(t.heading)
+    underDailyNotes(t) && t.heading != null && isEventsHeading(t.heading)
 
   const visible = tasks.filter(
     t =>
@@ -51,7 +53,7 @@ export const classifySections = (
       t =>
         t.scheduled == null &&
         t.due == null &&
-        inFolder(t.filePath, config.dailyNotesFolder) &&
+        underDailyNotes(t) &&
         t.heading != null &&
         normalizeHeading(t.heading) === inboxHeading,
     )

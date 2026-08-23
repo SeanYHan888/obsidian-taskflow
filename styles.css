@@ -8,6 +8,13 @@
   padding: 12px;
 }
 
+/* Non-blocking environment hints (core/setup.ts) — quiet, at the panel foot */
+.taskflow-setup-hint {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  padding: 8px 10px 4px;
+}
+
 /* Sections */
 
 .taskflow-section {

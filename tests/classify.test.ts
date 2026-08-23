@@ -505,3 +505,13 @@ test('blank descriptions are excluded from every section', () => {
 
   assert.deepEqual(sections.today, [])
 })
+
+test('a blank daily-notes folder means the vault root — capture works anywhere', () => {
+  const capture = task({
+    description: 'root capture',
+    filePath: '2026-08-21.md',
+    heading: 'Inbox',
+  })
+  const sections = classify([capture], [], {dailyNotesFolder: ''})
+  assert.deepEqual(descriptions(sections.inbox), ['root capture'])
+})

@@ -3,8 +3,9 @@ import {mount, unmount} from 'svelte'
 
 import Panel from './ui/Panel.svelte'
 import {askDate, askText, confirm, pickProject} from './ui/prompts'
-import {createPorts} from './adapters/compose'
+import {createPorts, effectiveDailyNotesFolder, gatherSetupFacts} from './adapters/compose'
 import {classifySections} from './core/classify'
+import {setupState} from './core/setup'
 import {dropIntent} from './core/drop'
 import {flattenTaskTree} from './core/hierarchy'
 import {editableTasks} from './core/machine-note'
@@ -118,6 +119,9 @@ export class TaskflowView extends ItemView {
     this.registerInterval(
       window.setInterval(() => {
         if (localToday() !== this.lastToday) this.refresh()
+        // A task source enabled after the panel opened never fired its own
+        // event, so the empty panel would otherwise wait for an unrelated one.
+        else if (this.lastSections == null && this.ports.tasks.available()) this.refresh()
       }, 60_000),
     )
 
@@ -135,44 +139,35 @@ export class TaskflowView extends ItemView {
     const today = localToday()
     this.lastToday = today
 
-    if (!this.ports.tasks.available()) {
-      this.lastSections = null
-      this.panel.update({
-        sections: null,
-        tasksPluginMissing: true,
-        today,
-        wipLimit: settings.wipLimit,
-        collapsed: settings.collapsed,
-        collapsedProjects: settings.collapsedProjects,
-        draggable: Platform.isDesktop,
-        machineNotePath: settings.machineNotePath,
-        projectsFolder: settings.projectsFolder,
-      })
-      return
-    }
-
-    const tasks = this.ports.tasks.read()
-    const projects = this.ports.projects.read()
-    const sections = classifySections(tasks, projects, {
+    const setup = setupState(gatherSetupFacts(this.app, settings))
+    const base = {
       today,
-      dailyNotesFolder: settings.dailyNotesFolder,
-      projectsFolder: settings.projectsFolder,
-      machineNotePath: settings.machineNotePath,
-      inboxHeading: settings.inboxHeading,
-    })
-
-    this.lastSections = sections
-    this.panel.update({
-      sections,
-      tasksPluginMissing: false,
-      today,
+      setup,
       wipLimit: settings.wipLimit,
       collapsed: settings.collapsed,
       collapsedProjects: settings.collapsedProjects,
       draggable: Platform.isDesktop,
       machineNotePath: settings.machineNotePath,
       projectsFolder: settings.projectsFolder,
+      templatePath: settings.projectTemplatePath,
+    }
+
+    if (setup.includes('tasks-plugin-missing')) {
+      this.lastSections = null
+      this.panel.update({sections: null, ...base})
+      return
+    }
+
+    const sections = classifySections(this.ports.tasks.read(), this.ports.projects.read(), {
+      today,
+      dailyNotesFolder: effectiveDailyNotesFolder(this.app, settings),
+      projectsFolder: settings.projectsFolder,
+      machineNotePath: settings.machineNotePath,
+      inboxHeading: settings.inboxHeading,
     })
+
+    this.lastSections = sections
+    this.panel.update({sections, ...base})
   }
 
   /** Turns a core menu spec into an Obsidian Menu at the event's position. */

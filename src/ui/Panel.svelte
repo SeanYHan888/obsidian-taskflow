@@ -15,7 +15,7 @@
 
   let data: PanelData = $state({
     sections: null,
-    tasksPluginMissing: false,
+    setup: [],
     today: '',
     wipLimit: 3,
     collapsed: {},
@@ -23,6 +23,7 @@
     draggable: false,
     machineNotePath: '',
     projectsFolder: '',
+    templatePath: '',
   })
 
   let selecting = $state(false)
@@ -81,13 +82,27 @@
   })
 
   const wip = $derived(wipBadge(data.sections, data.wipLimit))
+
+  // Empty states teach (#6): each says what would appear and how to get it
+  // there, in the glossary's vocabulary — never four identical silences.
+  const todoEmpty = $derived(
+    data.setup.includes('daily-notes-unconfigured')
+      ? 'Nothing to do yet. Turn on the core Daily Notes plugin to capture into an inbox, or schedule any task for today.'
+      : "Nothing to do — capture in today's note or pull from a project",
+  )
+  const projectsEmpty = $derived(
+    data.setup.includes('projects-folder-missing')
+      ? `Projects are notes in "${data.projectsFolder}" with a status field (now, next, or later). Create the folder when you're ready — everything above works without it.`
+      : 'No open project tasks',
+  )
 </script>
 
 <div class="taskflow-panel">
-  {#if data.tasksPluginMissing}
+  {#if data.setup.includes('tasks-plugin-missing')}
     <div class="taskflow-missing">
-      Taskflow needs the Tasks plugin (emoji format). Install and enable it, then
-      reopen this panel.
+      Taskflow needs the Tasks plugin (emoji format) to read your vault's
+      tasks. Install and enable "Tasks" from the community plugins, and the
+      panel will pick it up.
     </div>
   {:else if data.sections}
     <Section
@@ -95,7 +110,7 @@
       key="today"
       count={counts.today + counts.inbox}
       collapsed={data.collapsed.today ?? false}
-      emptyText="Nothing to do — capture in today's note or pull from a project"
+      emptyText={todoEmpty}
       actionLabel={selecting ? 'done' : 'select'}
       onAction={toggleSelecting}
       onCollapse={callbacks.onCollapse}
@@ -143,7 +158,7 @@
       key="upcoming"
       count={counts.upcoming}
       collapsed={data.collapsed.upcoming ?? true}
-      emptyText="Nothing scheduled ahead"
+      emptyText="Nothing scheduled ahead — tasks dated later wait here instead of disappearing"
       onCollapse={callbacks.onCollapse}
       dragActive={dropValid({kind: 'section', key: 'upcoming'})}
       onDropTask={dropOn({kind: 'section', key: 'upcoming'})}
@@ -158,7 +173,7 @@
       key="projects"
       count={counts.projects}
       collapsed={data.collapsed.projects ?? false}
-      emptyText="No open project tasks"
+      emptyText={projectsEmpty}
       badge={wip?.label ?? null}
       badgeDanger={wip?.danger ?? false}
       actionLabel={selecting ? 'done' : 'select'}
@@ -280,5 +295,14 @@
         </button>
       </div>
     {/if}
+
+    {#if data.setup.includes('template-missing')}
+      <div class="taskflow-setup-hint">
+        Project template not found at "{data.templatePath}" — "New project…"
+        will use the built-in scaffold.
+      </div>
+    {/if}
+  {:else}
+    <div class="taskflow-empty">Reading tasks…</div>
   {/if}
 </div>
