@@ -242,12 +242,30 @@
   opacity: 0;
 }
 
+/* The ↗ jump shares the menu's quiet, hover-revealed treatment: navigation
+   is the deliberate secondary act on a header whose whole surface folds. */
+.taskflow-panel .taskflow-project-goto {
+  flex-shrink: 0;
+  height: auto;
+  padding: 0 6px;
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 600;
+  opacity: 0;
+}
+
 .taskflow-project-header:hover .taskflow-project-menu,
-.taskflow-panel .taskflow-project-menu:focus-visible {
+.taskflow-panel .taskflow-project-menu:focus-visible,
+.taskflow-project-header:hover .taskflow-project-goto,
+.taskflow-panel .taskflow-project-goto:focus-visible {
   opacity: 1;
 }
 
-.taskflow-panel .taskflow-project-menu:hover {
+.taskflow-panel .taskflow-project-menu:hover,
+.taskflow-panel .taskflow-project-goto:hover {
   color: var(--text-normal);
   background: var(--interactive-hover);
   border-radius: 6px;
@@ -261,22 +279,8 @@
   padding: 3px 6px 3px 0;
 }
 
-.taskflow-panel .taskflow-project-fold {
-  flex-shrink: 0;
-  height: auto;
-  padding: 0 4px;
-  background: transparent;
-  box-shadow: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-muted);
-}
-
-.taskflow-panel .taskflow-project-fold:hover {
-  color: var(--text-normal);
-}
-
-.taskflow-panel .taskflow-project-open {
+/* One big fold target: chevron, name, status, count — the whole line. */
+.taskflow-panel .taskflow-project-toggle {
   display: flex;
   justify-content: flex-start;
   white-space: normal;
@@ -285,7 +289,7 @@
   gap: 6px;
   flex: 1;
   min-width: 0;
-  padding: 0;
+  padding: 2px 4px 2px 0;
   background: transparent;
   box-shadow: none;
   border: none;
@@ -295,8 +299,15 @@
   font-weight: 600;
 }
 
-.taskflow-panel .taskflow-project-open:hover {
-  color: var(--text-accent);
+.taskflow-panel .taskflow-project-toggle:hover {
+  background: var(--interactive-hover);
+  border-radius: 6px;
+}
+
+.taskflow-panel .taskflow-project-toggle .taskflow-collapse-icon {
+  flex-shrink: 0;
+  padding: 0 4px;
+  color: var(--text-muted);
 }
 
 .taskflow-status {

@@ -238,21 +238,21 @@
               callbacks.onProjectMenu(group.project, ev)
             }}
           >
+            <!-- Group headers fold, like section headers and every tree since
+                 Finder — jumping to the note is the smaller, deliberate act:
+                 the hover ↗, mod+click, middle-click, or the menu. -->
             <button
-              class="taskflow-project-fold"
-              aria-label={folded ? 'Expand project' : 'Collapse project'}
+              class="taskflow-project-toggle"
               aria-expanded={!folded}
-              onclick={() => callbacks.onCollapseProject(group.project.path, !folded)}
-            >
-              <span class="taskflow-collapse-icon" class:taskflow-collapsed={folded}>›</span>
-            </button>
-            <button
-              class="taskflow-project-open"
-              onclick={ev => callbacks.onOpenFile(group.project.path, ev)}
+              onclick={ev =>
+                ev.metaKey || ev.ctrlKey
+                  ? callbacks.onOpenFile(group.project.path, ev)
+                  : callbacks.onCollapseProject(group.project.path, !folded)}
               onauxclick={ev => {
                 if (ev.button === 1) callbacks.onOpenFile(group.project.path, ev)
               }}
             >
+              <span class="taskflow-collapse-icon" class:taskflow-collapsed={folded}>›</span>
               <span class="taskflow-project-name">{group.project.name}</span>
               {#if group.project.status}
                 <span class="taskflow-status taskflow-status-{group.project.status}">
@@ -271,6 +271,13 @@
                 {chipLabel(group.project.deadline, data.today)}
               </button>
             {/if}
+            <button
+              class="taskflow-project-goto"
+              aria-label="Open project note"
+              onclick={ev => callbacks.onOpenFile(group.project.path, ev)}
+            >
+              ↗
+            </button>
             <button
               class="taskflow-project-menu"
               aria-label="Project actions"
