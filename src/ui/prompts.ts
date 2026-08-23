@@ -113,10 +113,9 @@ export const pickProject = (
         this.setPlaceholder('Move to project…')
       }
       getItems(): ProjectChoice[] {
-        return [
-          ...projects.map(project => ({kind: 'project', project}) as ProjectChoice),
-          {kind: 'new'},
-        ]
+        const items: ProjectChoice[] = projects.map(project => ({kind: 'project', project}))
+        items.push({kind: 'new'})
+        return items
       }
       getItemText(item: ProjectChoice): string {
         return item.kind === 'new'

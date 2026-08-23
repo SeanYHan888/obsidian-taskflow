@@ -116,7 +116,7 @@ export class TaskflowSettingTab extends PluginSettingTab {
     )
 
     new Setting(this.containerEl)
-      .setName('WIP limit')
+      .setName('Work-in-progress limit')
       .setDesc('Projects allowed in "now" before the badge warns. Warns, never blocks.')
       .addText(input =>
         input.setValue(String(this.plugin.settings.wipLimit)).onChange(async value => {

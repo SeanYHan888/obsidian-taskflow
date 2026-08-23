@@ -21,7 +21,7 @@ export const readProjects = (app: App, projectsFolder: string): ProjectMeta[] =>
     .filter(file => inFolder(file.path, projectsFolder))
     .map(file => {
       const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter
-      const rawStatus = frontmatter?.status
+      const rawStatus: unknown = frontmatter?.status
       const status =
         typeof rawStatus === 'string' && ACTIVE_STATUSES.has(rawStatus)
           ? (rawStatus as ProjectStatus)
@@ -50,7 +50,7 @@ export const setProjectStatus = async (
     new Notice(`Taskflow: project note not found: ${projectPath}`)
     return false
   }
-  await app.fileManager.processFrontMatter(file, frontmatter => {
+  await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
     frontmatter.status = status
   })
   return true
@@ -70,7 +70,7 @@ export const setProjectDeadline = async (
     new Notice(`Taskflow: project note not found: ${projectPath}`)
     return false
   }
-  await app.fileManager.processFrontMatter(file, frontmatter => {
+  await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
     if (deadline == null) delete frontmatter.deadline
     else frontmatter.deadline = deadline
   })
@@ -103,7 +103,7 @@ export const archiveProject = async (
     return false
   }
 
-  await app.fileManager.processFrontMatter(file, frontmatter => {
+  await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
     frontmatter.status = status
   })
   if (!app.vault.getAbstractFileByPath(folder)) {

@@ -303,10 +303,9 @@ export class TaskflowView extends ItemView {
   private record(entry: JournalEntry | null): void {
     if (!entry) return
     this.plugin.pushJournal(entry)
-    const fragment = document.createDocumentFragment()
+    const fragment = createFragment()
     fragment.append(`Taskflow: ${entry.label} — `)
-    const link = document.createElement('a')
-    link.textContent = 'undo'
+    const link = createEl('a', {text: 'Undo'})
     link.addEventListener('click', () => void this.plugin.undo(entry))
     fragment.append(link)
     new Notice(fragment, 8000)
