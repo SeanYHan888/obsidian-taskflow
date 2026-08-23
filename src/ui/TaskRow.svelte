@@ -80,8 +80,11 @@
   {/if}
   <button
     class="taskflow-text"
-    onclick={() =>
-      selectable && onToggleSelect ? onToggleSelect(task) : ctx.callbacks.onOpenTask(task)}
+    onclick={ev =>
+      selectable && onToggleSelect ? onToggleSelect(task) : ctx.callbacks.onOpenTask(task, ev)}
+    onauxclick={ev => {
+      if (ev.button === 1 && !(selectable && onToggleSelect)) ctx.callbacks.onOpenTask(task, ev)
+    }}
   >
     <span class="taskflow-desc">{task.description}</span>
     {#if showSource}

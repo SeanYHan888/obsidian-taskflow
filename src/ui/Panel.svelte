@@ -248,7 +248,10 @@
             </button>
             <button
               class="taskflow-project-open"
-              onclick={() => callbacks.onOpenFile(group.project.path)}
+              onclick={ev => callbacks.onOpenFile(group.project.path, ev)}
+              onauxclick={ev => {
+                if (ev.button === 1) callbacks.onOpenFile(group.project.path, ev)
+              }}
             >
               <span class="taskflow-project-name">{group.project.name}</span>
               {#if group.project.status}

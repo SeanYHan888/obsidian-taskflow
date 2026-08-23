@@ -35,8 +35,9 @@ export type RowContext = {
 
 export type PanelCallbacks = {
   onToggleTask: (task: TaskflowTask) => void
-  onOpenTask: (task: TaskflowTask) => void
-  onOpenFile: (path: string) => void
+  /** The MouseEvent carries the open modifiers (mod+click → new tab, etc.). */
+  onOpenTask: (task: TaskflowTask, ev?: MouseEvent) => void
+  onOpenFile: (path: string, ev?: MouseEvent) => void
   onCollapse: (key: SectionKey, collapsed: boolean) => void
   onCollapseProject: (path: string, collapsed: boolean) => void
   /** Opens the quick-date menu (today / tomorrow / weekend / pick) at the event. */

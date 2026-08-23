@@ -1,4 +1,4 @@
-import {ItemView, Menu, Notice, Platform, TFile, debounce} from 'obsidian'
+import {ItemView, Keymap, Menu, Notice, Platform, TFile, debounce} from 'obsidian'
 import {mount, unmount} from 'svelte'
 
 import Panel from './ui/Panel.svelte'
@@ -73,8 +73,9 @@ export class TaskflowView extends ItemView {
       props: {
         callbacks: {
           onToggleTask: (task: TaskflowTask) => void this.toggle(task),
-          onOpenTask: (task: TaskflowTask) => void this.openTask(task),
-          onOpenFile: (path: string) => void this.openFile(path),
+          onOpenTask: (task: TaskflowTask, ev?: MouseEvent) =>
+            void this.openFile(task.filePath, task.line, ev),
+          onOpenFile: (path: string, ev?: MouseEvent) => void this.openFile(path, undefined, ev),
           onCollapse: (key: SectionKey, collapsed: boolean) =>
             void this.setCollapsed(key, collapsed),
           onCollapseProject: (path: string, collapsed: boolean) =>
@@ -445,14 +446,15 @@ export class TaskflowView extends ItemView {
     this.refresh()
   }
 
-  private async openTask(task: TaskflowTask): Promise<void> {
-    await this.openFile(task.filePath, task.line)
-  }
-
-  private async openFile(path: string, line?: number): Promise<void> {
+  /**
+   * The single choke point for every panel jump. Obsidian's keymap resolves
+   * the event's modifiers (mod+click → tab, mod+alt → split, middle-click…);
+   * no event means the current tab, today's default.
+   */
+  private async openFile(path: string, line?: number, ev?: MouseEvent): Promise<void> {
     const file = this.app.vault.getAbstractFileByPath(path)
     if (!(file instanceof TFile)) return
-    const leaf = this.app.workspace.getLeaf(false)
+    const leaf = this.app.workspace.getLeaf(ev ? Keymap.isModEvent(ev) : false)
     await leaf.openFile(file, line == null ? undefined : {eState: {line}})
   }
 
