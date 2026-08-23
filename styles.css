@@ -43,6 +43,22 @@
   color: var(--text-normal);
 }
 
+/* The fold button inside the header: inherits the header's look entirely */
+.taskflow-panel .taskflow-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: auto;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
 /* Type hierarchy: SECTION (caps, largest) → project name (small, bold,
    indented under it) → task text (note-sized). Size states the rank;
    indentation states the containment. */
@@ -54,10 +70,11 @@
 }
 
 .taskflow-collapse-icon {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   transform: rotate(90deg);
   transition: transform 0.12s ease;
-  font-size: 12px;
+  --icon-size: 13px;
   line-height: 1;
   color: var(--text-faint);
 }
@@ -394,11 +411,14 @@
   border-color: var(--color-red);
 }
 
-.taskflow-header-action {
+.taskflow-panel .taskflow-header-action {
   margin-left: auto;
+  height: auto;
   padding: 0 7px;
   border-radius: 9px;
   border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  box-shadow: none;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
   font-weight: 500;
@@ -595,4 +615,43 @@
 
 .is-mobile .taskflow-row {
   min-height: 36px;
+}
+
+/* Lucide glyphs (ui/icon.ts): center the svg and size it per control */
+.taskflow-panel .taskflow-project-goto,
+.taskflow-panel .taskflow-project-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  --icon-size: 14px;
+}
+
+.taskflow-panel .taskflow-add-date {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  --icon-size: 14px;
+}
+
+.taskflow-panel .taskflow-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  --icon-size: 13px;
+}
+
+.taskflow-select-mark {
+  display: inline-flex;
+  align-items: center;
+  --icon-size: 11px;
+}
+
+/* Obsidian removes its transitions under reduced motion; so does the panel */
+@media (prefers-reduced-motion: reduce) {
+  .taskflow-panel *,
+  .taskflow-panel *::before,
+  .taskflow-panel *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }

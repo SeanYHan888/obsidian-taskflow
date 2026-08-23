@@ -2,6 +2,7 @@
   import Section from './Section.svelte'
   import TaskRow from './TaskRow.svelte'
   import {stillInside} from './dnd'
+  import {icon} from './icon'
   import {dropIntent} from '../core/drop'
   import {countTaskTree, locationKey} from '../core/hierarchy'
   import {chipLabel} from '../core/schedule'
@@ -59,6 +60,14 @@
     if (!selecting) selectedKeys = new Set()
   }
 
+  /** Escape leaves select mode, the convention every multi-select app keeps. */
+  const onPanelKeydown = (ev: KeyboardEvent) => {
+    if (ev.key === 'Escape' && selecting) {
+      selecting = false
+      selectedKeys = new Set()
+    }
+  }
+
   const toggleSelect = (task: {filePath: string; line: number}) => {
     const key = locationKey(task.filePath, task.line)
     const next = new Set(selectedKeys)
@@ -96,6 +105,8 @@
       : 'No open project tasks',
   )
 </script>
+
+<svelte:window onkeydown={onPanelKeydown} />
 
 <div class="taskflow-panel">
   {#if data.setup.includes('tasks-plugin-missing')}
@@ -206,6 +217,8 @@
         >
           <div
             class="taskflow-project-header"
+            role="group"
+            aria-label={group.project.name}
             class:taskflow-drop-ready={dropValid({kind: 'project', path: group.project.path})}
             class:taskflow-drop-over={dragOverProject === group.project.path}
             oncontextmenu={ev => {
@@ -224,7 +237,12 @@
                 if (ev.button === 1) callbacks.onOpenFile(group.project.path, ev)
               }}
             >
-              <span class="taskflow-collapse-icon" class:taskflow-collapsed={folded}>›</span>
+              <span
+                class="taskflow-collapse-icon"
+                class:taskflow-collapsed={folded}
+                aria-hidden="true"
+                use:icon={'chevron-right'}
+              ></span>
               <span class="taskflow-project-name">{group.project.name}</span>
               {#if group.project.status}
                 <span class="taskflow-status taskflow-status-{group.project.status}">
@@ -247,16 +265,14 @@
               class="taskflow-project-goto"
               aria-label="Open project note"
               onclick={ev => callbacks.onOpenFile(group.project.path, ev)}
-            >
-              ↗
-            </button>
+              use:icon={'arrow-up-right'}
+            ></button>
             <button
               class="taskflow-project-menu"
               aria-label="Project actions"
               onclick={ev => callbacks.onProjectMenu(group.project, ev)}
-            >
-              …
-            </button>
+              use:icon={'more-horizontal'}
+            ></button>
           </div>
           {#if !folded}
             {#each group.tasks as task (locationKey(task.filePath, task.line))}
@@ -290,9 +306,8 @@
           class="taskflow-action"
           aria-label="Schedule selected"
           onclick={ev => callbacks.onBulkScheduleMenu(selectedTasks, ev)}
-        >
-          ⏳
-        </button>
+          use:icon={'clock'}
+        ></button>
       </div>
     {/if}
 

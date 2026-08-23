@@ -45,6 +45,8 @@ export type PanelCallbacks = {
   onProjectToggle: (path: string, folded: boolean, ev: MouseEvent) => void
   /** Opens the quick-date menu (today / tomorrow / weekend / pick) at the event. */
   onScheduleMenu: (task: TaskflowTask, ev: MouseEvent) => void
+  /** The row's context menu: every hover affordance, for right-click and touch. */
+  onRowMenu: (task: TaskflowTask, ev: MouseEvent) => void
   onSchedule: (task: TaskflowTask, kind: QuickDate) => void
   /** Removes the ⏳ plan — puts a To-do task back to wherever it lives. */
   onUnschedule: (task: TaskflowTask) => void

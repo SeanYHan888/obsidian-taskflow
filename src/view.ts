@@ -9,7 +9,7 @@ import {setupState} from './core/setup'
 import {dropIntent} from './core/drop'
 import {flattenTaskTree} from './core/hierarchy'
 import {editableTasks} from './core/machine-note'
-import {projectMenuSpec, scheduleMenuSpec} from './core/menus'
+import {projectMenuSpec, scheduleMenuSpec, taskMenuSpec} from './core/menus'
 import {resolveQuickDate} from './core/schedule'
 import {retirePlan} from './core/sections'
 
@@ -94,6 +94,7 @@ export class TaskflowView extends ItemView {
               : void this.setProjectCollapsed(path, !folded),
           onScheduleMenu: (task: TaskflowTask, ev: MouseEvent) =>
             this.showScheduleMenu([task], ev),
+          onRowMenu: (task: TaskflowTask, ev: MouseEvent) => this.showRowMenu(task, ev),
           onSchedule: (task: TaskflowTask, kind: QuickDate) =>
             void this.reschedule([task], resolveQuickDate(kind, localToday())),
           onUnschedule: (task: TaskflowTask) => void this.unschedule([task]),
@@ -188,15 +189,28 @@ export class TaskflowView extends ItemView {
     menu.showAtMouseEvent(ev)
   }
 
+  private dispatchTaskAction(tasks: TaskflowTask[], action: MenuAction, ev: MouseEvent): void {
+    if (action.type === 'schedule')
+      void this.reschedule(tasks, resolveQuickDate(action.kind, localToday()))
+    else if (action.type === 'pick-date') void this.pickDate(tasks)
+    else if (action.type === 'remove-date') void this.unschedule(tasks)
+    else if (action.type === 'move-to-project') void this.bulkMove(tasks)
+    else if (action.type === 'send-back') void this.sendBack(tasks)
+    else if (action.type === 'cancel' && tasks[0]) void this.cancel(tasks[0])
+    else if (action.type === 'open-note' && tasks[0])
+      void this.openFile(tasks[0].filePath, tasks[0].line, ev)
+  }
+
   private showScheduleMenu(tasks: TaskflowTask[], ev: MouseEvent): void {
-    this.runMenu(scheduleMenuSpec(tasks, this.plugin.settings), ev, action => {
-      if (action.type === 'schedule')
-        void this.reschedule(tasks, resolveQuickDate(action.kind, localToday()))
-      else if (action.type === 'pick-date') void this.pickDate(tasks)
-      else if (action.type === 'remove-date') void this.unschedule(tasks)
-      else if (action.type === 'move-to-project') void this.bulkMove(tasks)
-      else if (action.type === 'send-back') void this.sendBack(tasks)
-    })
+    this.runMenu(scheduleMenuSpec(tasks, this.plugin.settings), ev, action =>
+      this.dispatchTaskAction(tasks, action, ev),
+    )
+  }
+
+  private showRowMenu(task: TaskflowTask, ev: MouseEvent): void {
+    this.runMenu(taskMenuSpec(task, this.plugin.settings), ev, action =>
+      this.dispatchTaskAction([task], action, ev),
+    )
   }
 
   /**

@@ -1,5 +1,6 @@
 <script lang="ts">
   import TaskRow from './TaskRow.svelte'
+  import {icon} from './icon'
   import {locationKey} from '../core/hierarchy'
   import {sourceLabel as labelFor} from '../core/labels'
   import {rowAffordances} from '../core/machine-note'
@@ -56,13 +57,17 @@
   class="taskflow-row"
   class:taskflow-row-selected={selected}
   draggable={rowDraggable}
-  role={rowDraggable ? 'listitem' : undefined}
+  role="listitem"
   ondragstart={ev => {
     ev.dataTransfer?.setData('text/plain', task.description)
     if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move'
     ctx.onDragStart(task)
   }}
   ondragend={() => ctx.onDragEnd()}
+  oncontextmenu={ev => {
+    ev.preventDefault()
+    ctx.callbacks.onRowMenu(task, ev)
+  }}
 >
   {#if selectable && onToggleSelect}
     <button
@@ -72,7 +77,7 @@
       aria-checked={selected}
       aria-label="Select task"
       onclick={() => onToggleSelect(task)}
-    >{selected ? '✓' : ''}</button>
+    >{#if selected}<span class="taskflow-select-mark" aria-hidden="true" use:icon={'check'}></span>{/if}</button>
   {:else}
     <button
       class="taskflow-check"
@@ -135,9 +140,8 @@
       class="taskflow-add-date"
       aria-label="Schedule task"
       onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
-    >
-      ⏳
-    </button>
+      use:icon={'calendar-plus'}
+    ></button>
   {/if}
   {#if quickToday && canSchedule}
     {#if task.scheduled === ctx.today}
@@ -171,16 +175,14 @@
       class="taskflow-action"
       aria-label="Pick a date"
       onclick={() => ctx.callbacks.onPickDate(task)}
-    >
-      📅
-    </button>
+      use:icon={'calendar'}
+    ></button>
     <button
       class="taskflow-action taskflow-action-danger"
       aria-label="Cancel task"
       onclick={() => ctx.callbacks.onCancelTask(task)}
-    >
-      ✕
-    </button>
+      use:icon={'x'}
+    ></button>
   </div>
 {/if}
 {#if task.children.length > 0}

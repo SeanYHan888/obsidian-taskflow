@@ -1,5 +1,6 @@
 <script lang="ts">
   import {stillInside} from './dnd'
+  import {icon} from './icon'
 
   import type {Snippet} from 'svelte'
   import type {SectionKey} from '../settings'
@@ -66,43 +67,40 @@
     onDropTask?.(ev)
   }}
 >
-  <button
+  <!-- Fold and the header action are sibling buttons, never nested
+       interactive content — each is real, focusable, and screen-readable. -->
+  <div
     class="taskflow-section-header"
     class:taskflow-drop-ready={droppable}
     class:taskflow-drop-over={droppable && dragOver}
-    onclick={() => onCollapse(key, !collapsed)}
   >
-    <span class="taskflow-collapse-icon" class:taskflow-collapsed={collapsed}>›</span>
-    <span class="taskflow-section-title">{title}</span>
-    {#if count > 0}
-      <span class="taskflow-count" class:taskflow-count-danger={danger}>
-        {count}
-      </span>
-    {/if}
-    {#if actionLabel && onAction && count > 0 && !collapsed}
+    <button
+      class="taskflow-section-toggle"
+      aria-expanded={!collapsed}
+      onclick={() => onCollapse(key, !collapsed)}
+    >
       <span
-        class="taskflow-header-action"
-        role="button"
-        tabindex="0"
-        onclick={ev => {
-          ev.stopPropagation()
-          onAction()
-        }}
-        onkeydown={ev => {
-          if (ev.key === 'Enter' || ev.key === ' ') {
-            ev.stopPropagation()
-            ev.preventDefault()
-            onAction()
-          }
-        }}
-      >
+        class="taskflow-collapse-icon"
+        class:taskflow-collapsed={collapsed}
+        aria-hidden="true"
+        use:icon={'chevron-right'}
+      ></span>
+      <span class="taskflow-section-title">{title}</span>
+      {#if count > 0}
+        <span class="taskflow-count" class:taskflow-count-danger={danger}>
+          {count}
+        </span>
+      {/if}
+    </button>
+    {#if actionLabel && onAction && count > 0 && !collapsed}
+      <button class="taskflow-header-action" onclick={() => onAction()}>
         {actionLabel}
-      </span>
+      </button>
     {/if}
     {#if badge}
       <span class="taskflow-badge" class:taskflow-badge-danger={badgeDanger}>{badge}</span>
     {/if}
-  </button>
+  </div>
   {#if !collapsed}
     <div class="taskflow-section-body">
       {#if count === 0}

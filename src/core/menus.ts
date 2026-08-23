@@ -1,5 +1,7 @@
 import {inFolder} from './classify'
+import {isMachineManaged} from './machine-note'
 
+import type {MachineNoteConfig} from './machine-note'
 import type {QuickDate} from './schedule'
 import type {ProjectMeta, ProjectStatus, TaskflowTask} from './types'
 
@@ -16,6 +18,7 @@ export type MenuAction =
   | {type: 'remove-date'}
   | {type: 'move-to-project'}
   | {type: 'send-back'}
+  | {type: 'cancel'}
   | {type: 'open-note'}
   | {type: 'set-status'; status: ProjectStatus}
   | {type: 'pick-deadline'}
@@ -61,6 +64,26 @@ export const scheduleMenuSpec = (
     spec.push(item('Send back to inbox', 'inbox', {type: 'send-back'}))
   }
   return spec
+}
+
+/**
+ * A task row's context menu: every hover affordance again, plus the jump —
+ * hover doesn't exist on mobile, so the menu is the touch-parity surface.
+ * A machine-managed row offers only the jump (its line is read-only).
+ */
+export const taskMenuSpec = (
+  task: TaskflowTask,
+  config: {projectsFolder: string} & MachineNoteConfig,
+): MenuItemSpec[] => {
+  const open = item('Open in note', 'file-text', {type: 'open-note'})
+  if (isMachineManaged(task.filePath, config)) return [open]
+  return [
+    open,
+    separator,
+    ...scheduleMenuSpec([task], config),
+    separator,
+    item('Cancel task', 'x', {type: 'cancel'}),
+  ]
 }
 
 const STATUS_ICON: Record<ProjectStatus, string> = {
