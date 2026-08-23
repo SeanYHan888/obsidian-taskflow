@@ -2,10 +2,7 @@ import {ItemView, Keymap, Menu, Notice, Platform, TFile, debounce} from 'obsidia
 import {mount, unmount} from 'svelte'
 
 import Panel from './ui/Panel.svelte'
-import {ConfirmModal} from './ui/confirm-modal'
-import {PickDateModal} from './ui/pick-date-modal'
-import {NewProjectModal} from './ui/new-project-modal'
-import {ProjectPickerModal} from './ui/project-picker-modal'
+import {askDate, askText, confirm, pickProject} from './ui/prompts'
 import {classifySections} from './core/classify'
 import {dropIntent} from './core/drop'
 import {flattenTaskTree} from './core/hierarchy'
@@ -93,10 +90,10 @@ export class TaskflowView extends ItemView {
           onSchedule: (task: TaskflowTask, kind: QuickDate) =>
             void this.reschedule([task], resolveQuickDate(kind, localToday())),
           onUnschedule: (task: TaskflowTask) => void this.unschedule([task]),
-          onPickDate: (task: TaskflowTask) => this.pickDate([task]),
+          onPickDate: (task: TaskflowTask) => void this.pickDate([task]),
           onCancelTask: (task: TaskflowTask) => void this.cancel(task),
           onRescheduleAllSlipped: () => void this.rescheduleAllSlipped(),
-          onBulkMove: (tasks: TaskflowTask[]) => this.bulkMove(tasks),
+          onBulkMove: (tasks: TaskflowTask[]) => void this.bulkMove(tasks),
           onBulkScheduleMenu: (tasks: TaskflowTask[], ev: MouseEvent) =>
             this.showScheduleMenu(tasks, ev),
           onDrop: (task: TaskflowTask, target: DropTarget, ev: DragEvent) =>
@@ -195,9 +192,9 @@ export class TaskflowView extends ItemView {
     this.runMenu(scheduleMenuSpec(tasks, this.plugin.settings), ev, action => {
       if (action.type === 'schedule')
         void this.reschedule(tasks, resolveQuickDate(action.kind, localToday()))
-      else if (action.type === 'pick-date') this.pickDate(tasks)
+      else if (action.type === 'pick-date') void this.pickDate(tasks)
       else if (action.type === 'remove-date') void this.unschedule(tasks)
-      else if (action.type === 'move-to-project') this.bulkMove(tasks)
+      else if (action.type === 'move-to-project') void this.bulkMove(tasks)
       else if (action.type === 'send-back') void this.sendBack(tasks)
     })
   }
@@ -226,9 +223,9 @@ export class TaskflowView extends ItemView {
     this.runMenu(projectMenuSpec(project), ev, action => {
       if (action.type === 'open-note') void this.openFile(project.path)
       else if (action.type === 'set-status') void this.changeStatus(project, action.status)
-      else if (action.type === 'pick-deadline') this.pickProjectDeadline(project)
+      else if (action.type === 'pick-deadline') void this.pickProjectDeadline(project)
       else if (action.type === 'clear-deadline') void this.changeDeadline(project, null)
-      else if (action.type === 'retire') this.retireProject(project, action.status)
+      else if (action.type === 'retire') void this.retireProject(project, action.status)
     })
   }
 
@@ -239,14 +236,13 @@ export class TaskflowView extends ItemView {
     this.refresh()
   }
 
-  private pickProjectDeadline(project: ProjectMeta): void {
-    new PickDateModal(
-      this.app,
-      project.deadline ?? localToday(),
-      date => void this.changeDeadline(project, date),
-      'Project deadline…',
-      'Set deadline',
-    ).open()
+  private async pickProjectDeadline(project: ProjectMeta): Promise<void> {
+    const date = await askDate(this.app, {
+      defaultDate: project.deadline ?? localToday(),
+      title: 'Project deadline…',
+      submitLabel: 'Set deadline',
+    })
+    if (date) await this.changeDeadline(project, date)
   }
 
   /** Like status flips, deadline edits are frontmatter — not journaled. */
@@ -267,33 +263,31 @@ export class TaskflowView extends ItemView {
    * when some remain, they confirm first, because an archived note's tasks
    * leave the panel.
    */
-  private retireProject(project: {path: string; name: string}, status: 'done' | 'dropped'): void {
+  private async retireProject(
+    project: {path: string; name: string},
+    status: 'done' | 'dropped',
+  ): Promise<void> {
     const {openCount, needsConfirm} = retirePlan(this.lastSections, project.path)
-    const archive = async () => {
-      const archived = await archiveProject(
-        this.app,
-        project.path,
-        status,
-        this.plugin.settings.archiveFolder,
-      )
-      if (archived) {
-        new Notice(
-          `Taskflow: ${project.name} marked ${status} — archived to ${this.plugin.settings.archiveFolder}`,
-        )
-      }
-      this.refresh()
+    if (needsConfirm) {
+      const confirmed = await confirm(this.app, {
+        title: `Mark ${project.name} ${status}?`,
+        body: `${openCount} open task${openCount === 1 ? ' remains' : 's remain'} and will leave the panel with the note. The lines themselves are kept untouched.`,
+        confirmLabel: `Mark ${status} & archive`,
+      })
+      if (!confirmed) return
     }
-    if (!needsConfirm) {
-      void archive()
-      return
-    }
-    new ConfirmModal(
+    const archived = await archiveProject(
       this.app,
-      `Mark ${project.name} ${status}?`,
-      `${openCount} open task${openCount === 1 ? ' remains' : 's remain'} and will leave the panel with the note. The lines themselves are kept untouched.`,
-      `Mark ${status} & archive`,
-      () => void archive(),
-    ).open()
+      project.path,
+      status,
+      this.plugin.settings.archiveFolder,
+    )
+    if (archived) {
+      new Notice(
+        `Taskflow: ${project.name} marked ${status} — archived to ${this.plugin.settings.archiveFolder}`,
+      )
+    }
+    this.refresh()
   }
 
   /** Journals the action and shows its notice with an undo link attached. */
@@ -309,10 +303,9 @@ export class TaskflowView extends ItemView {
     new Notice(fragment, 8000)
   }
 
-  private pickDate(tasks: TaskflowTask[]): void {
-    new PickDateModal(this.app, localToday(), date =>
-      void this.reschedule(tasks, date),
-    ).open()
+  private async pickDate(tasks: TaskflowTask[]): Promise<void> {
+    const date = await askDate(this.app, {defaultDate: localToday()})
+    if (date) await this.reschedule(tasks, date)
   }
 
   /** The uniform write pipeline: run the edit, journal + notice it, reproject. */
@@ -335,14 +328,22 @@ export class TaskflowView extends ItemView {
     )
   }
 
-  private bulkMove(allTasks: TaskflowTask[]): void {
+  private async bulkMove(allTasks: TaskflowTask[]): Promise<void> {
     const settings = this.plugin.settings
     const tasks = editableTasks(allTasks, settings)
     if (tasks.length === 0) return
-    new ProjectPickerModal(this.app, readProjects(this.app, settings.projectsFolder), choice => {
-      if (choice.kind === 'project') void this.moveTo(tasks, choice.project.path)
-      else new NewProjectModal(this.app, name => void this.createAndMove(tasks, name)).open()
-    }).open()
+    const choice = await pickProject(this.app, readProjects(this.app, settings.projectsFolder))
+    if (!choice) return
+    if (choice.kind === 'project') {
+      await this.moveTo(tasks, choice.project.path)
+    } else {
+      const name = await askText(this.app, {
+        title: 'New project',
+        placeholder: 'Project name',
+        submitLabel: 'Create and move',
+      })
+      if (name) await this.createAndMove(tasks, name)
+    }
   }
 
   private moveTo(tasks: TaskflowTask[], projectPath: string): Promise<void> {
