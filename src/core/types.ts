@@ -1,9 +1,15 @@
 import type {HierarchyItem} from './hierarchy'
 
-/** One markdown checkbox line, as projected from the Tasks plugin. */
+/** One markdown checkbox line, as projected through the task-source port. */
 export type TaskflowTask = HierarchyItem & {
   description: string
-  originalMarkdown: string
+  /**
+   * The exact markdown of the line at read time — the line editor's write
+   * fingerprint (a line that no longer matches is stale and gets skipped,
+   * never guessed at). Write-contract state, not task identity: no core
+   * function reads it.
+   */
+  sourceLine: string
   /** TODO or IN_PROGRESS — done and cancelled tasks are not open. */
   open: boolean
   /** ⏳ the day the user plans to work on it (ISO date), or null. */

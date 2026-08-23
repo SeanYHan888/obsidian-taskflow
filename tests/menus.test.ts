@@ -12,7 +12,7 @@ const task = (overrides: Partial<TaskflowTask> = {}): TaskflowTask => ({
   description: 'a task',
   filePath: 'Daily Notes/2026/08/08-21, Fri.md',
   line: nextLine++,
-  originalMarkdown: '- [ ] a task',
+  sourceLine: '- [ ] a task',
   open: true,
   scheduled: null,
   due: null,

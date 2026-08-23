@@ -1,5 +1,7 @@
 import {Notice, TFile} from 'obsidian'
 
+import {toJournalEntry} from '../core/journal'
+import {plural} from '../core/labels'
 import {cancelLine, clearScheduled, setScheduled} from '../core/schedule'
 
 import type {App} from 'obsidian'
@@ -8,7 +10,7 @@ import type {TaskflowTask} from '../core/types'
 
 /**
  * Applies per-line transforms to tasks, one vault.process per file. Every line
- * is verified against the task's originalMarkdown before editing; stale lines
+ * is verified against the task's sourceLine before editing; stale lines
  * are skipped and reported, never guessed at. Lines actually changed come back
  * as journal records so the action can be undone.
  */
@@ -33,18 +35,18 @@ const editTaskLines = async (
     await app.vault.process(file, data => {
       const lines = data.split('\n')
       for (const task of fileTasks) {
-        if (lines[task.line] !== task.originalMarkdown) {
+        if (lines[task.line] !== task.sourceLine) {
           stale++
           continue
         }
-        const after = transform(task.originalMarkdown)
-        if (after === task.originalMarkdown) continue
+        const after = transform(task.sourceLine)
+        if (after === task.sourceLine) continue
         lines[task.line] = after
         records.push({
           kind: 'replace',
           file: path,
           line: task.line,
-          before: task.originalMarkdown,
+          before: task.sourceLine,
           after,
         })
       }
@@ -56,11 +58,6 @@ const editTaskLines = async (
   }
   return records
 }
-
-const toJournalEntry = (label: string, records: LineRecord[]): JournalEntry | null =>
-  records.length > 0 ? {label, records} : null
-
-export const plural = (n: number) => `${n} task${n === 1 ? '' : 's'}`
 
 export const rescheduleTasks = async (
   app: App,

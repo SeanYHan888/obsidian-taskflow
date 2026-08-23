@@ -3,6 +3,7 @@ import {mount, unmount} from 'svelte'
 
 import Panel from './ui/Panel.svelte'
 import {askDate, askText, confirm, pickProject} from './ui/prompts'
+import {createPorts} from './adapters/compose'
 import {classifySections} from './core/classify'
 import {dropIntent} from './core/drop'
 import {flattenTaskTree} from './core/hierarchy'
@@ -10,31 +11,30 @@ import {editableTasks} from './core/machine-note'
 import {projectMenuSpec, scheduleMenuSpec} from './core/menus'
 import {resolveQuickDate} from './core/schedule'
 import {retirePlan} from './core/sections'
-import {getTasksPlugin, readTasks, toggleTask} from './adapters/tasks-plugin'
-import {cancelTask, rescheduleTasks, unscheduleTasks} from './adapters/edit-lines'
-import {
-  createProjectFromTemplate,
-  moveTasksToProject,
-  sendTasksBackToInbox,
-} from './adapters/move-tasks'
-import {
-  archiveProject,
-  readProjects,
-  setProjectDeadline,
-  setProjectStatus,
-} from './adapters/projects'
 
-import type {EventRef, WorkspaceLeaf} from 'obsidian'
+import type {WorkspaceLeaf} from 'obsidian'
 import type {DropTarget} from './core/drop'
 import type {JournalEntry} from './core/journal'
 import type {MenuAction, MenuItemSpec} from './core/menus'
+import type {Ports} from './core/ports'
 import type {QuickDate} from './core/schedule'
 import type {ProjectMeta, ProjectStatus, Sections, TaskflowTask} from './core/types'
 import type {PanelData} from './ui/panel-types'
-import type {SectionKey} from './settings'
-import type TaskflowPlugin from './main'
+import type {SectionKey, TaskflowSettings} from './settings'
 
 export const TASKFLOW_VIEW_TYPE = 'taskflow'
+
+/**
+ * What the view needs from the plugin shell — a narrow slice, so the view
+ * depends on a contract instead of importing the plugin class back (no
+ * module cycle with main.ts).
+ */
+export type TaskflowServices = {
+  readonly settings: TaskflowSettings
+  updateSettings(updates: Partial<TaskflowSettings>): Promise<void>
+  pushJournal(entry: JournalEntry): void
+  undo(entry?: JournalEntry): Promise<void>
+}
 
 const localToday = (): string => {
   const now = new Date()
@@ -47,12 +47,18 @@ export class TaskflowView extends ItemView {
   private panel: {update: (data: PanelData) => void} | null = null
   private lastToday = localToday()
   private lastSections: Sections | null = null
+  private portsCache: Ports | null = null
 
   constructor(
     leaf: WorkspaceLeaf,
-    private plugin: TaskflowPlugin,
+    private plugin: TaskflowServices,
   ) {
     super(leaf)
+  }
+
+  /** The composition root's object graph, wired once per view. */
+  private get ports(): Ports {
+    return (this.portsCache ??= createPorts(this.app, () => this.plugin.settings))
   }
 
   getViewType(): string {
@@ -105,10 +111,9 @@ export class TaskflowView extends ItemView {
     }) as unknown as {update: (data: PanelData) => void}
 
     const refreshSoon = debounce(() => this.refresh(), 350, true)
-    const workspaceEvents = this.app.workspace as unknown as {
-      on(name: string, cb: () => void): EventRef
-    }
-    this.registerEvent(workspaceEvents.on('obsidian-tasks-plugin:cache-update', refreshSoon))
+    // The task source owns its own change signal; frontmatter and file edits
+    // arrive through Obsidian's generic metadata event.
+    this.register(this.ports.tasks.onChange(refreshSoon))
     this.registerEvent(this.app.metadataCache.on('changed', refreshSoon))
     this.registerInterval(
       window.setInterval(() => {
@@ -130,7 +135,7 @@ export class TaskflowView extends ItemView {
     const today = localToday()
     this.lastToday = today
 
-    if (!getTasksPlugin(this.app)) {
+    if (!this.ports.tasks.available()) {
       this.lastSections = null
       this.panel.update({
         sections: null,
@@ -146,8 +151,8 @@ export class TaskflowView extends ItemView {
       return
     }
 
-    const tasks = readTasks(this.app)
-    const projects = readProjects(this.app, settings.projectsFolder)
+    const tasks = this.ports.tasks.read()
+    const projects = this.ports.projects.read()
     const sections = classifySections(tasks, projects, {
       today,
       dailyNotesFolder: settings.dailyNotesFolder,
@@ -230,7 +235,7 @@ export class TaskflowView extends ItemView {
   }
 
   private async changeStatus(project: ProjectMeta, status: ProjectStatus): Promise<void> {
-    if (await setProjectStatus(this.app, project.path, status)) {
+    if (await this.ports.projects.setStatus(project.path, status)) {
       new Notice(`Taskflow: ${project.name} → ${status}`)
     }
     this.refresh()
@@ -247,7 +252,7 @@ export class TaskflowView extends ItemView {
 
   /** Like status flips, deadline edits are frontmatter — not journaled. */
   private async changeDeadline(project: ProjectMeta, deadline: string | null): Promise<void> {
-    if (await setProjectDeadline(this.app, project.path, deadline)) {
+    if (await this.ports.projects.setDeadline(project.path, deadline)) {
       new Notice(
         deadline == null
           ? `Taskflow: ${project.name} deadline cleared`
@@ -276,12 +281,7 @@ export class TaskflowView extends ItemView {
       })
       if (!confirmed) return
     }
-    const archived = await archiveProject(
-      this.app,
-      project.path,
-      status,
-      this.plugin.settings.archiveFolder,
-    )
+    const archived = await this.ports.projects.archive(project.path, status)
     if (archived) {
       new Notice(
         `Taskflow: ${project.name} marked ${status} — archived to ${this.plugin.settings.archiveFolder}`,
@@ -315,24 +315,22 @@ export class TaskflowView extends ItemView {
   }
 
   private reschedule(tasks: TaskflowTask[], date: string): Promise<void> {
-    return this.act(() => rescheduleTasks(this.app, tasks, date))
+    return this.act(() => this.ports.editor.reschedule(tasks, date))
   }
 
   private unschedule(tasks: TaskflowTask[]): Promise<void> {
-    return this.act(() => unscheduleTasks(this.app, tasks))
+    return this.act(() => this.ports.editor.unschedule(tasks))
   }
 
   private sendBack(tasks: TaskflowTask[]): Promise<void> {
-    return this.act(async () =>
-      (await sendTasksBackToInbox(this.app, tasks, this.plugin.settings.inboxHeading)).entry,
-    )
+    return this.act(async () => (await this.ports.editor.sendBackToInbox(tasks, localToday())).entry)
   }
 
   private async bulkMove(allTasks: TaskflowTask[]): Promise<void> {
     const settings = this.plugin.settings
     const tasks = editableTasks(allTasks, settings)
     if (tasks.length === 0) return
-    const choice = await pickProject(this.app, readProjects(this.app, settings.projectsFolder))
+    const choice = await pickProject(this.app, this.ports.projects.read())
     if (!choice) return
     if (choice.kind === 'project') {
       await this.moveTo(tasks, choice.project.path)
@@ -347,37 +345,20 @@ export class TaskflowView extends ItemView {
   }
 
   private moveTo(tasks: TaskflowTask[], projectPath: string): Promise<void> {
-    return this.act(async () =>
-      (
-        await moveTasksToProject(
-          this.app,
-          tasks,
-          projectPath,
-          this.plugin.settings.moveTargetHeading,
-        )
-      ).entry,
-    )
+    return this.act(async () => (await this.ports.editor.moveToProject(tasks, projectPath)).entry)
   }
 
   private async createAndMove(tasks: TaskflowTask[], name: string): Promise<void> {
-    const settings = this.plugin.settings
-    const file = await createProjectFromTemplate(
-      this.app,
-      name,
-      settings.projectsFolder,
-      settings.projectTemplatePath,
-      settings.moveTargetHeading,
-      localToday(),
-    )
-    if (file) await this.moveTo(tasks, file.path)
+    const path = await this.ports.projects.create(name, localToday())
+    if (path) await this.moveTo(tasks, path)
   }
 
   private cancel(task: TaskflowTask): Promise<void> {
-    return this.act(() => cancelTask(this.app, task))
+    return this.act(() => this.ports.editor.cancel(task))
   }
 
   // Bulk-writes from the last projection, not a fresh read — safe because
-  // edit-lines verifies every line against its originalMarkdown at write time,
+  // edit-lines verifies every line against its sourceLine at write time,
   // so anything that changed since the last refresh is skipped, not guessed at.
   private async rescheduleAllSlipped(): Promise<void> {
     if (!this.lastSections) return
@@ -387,7 +368,7 @@ export class TaskflowView extends ItemView {
   }
 
   private async toggle(task: TaskflowTask): Promise<void> {
-    await toggleTask(this.app, task)
+    await this.ports.tasks.toggle(task)
     this.refresh()
   }
 

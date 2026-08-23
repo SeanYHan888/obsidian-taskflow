@@ -1,7 +1,8 @@
 import {Notice, TFile, moment} from 'obsidian'
 
-import {plural} from './edit-lines'
 import {relationsFromLines} from '../core/hierarchy'
+import {toJournalEntry} from '../core/journal'
+import {plural} from '../core/labels'
 import {cutTaskBlocks, insertUnderHeadingAt} from '../core/move'
 
 import type {App} from 'obsidian'
@@ -60,7 +61,7 @@ const relocateTaskBlocks = async (
     }
 
     const snapshotLines = (await app.vault.read(file)).split('\n')
-    const valid = fileTasks.filter(t => snapshotLines[t.line] === t.originalMarkdown)
+    const valid = fileTasks.filter(t => snapshotLines[t.line] === t.sourceLine)
     skipped += fileTasks.length - valid.length
     if (valid.length === 0) continue
 
@@ -111,9 +112,6 @@ const relocateTaskBlocks = async (
   return {moved, duplicated, skipped, headingMissing, records}
 }
 
-const toEntry = (label: string, records: LineRecord[]): JournalEntry | null =>
-  records.length > 0 ? {label, records} : null
-
 /** Move to project (CONTEXT.md): triage's filing edit, and drag's project drop. */
 export const moveTasksToProject = async (
   app: App,
@@ -143,7 +141,7 @@ export const moveTasksToProject = async (
   const projectName = (projectPath.split('/').pop() ?? projectPath).replace(/\.md$/, '')
   return {
     moved: total,
-    entry: toEntry(`moved ${plural(total)} to ${projectName}`, outcome.records),
+    entry: toJournalEntry(`moved ${plural(total)} to ${projectName}`, outcome.records),
   }
 }
 
@@ -152,7 +150,7 @@ export const moveTasksToProject = async (
  * its configured folder and moment format (which may contain subfolders).
  * The one walk into Obsidian's private internals lives here.
  */
-export const todayDailyNotePath = (app: App): string => {
+export const todayDailyNotePath = (app: App, today: string): string => {
   const internal = (
     app as unknown as {
       internalPlugins?: {
@@ -162,7 +160,7 @@ export const todayDailyNotePath = (app: App): string => {
   ).internalPlugins?.getPluginById?.('daily-notes')
   const options = internal?.instance?.options ?? {}
   const folder = (options.folder ?? '').replace(/\/$/, '')
-  const name = moment().format(options.format || 'YYYY-MM-DD')
+  const name = moment(today).format(options.format || 'YYYY-MM-DD')
   return `${folder ? folder + '/' : ''}${name}.md`
 }
 
@@ -176,8 +174,9 @@ export const sendTasksBackToInbox = async (
   app: App,
   tasks: TaskflowTask[],
   inboxHeading: string,
+  today: string,
 ): Promise<MoveResult> => {
-  const dailyPath = todayDailyNotePath(app)
+  const dailyPath = todayDailyNotePath(app, today)
   const dailyFile = app.vault.getAbstractFileByPath(dailyPath)
   if (!(dailyFile instanceof TFile)) {
     new Notice(`Taskflow: today's daily note not found (${dailyPath}) — create it first`)
@@ -204,7 +203,7 @@ export const sendTasksBackToInbox = async (
   const total = outcome.moved + outcome.duplicated
   return {
     moved: total,
-    entry: toEntry(`sent ${plural(total)} back to inbox`, outcome.records),
+    entry: toJournalEntry(`sent ${plural(total)} back to inbox`, outcome.records),
   }
 }
 

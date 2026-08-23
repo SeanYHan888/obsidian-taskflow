@@ -19,6 +19,10 @@ export type JournalEntry = {
   records: LineRecord[]
 }
 
+/** An action that changed nothing journals nothing. */
+export const toJournalEntry = (label: string, records: LineRecord[]): JournalEntry | null =>
+  records.length > 0 ? {label, records} : null
+
 export type UndoFileResult = {lines: string[]; reverted: number; stale: number}
 
 /**

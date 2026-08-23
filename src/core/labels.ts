@@ -6,3 +6,6 @@
  */
 export const sourceLabel = (filePath: string): string =>
   (filePath.split('/').pop() ?? '').replace(/\.md$/, '')
+
+/** Notice and journal-label grammar: "1 task", "3 tasks". */
+export const plural = (n: number): string => `${n} task${n === 1 ? '' : 's'}`

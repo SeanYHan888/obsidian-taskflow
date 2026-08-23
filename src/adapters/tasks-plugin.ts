@@ -1,6 +1,6 @@
 import {Notice, TFile} from 'obsidian'
 
-import type {App} from 'obsidian'
+import type {App, EventRef} from 'obsidian'
 import type {TaskflowTask} from '../core/types'
 
 /** The slice of the Tasks plugin we rely on. Its absence is a first-class state. */
@@ -11,13 +11,28 @@ type TasksPluginLike = {
   }
 }
 
+const TASKS_PLUGIN_ID = 'obsidian-tasks-plugin'
+
 export const getTasksPlugin = (app: App): TasksPluginLike | null => {
   const plugins = (app as unknown as {plugins?: {plugins?: Record<string, unknown>}})
     .plugins?.plugins
-  const tasks = plugins?.['obsidian-tasks-plugin'] as
+  const tasks = plugins?.[TASKS_PLUGIN_ID] as
     | (TasksPluginLike & Record<string, unknown>)
     | undefined
   return tasks && typeof tasks.getTasks === 'function' ? tasks : null
+}
+
+/**
+ * The Tasks plugin's cache-update signal. Its event name lives here with the
+ * plugin id, so the whole coupling breaks in one file if internals change.
+ */
+export const onTasksChange = (app: App, listener: () => void): (() => void) => {
+  const workspace = app.workspace as unknown as {
+    on(name: string, cb: () => void): EventRef
+    offref(ref: EventRef): void
+  }
+  const ref = workspace.on(`${TASKS_PLUGIN_ID}:cache-update`, listener)
+  return () => workspace.offref(ref)
 }
 
 const isoDate = (value: unknown): string | null => {
@@ -70,7 +85,7 @@ export const readTasks = (app: App): TaskflowTask[] => {
     const statusType = t.status?.type ?? 'TODO'
     tasks.push({
       description: t.description ?? '',
-      originalMarkdown: t.originalMarkdown ?? '',
+      sourceLine: t.originalMarkdown ?? '',
       filePath: path,
       line,
       open: statusType === 'TODO' || statusType === 'IN_PROGRESS',
@@ -102,14 +117,11 @@ export const toggleTask = async (app: App, task: TaskflowTask): Promise<void> =>
   let stale = false
   await app.vault.process(file, data => {
     const lines = data.split('\n')
-    if (lines[task.line] !== task.originalMarkdown) {
+    if (lines[task.line] !== task.sourceLine) {
       stale = true
       return data
     }
-    lines[task.line] = api.executeToggleTaskDoneCommand(
-      task.originalMarkdown,
-      task.filePath,
-    )
+    lines[task.line] = api.executeToggleTaskDoneCommand(task.sourceLine, task.filePath)
     return lines.join('\n')
   })
   if (stale) new Notice('Taskflow: task moved since last refresh — refreshing instead')
