@@ -303,6 +303,12 @@
   padding: 3px 6px 3px 0;
 }
 
+/* One date column panel-wide: rows are inset cards (6px margin + 10px
+   padding), the header is not — this makes both chips share a right edge. */
+.taskflow-project-header > .taskflow-chip {
+  margin-right: 10px;
+}
+
 /* One big fold target: chevron, name, status, count — the whole line. */
 .taskflow-panel .taskflow-project-toggle {
   display: flex;
@@ -441,14 +447,6 @@
   color: var(--text-normal);
   background: var(--interactive-hover);
   border-radius: 6px;
-}
-
-.taskflow-section-header .taskflow-quick-action {
-  margin-left: auto;
-}
-
-.taskflow-section-header .taskflow-quick-action + .taskflow-section-menu {
-  margin-left: 0;
 }
 
 .is-mobile .taskflow-panel .taskflow-section-menu {
@@ -682,7 +680,6 @@
 }
 
 .taskflow-project-header:hover .taskflow-quick-action,
-.taskflow-section-header:hover .taskflow-quick-action,
 .taskflow-panel .taskflow-quick-action:focus-visible {
   opacity: 1;
 }

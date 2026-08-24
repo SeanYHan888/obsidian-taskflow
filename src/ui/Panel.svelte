@@ -160,8 +160,6 @@
       collapsed={data.collapsed.slipped ?? false}
       danger
       emptyText="All caught up — nothing slipped"
-      quickLabel="All → to-do"
-      onQuickAction={callbacks.onRescheduleAllSlipped}
       onMenu={ev => callbacks.onSectionMenu('slipped', selecting, ev)}
       onCollapse={callbacks.onCollapse}
     >
@@ -256,18 +254,6 @@
               {/if}
               <span class="taskflow-project-count">{countTaskTree(group.tasks)}</span>
             </button>
-            {#if group.project.deadline != null && data.pacingMode !== 'wip'}
-              <!-- A chip opens what edits it (panel grammar) — the picker,
-                   not the whole menu, mirroring task chips → schedule menu. -->
-              <button
-                class="taskflow-chip taskflow-chip-button taskflow-chip-due"
-                class:taskflow-chip-past={group.urgency === 'arrived'}
-                aria-label="Project deadline"
-                onclick={() => callbacks.onProjectDeadline(group.project)}
-              >
-                {chipLabel(group.project.deadline, data.today)}
-              </button>
-            {/if}
             {#if group.pressing}
               <!-- The pressing loop: calendar says soon, commitments say not
                    yet — one tap answers. Ignoring it is also an answer. -->
@@ -291,6 +277,19 @@
               onclick={ev => callbacks.onProjectMenu(group.project, ev)}
               use:icon={'more-horizontal'}
             ></button>
+            {#if group.project.deadline != null && data.pacingMode !== 'wip'}
+              <!-- Last, past the hover-revealed buttons, so at rest the chip
+                   sits flush right — one date column down the whole panel.
+                   A chip opens what edits it (panel grammar): the picker. -->
+              <button
+                class="taskflow-chip taskflow-chip-button taskflow-chip-due"
+                class:taskflow-chip-past={group.urgency === 'arrived'}
+                aria-label="Project deadline"
+                onclick={() => callbacks.onProjectDeadline(group.project)}
+              >
+                {chipLabel(group.project.deadline, data.today)}
+              </button>
+            {/if}
           </div>
           {#if !folded}
             {#each group.tasks as task (locationKey(task.filePath, task.line))}

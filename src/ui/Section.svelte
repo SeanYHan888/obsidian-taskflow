@@ -13,8 +13,6 @@
     danger = false,
     badge = null,
     badgeDanger = false,
-    quickLabel = null,
-    onQuickAction = null,
     onMenu = null,
     emptyText = 'Nothing here',
     onCollapse,
@@ -29,9 +27,6 @@
     danger?: boolean
     badge?: string | null
     badgeDanger?: boolean
-    /** The pressing accelerator (panel grammar) — at most one, menu-mirrored. */
-    quickLabel?: string | null
-    onQuickAction?: (() => void) | null
     /** The header's "…" menu; absent when the section has no acts. */
     onMenu?: ((ev: MouseEvent) => void) | null
     emptyText?: string
@@ -101,11 +96,6 @@
         <span class="taskflow-badge" class:taskflow-badge-danger={badgeDanger}>{badge}</span>
       {/if}
     </button>
-    {#if quickLabel && onQuickAction && count > 0 && !collapsed}
-      <button class="taskflow-quick-action" onclick={() => onQuickAction()}>
-        {quickLabel}
-      </button>
-    {/if}
     {#if onMenu && count > 0 && !collapsed}
       <button
         class="taskflow-section-menu"
