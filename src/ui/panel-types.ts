@@ -60,6 +60,8 @@ export type PanelCallbacks = {
   /** Triage: open the project picker for the selected inbox tasks. */
   onBulkMove: (tasks: TaskflowTask[]) => void
   onBulkScheduleMenu: (tasks: TaskflowTask[], ev: MouseEvent) => void
+  /** Narrow panels: the select bar's two buttons folded into one "…" menu. */
+  onBulkActionsMenu: (tasks: TaskflowTask[], ev: MouseEvent) => void
   /** A drop names an existing edit; core resolves which one (dropIntent). */
   onDrop: (task: TaskflowTask, target: DropTarget, ev: DragEvent) => void
   /** Project lifecycle menu: status now/next/later, done/dropped + archive. */

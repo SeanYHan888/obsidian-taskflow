@@ -140,6 +140,24 @@ export const sectionMenuSpec = (config: SectionMenuConfig): MenuItemSpec[] => {
   return spec
 }
 
+/**
+ * The select bar's narrow-panel overflow: its two buttons as one menu. The
+ * schedule menu already is the selection's pacing-and-refile spec; the only
+ * gap is triage selections (daily-note tasks), whose move-to-project lives
+ * on the bar button rather than in the refile section — so it is prepended
+ * when the spec doesn't already carry it.
+ */
+export const selectBarMenuSpec = (
+  tasks: readonly TaskflowTask[],
+  config: ScheduleMenuConfig,
+): MenuItemSpec[] => {
+  const spec = scheduleMenuSpec(tasks, config)
+  const hasMove = spec.some(e => e.kind === 'item' && e.action.type === 'move-to-project')
+  return hasMove
+    ? spec
+    : [item('Move to project…', 'folder-input', {type: 'move-to-project'}), separator, ...spec]
+}
+
 const STATUS_ICON: Record<ProjectStatus, string> = {
   now: 'play',
   next: 'clock',

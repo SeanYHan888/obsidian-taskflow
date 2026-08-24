@@ -9,7 +9,13 @@ import {setupState} from './core/setup'
 import {dropIntent} from './core/drop'
 import {flattenTaskTree} from './core/hierarchy'
 import {editableTasks} from './core/machine-note'
-import {projectMenuSpec, scheduleMenuSpec, sectionMenuSpec, taskMenuSpec} from './core/menus'
+import {
+  projectMenuSpec,
+  scheduleMenuSpec,
+  sectionMenuSpec,
+  selectBarMenuSpec,
+  taskMenuSpec,
+} from './core/menus'
 import {resolveQuickDate} from './core/schedule'
 import {promotionOutcome, retirePlan} from './core/sections'
 
@@ -106,6 +112,10 @@ export class TaskflowView extends ItemView {
           onBulkMove: (tasks: TaskflowTask[]) => void this.bulkMove(tasks),
           onBulkScheduleMenu: (tasks: TaskflowTask[], ev: MouseEvent) =>
             this.showScheduleMenu(tasks, ev),
+          onBulkActionsMenu: (tasks: TaskflowTask[], ev: MouseEvent) =>
+            this.runMenu(selectBarMenuSpec(tasks, this.menuConfig()), ev, action =>
+              this.dispatchTaskAction(tasks, action, ev),
+            ),
           onDrop: (task: TaskflowTask, target: DropTarget, ev: DragEvent) =>
             this.handleDrop(task, target, ev),
           onProjectMenu: (project: ProjectMeta, ev: MouseEvent) =>

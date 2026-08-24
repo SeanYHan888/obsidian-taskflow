@@ -1,6 +1,6 @@
 import {assert, test} from 'vitest'
 
-import {projectMenuSpec, scheduleMenuSpec, sectionMenuSpec, taskMenuSpec} from '../src/core/menus'
+import {projectMenuSpec, scheduleMenuSpec, sectionMenuSpec, selectBarMenuSpec, taskMenuSpec} from '../src/core/menus'
 
 import type {MenuItemSpec} from '../src/core/menus'
 import type {ProjectMeta, TaskflowTask} from '../src/core/types'
@@ -141,4 +141,14 @@ test('the section menu carries the acts: select for selectable, repair for slipp
 
 test('a section with no acts gets an empty spec — no menu at all', () => {
   assert.deepEqual(sectionMenuSpec({selecting: false, selectable: false, repairable: false}), [])
+})
+
+test('the select bar overflow prepends move-to-project for triage selections only', () => {
+  const triage = titles(selectBarMenuSpec([task()], CONFIG))
+  assert.equal(triage[0], 'Move to project…')
+  assert.include(triage, 'To-do (today)')
+
+  const refile = selectBarMenuSpec([task({filePath: 'Projects/Active/colm-paper.md'})], CONFIG)
+  const moves = refile.filter(e => e.kind === 'item' && e.action.type === 'move-to-project')
+  assert.lengthOf(moves, 1)
 })

@@ -30,6 +30,8 @@
 
   let selecting = $state(false)
   let selectedKeys: ReadonlySet<string> = $state(new Set())
+  /** Sidebar width, for the select bar's narrow-panel overflow. */
+  let panelWidth = $state(0)
   let dragTask: TaskflowTask | null = $state(null)
   let dragOverProject: string | null = $state(null)
 
@@ -112,7 +114,7 @@
 
 <svelte:window onkeydown={onPanelKeydown} />
 
-<div class="taskflow-panel">
+<div class="taskflow-panel" bind:clientWidth={panelWidth}>
   {#if data.setup.includes('tasks-plugin-missing')}
     <div class="taskflow-missing">
       Taskflow needs the Tasks plugin (emoji format) to read your vault's
@@ -316,22 +318,34 @@
         <span class="taskflow-select-count">
           {selectedTasks.length > 0 ? `${selectedTasks.length} selected` : 'Select tasks'}
         </span>
-        <button
-          class="taskflow-action"
-          disabled={selectedTasks.length === 0}
-          onclick={() => callbacks.onBulkMove(selectedTasks)}
-        >
-          <span aria-hidden="true" use:icon={'folder-input'}></span>
-          move to project
-        </button>
-        <button
-          class="taskflow-action"
-          disabled={selectedTasks.length === 0}
-          onclick={ev => callbacks.onBulkScheduleMenu(selectedTasks, ev)}
-        >
-          <span aria-hidden="true" use:icon={'clock'}></span>
-          schedule
-        </button>
+        {#if panelWidth >= 380}
+          <button
+            class="taskflow-action"
+            disabled={selectedTasks.length === 0}
+            onclick={() => callbacks.onBulkMove(selectedTasks)}
+          >
+            <span aria-hidden="true" use:icon={'folder-input'}></span>
+            move to project
+          </button>
+          <button
+            class="taskflow-action"
+            disabled={selectedTasks.length === 0}
+            onclick={ev => callbacks.onBulkScheduleMenu(selectedTasks, ev)}
+          >
+            <span aria-hidden="true" use:icon={'clock'}></span>
+            schedule
+          </button>
+        {:else}
+          <!-- Narrow: both acts fold into one "…" — the ✕ stays the one
+               always-enabled control either way. -->
+          <button
+            class="taskflow-action"
+            aria-label="Selection actions"
+            disabled={selectedTasks.length === 0}
+            onclick={ev => callbacks.onBulkActionsMenu(selectedTasks, ev)}
+            use:icon={'more-horizontal'}
+          ></button>
+        {/if}
         <button
           class="taskflow-action"
           aria-label="Done selecting"
