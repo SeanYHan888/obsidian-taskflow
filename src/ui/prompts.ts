@@ -1,6 +1,6 @@
 import {FuzzySuggestModal, Modal} from 'obsidian'
 
-import type {App} from 'obsidian'
+import type {App, FuzzyMatch} from 'obsidian'
 import type {ProjectMeta} from '../core/types'
 
 /**
@@ -74,13 +74,14 @@ export const askDate = (
 
 export const askText = (
   app: App,
-  opts: {title: string; placeholder: string; submitLabel: string},
+  opts: {title: string; placeholder: string; submitLabel: string; value?: string},
 ): Promise<string | null> =>
   prompt(app, null, (modal, submit: (value: string | null) => void) => {
     modal.titleEl.setText(opts.title)
     const input = modal.contentEl.createEl('input', {
       type: 'text',
       placeholder: opts.placeholder,
+      value: opts.value ?? '',
     })
     input.addClass('taskflow-modal-input')
     const go = () => {
@@ -94,7 +95,7 @@ export const askText = (
     input.focus()
   })
 
-export type ProjectChoice = {kind: 'project'; project: ProjectMeta} | {kind: 'new'}
+export type ProjectChoice = {kind: 'project'; project: ProjectMeta} | {kind: 'new'; name?: string}
 
 export const pickProject = (
   app: App,
@@ -113,13 +114,23 @@ export const pickProject = (
         this.setPlaceholder('Move to project…')
       }
       getItems(): ProjectChoice[] {
-        const items: ProjectChoice[] = projects.map(project => ({kind: 'project', project}))
-        items.push({kind: 'new'})
-        return items
+        return projects.map(project => ({kind: 'project', project}))
+      }
+      // "+ New project…" is pinned outside the fuzzy filter: typing a
+      // fresh project's name must not filter away the only way to create
+      // it. The typed query rides along as the suggested name.
+      getSuggestions(query: string): FuzzyMatch<ProjectChoice>[] {
+        const name = query.trim()
+        return [
+          ...super.getSuggestions(query),
+          {item: {kind: 'new', name: name || undefined}, match: {score: 0, matches: []}},
+        ]
       }
       getItemText(item: ProjectChoice): string {
         return item.kind === 'new'
-          ? '+ New project…'
+          ? item.name
+            ? `+ New project: ${item.name}`
+            : '+ New project…'
           : `${item.project.name}  (${item.project.status ?? 'no status'})`
       }
       onChooseItem(item: ProjectChoice): void {

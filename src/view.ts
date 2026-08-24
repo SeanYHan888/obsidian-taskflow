@@ -374,6 +374,7 @@ export class TaskflowView extends ItemView {
       const name = await askText(this.app, {
         title: 'New project',
         placeholder: 'Project name',
+        value: choice.name,
         submitLabel: 'Create and move',
       })
       if (name) await this.createAndMove(tasks, name)
