@@ -96,8 +96,8 @@
   color: var(--color-red);
 }
 
+/* A signal, not an act (panel grammar): sits with the count in the title. */
 .taskflow-badge {
-  margin-left: auto;
   padding: 0 7px;
   border-radius: 9px;
   background: rgba(var(--color-green-rgb), 0.15);
@@ -411,31 +411,48 @@
   border-color: var(--color-red);
 }
 
-.taskflow-panel .taskflow-header-action {
+/* The section header's "…" (#15): the project header's quiet, hover-revealed
+   treatment, one level up. The right edge holds acts only — at most one
+   pressing accelerator, then this menu when the section has acts. */
+.taskflow-panel .taskflow-section-menu {
+  flex-shrink: 0;
   margin-left: auto;
   height: auto;
-  padding: 0 7px;
-  border-radius: 9px;
-  border: 1px solid var(--background-modifier-border);
+  padding: 0 6px;
   background: transparent;
   box-shadow: none;
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-  font-weight: 500;
+  border: none;
   cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 600;
+  opacity: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  --icon-size: 14px;
 }
 
-.taskflow-header-action:hover {
+.taskflow-section-header:hover .taskflow-section-menu,
+.taskflow-panel .taskflow-section-menu:focus-visible {
+  opacity: 1;
+}
+
+.taskflow-panel .taskflow-section-menu:hover {
   color: var(--text-normal);
   background: var(--interactive-hover);
+  border-radius: 6px;
 }
 
-.taskflow-section-header .taskflow-badge {
+.taskflow-section-header .taskflow-quick-action {
+  margin-left: auto;
+}
+
+.taskflow-section-header .taskflow-quick-action + .taskflow-section-menu {
   margin-left: 0;
 }
 
-.taskflow-section-header .taskflow-header-action + .taskflow-badge {
-  margin-left: 0;
+.is-mobile .taskflow-panel .taskflow-section-menu {
+  opacity: 0.7;
 }
 
 .taskflow-modal-submit {
@@ -517,8 +534,7 @@
   cursor: grab;
 }
 
-.taskflow-panel button:focus-visible,
-.taskflow-header-action:focus-visible {
+.taskflow-panel button:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 1px;
   opacity: 1;
@@ -642,6 +658,7 @@
 }
 
 .taskflow-project-header:hover .taskflow-quick-action,
+.taskflow-section-header:hover .taskflow-quick-action,
 .taskflow-panel .taskflow-quick-action:focus-visible {
   opacity: 1;
 }

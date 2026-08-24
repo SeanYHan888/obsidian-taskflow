@@ -89,7 +89,10 @@ Every context menu reads navigate → capture/commit → pacing → refile → d
 A chip opens what edits it: task date chips open the schedule menu, the project deadline chip opens the deadline picker. Chips are the only date-shaped buttons on any row or header.
 
 **Quick-button rule**:
-At most one quick button, shown only when the panel is pressing for a decision (today: `→ now` on a pressing project header), in the one shared quick-action style, always mirrored by a menu item.
+At most one quick button per header, shown only when the panel is pressing for a decision — today: `→ now` on a pressing project header, `All → to-do` on the repair queue (a non-empty Overdue & slipped is a standing press) — in the one shared quick-action style, always mirrored by a menu item.
+
+**Header chrome**:
+Signals (the count, the WIP badge) sit with the title inside the fold toggle; the right edge of any header holds acts only — at most one pressing accelerator, then a `…` menu when the section has acts (#15). Mode toggles (select) are menu items, not buttons: a mode is not a pressing decision. A header with no acts (Upcoming) shows nothing, by rule.
 
 **Primary-click rule**:
 Primary click does the surface's dominant act — task text jumps, project name folds. Because a header's click folds, headers carry visible ↗ and … entry points; rows carry neither. The context menu (right-click, long-press) carries every act on both surfaces: visible buttons are accelerators, never the only path.

@@ -1,6 +1,6 @@
 import {assert, test} from 'vitest'
 
-import {projectMenuSpec, scheduleMenuSpec, taskMenuSpec} from '../src/core/menus'
+import {projectMenuSpec, scheduleMenuSpec, sectionMenuSpec, taskMenuSpec} from '../src/core/menus'
 
 import type {MenuItemSpec} from '../src/core/menus'
 import type {ProjectMeta, TaskflowTask} from '../src/core/types'
@@ -126,4 +126,19 @@ test('a machine-managed row offers only the jump', () => {
     titles(taskMenuSpec(managed, {...CONFIG, machineNotePath: 'Sync/Reminders.md'})),
     ['Open note'],
   )
+})
+
+test('the section menu carries the acts: select for selectable, repair for slipped', () => {
+  const selectable = titles(sectionMenuSpec({selecting: false, selectable: true, repairable: false}))
+  assert.deepEqual(selectable, ['Select tasks…'])
+
+  const selecting = titles(sectionMenuSpec({selecting: true, selectable: true, repairable: false}))
+  assert.deepEqual(selecting, ['Done selecting'])
+
+  const repair = titles(sectionMenuSpec({selecting: false, selectable: false, repairable: true}))
+  assert.deepEqual(repair, ['Reschedule all to today'])
+})
+
+test('a section with no acts gets an empty spec — no menu at all', () => {
+  assert.deepEqual(sectionMenuSpec({selecting: false, selectable: false, repairable: false}), [])
 })

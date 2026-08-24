@@ -13,8 +13,9 @@
     danger = false,
     badge = null,
     badgeDanger = false,
-    actionLabel = null,
-    onAction = null,
+    quickLabel = null,
+    onQuickAction = null,
+    onMenu = null,
     emptyText = 'Nothing here',
     onCollapse,
     dragActive = false,
@@ -28,8 +29,11 @@
     danger?: boolean
     badge?: string | null
     badgeDanger?: boolean
-    actionLabel?: string | null
-    onAction?: (() => void) | null
+    /** The pressing accelerator (panel grammar) — at most one, menu-mirrored. */
+    quickLabel?: string | null
+    onQuickAction?: (() => void) | null
+    /** The header's "…" menu; absent when the section has no acts. */
+    onMenu?: ((ev: MouseEvent) => void) | null
     emptyText?: string
     onCollapse: (key: SectionKey, collapsed: boolean) => void
     /** True while a row is lifted somewhere in the panel. */
@@ -91,14 +95,24 @@
           {count}
         </span>
       {/if}
+      <!-- Signals sit with identity (panel grammar): the badge is information
+           like the count, so it lives beside it — the right edge holds acts. -->
+      {#if badge}
+        <span class="taskflow-badge" class:taskflow-badge-danger={badgeDanger}>{badge}</span>
+      {/if}
     </button>
-    {#if actionLabel && onAction && count > 0 && !collapsed}
-      <button class="taskflow-header-action" onclick={() => onAction()}>
-        {actionLabel}
+    {#if quickLabel && onQuickAction && count > 0 && !collapsed}
+      <button class="taskflow-quick-action" onclick={() => onQuickAction()}>
+        {quickLabel}
       </button>
     {/if}
-    {#if badge}
-      <span class="taskflow-badge" class:taskflow-badge-danger={badgeDanger}>{badge}</span>
+    {#if onMenu && count > 0 && !collapsed}
+      <button
+        class="taskflow-section-menu"
+        aria-label="Section actions"
+        onclick={ev => onMenu(ev)}
+        use:icon={'more-horizontal'}
+      ></button>
     {/if}
   </div>
   {#if !collapsed}

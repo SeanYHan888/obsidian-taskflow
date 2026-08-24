@@ -55,11 +55,14 @@
 
   const selectedTasks = $derived(selectionTasks(data.sections, selectedKeys))
 
-  /** One select mode for the whole panel — either header's toggle drives it. */
+  /** One select mode for the whole panel — either header's menu drives it. */
   const toggleSelecting = () => {
     selecting = !selecting
     if (!selecting) selectedKeys = new Set()
   }
+
+  /** The view's seam for the section menu's toggle-select act (#15). */
+  export const toggleSelectMode = () => toggleSelecting()
 
   /** Escape leaves select mode, the convention every multi-select app keeps. */
   const onPanelKeydown = (ev: KeyboardEvent) => {
@@ -123,8 +126,7 @@
       count={counts.today + counts.inbox}
       collapsed={data.collapsed.today ?? false}
       emptyText={todoEmpty}
-      actionLabel={selecting ? 'done' : 'select'}
-      onAction={toggleSelecting}
+      onMenu={ev => callbacks.onSectionMenu('today', selecting, ev)}
       onCollapse={callbacks.onCollapse}
       dragActive={dropValid({kind: 'section', key: 'today'})}
       onDropTask={dropOn({kind: 'section', key: 'today'})}
@@ -156,8 +158,9 @@
       collapsed={data.collapsed.slipped ?? false}
       danger
       emptyText="All caught up — nothing slipped"
-      actionLabel="All → to-do"
-      onAction={callbacks.onRescheduleAllSlipped}
+      quickLabel="All → to-do"
+      onQuickAction={callbacks.onRescheduleAllSlipped}
+      onMenu={ev => callbacks.onSectionMenu('slipped', selecting, ev)}
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.slipped as task (locationKey(task.filePath, task.line))}
@@ -188,8 +191,7 @@
       emptyText={projectsEmpty}
       badge={wip?.label ?? null}
       badgeDanger={wip?.danger ?? false}
-      actionLabel={selecting ? 'done' : 'select'}
-      onAction={toggleSelecting}
+      onMenu={ev => callbacks.onSectionMenu('projects', selecting, ev)}
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.projects as group (group.project.path)}

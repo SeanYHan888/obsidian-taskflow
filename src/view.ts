@@ -9,7 +9,7 @@ import {setupState} from './core/setup'
 import {dropIntent} from './core/drop'
 import {flattenTaskTree} from './core/hierarchy'
 import {editableTasks} from './core/machine-note'
-import {projectMenuSpec, scheduleMenuSpec, taskMenuSpec} from './core/menus'
+import {projectMenuSpec, scheduleMenuSpec, sectionMenuSpec, taskMenuSpec} from './core/menus'
 import {resolveQuickDate} from './core/schedule'
 import {promotionOutcome, retirePlan} from './core/sections'
 
@@ -45,7 +45,7 @@ const localToday = (): string => {
 }
 
 export class TaskflowView extends ItemView {
-  private panel: {update: (data: PanelData) => void} | null = null
+  private panel: {update: (data: PanelData) => void; toggleSelectMode: () => void} | null = null
   private lastToday = localToday()
   private lastSections: Sections | null = null
   private portsCache: Ports | null = null
@@ -101,6 +101,8 @@ export class TaskflowView extends ItemView {
           onPickDate: (task: TaskflowTask) => void this.pickDate([task]),
           onCancelTask: (task: TaskflowTask) => void this.cancel(task),
           onRescheduleAllSlipped: () => void this.rescheduleAllSlipped(),
+          onSectionMenu: (key: SectionKey, selecting: boolean, ev: MouseEvent) =>
+            this.showSectionMenu(key, selecting, ev),
           onBulkMove: (tasks: TaskflowTask[]) => void this.bulkMove(tasks),
           onBulkScheduleMenu: (tasks: TaskflowTask[], ev: MouseEvent) =>
             this.showScheduleMenu(tasks, ev),
@@ -112,7 +114,7 @@ export class TaskflowView extends ItemView {
           onPromoteProject: (project: ProjectMeta) => void this.promote(project),
         },
       },
-    }) as unknown as {update: (data: PanelData) => void}
+    }) as unknown as {update: (data: PanelData) => void; toggleSelectMode: () => void}
 
     const refreshSoon = debounce(() => this.refresh(), 350, true)
     // The task source owns its own change signal; frontmatter and file edits
@@ -221,6 +223,19 @@ export class TaskflowView extends ItemView {
     this.runMenu(taskMenuSpec(task, this.menuConfig()), ev, action =>
       this.dispatchTaskAction([task], action, ev),
     )
+  }
+
+  /** Header chrome (#15): which sections carry which acts is policy, in core. */
+  private showSectionMenu(key: SectionKey, selecting: boolean, ev: MouseEvent): void {
+    const spec = sectionMenuSpec({
+      selecting,
+      selectable: key === 'today' || key === 'projects',
+      repairable: key === 'slipped',
+    })
+    this.runMenu(spec, ev, action => {
+      if (action.type === 'toggle-select') this.panel?.toggleSelectMode()
+      else if (action.type === 'reschedule-all') void this.rescheduleAllSlipped()
+    })
   }
 
   /**

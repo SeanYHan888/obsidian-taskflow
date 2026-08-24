@@ -33,6 +33,8 @@ export type MenuAction =
   | {type: 'pick-deadline'}
   | {type: 'clear-deadline'}
   | {type: 'retire'; status: 'done' | 'dropped'}
+  | {type: 'toggle-select'}
+  | {type: 'reschedule-all'}
 
 export type MenuItemSpec =
   | {kind: 'item'; title: string; icon: string; action: MenuAction; disabled?: boolean}
@@ -105,6 +107,37 @@ export const taskMenuSpec = (
     separator,
     item('Cancel task', 'x', {type: 'cancel'}),
   ]
+}
+
+export type SectionMenuConfig = {
+  /** The one global select mode's current state — either header toggles it. */
+  selecting: boolean
+  /** Whether this section's rows can join the selection (To-do, Projects). */
+  selectable: boolean
+  /** The repair queue: Overdue & slipped. */
+  repairable: boolean
+}
+
+/**
+ * A section header's "…" menu (#15): the header-chrome half of the panel
+ * grammar. Acts live here — the only visible exception is the pressing
+ * accelerator ("All → to-do" on the repair queue), which this menu mirrors
+ * so the button stays a shortcut, never the only path. A section with no
+ * acts (Upcoming) gets an empty spec and renders no menu at all.
+ */
+export const sectionMenuSpec = (config: SectionMenuConfig): MenuItemSpec[] => {
+  const spec: MenuItemSpec[] = []
+  if (config.selectable) {
+    spec.push(
+      item(config.selecting ? 'Done selecting' : 'Select tasks…', 'copy-check', {
+        type: 'toggle-select',
+      }),
+    )
+  }
+  if (config.repairable) {
+    spec.push(item('Reschedule all to today', 'sun', {type: 'reschedule-all'}))
+  }
+  return spec
 }
 
 const STATUS_ICON: Record<ProjectStatus, string> = {

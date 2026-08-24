@@ -55,6 +55,8 @@ export type PanelCallbacks = {
   onPickDate: (task: TaskflowTask) => void
   onCancelTask: (task: TaskflowTask) => void
   onRescheduleAllSlipped: () => void
+  /** A section header's "…" menu; `selecting` labels the toggle-select item. */
+  onSectionMenu: (key: SectionKey, selecting: boolean, ev: MouseEvent) => void
   /** Triage: open the project picker for the selected inbox tasks. */
   onBulkMove: (tasks: TaskflowTask[]) => void
   onBulkScheduleMenu: (tasks: TaskflowTask[], ev: MouseEvent) => void
