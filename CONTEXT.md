@@ -37,8 +37,8 @@ _Avoid_: Today (renamed 2026-08-22; the dated-today rule is unchanged)
 Open tasks due before today, or scheduled before today outside the Apple Sync note. A repair queue: reschedule, complete, or cancel.
 
 **Inbox**:
-Undated open tasks under a daily note's `# Inbox` heading, rendered at the tail of the To-do section. A triage queue: give each task a date, a project, or a cancellation. Checkboxes under other headings are not Taskflow's business.
-_Avoid_: capture list, unsorted
+Undated open tasks under a daily note's `# Inbox` heading, rendered at the tail of the To-do section. A triage queue: give each task a date, a project, or a cancellation. Checkboxes under other headings are not Taskflow's business. An internal name only: the panel presents this surface as part of To-do, and user-facing copy (menu items, notices, empty states) says To-do, never inbox (#13).
+_Avoid_: capture list, unsorted, inbox (in UI copy)
 
 **Upcoming**:
 Open tasks dated later than today, outside the projects folder — visible while they wait, so scheduling ahead never makes a task disappear. Collapsed by default.
@@ -77,6 +77,22 @@ Physically cutting a task line (with its subtask children) out of its source not
 
 **Events (`# Events:`)**:
 Day Planner's section of the daily note — time blocks, not tasks. Taskflow never reads or writes it.
+
+### Panel grammar
+
+The rules every menu and affordance obeys (#14), so the next one has a rule to follow instead of a precedent to drift from:
+
+**Menu order**:
+Every context menu reads navigate → capture/commit → pacing → refile → destructive, separators only between non-empty sections. The first item is always the jump ("Open note", file-text); destructive acts are always last. An item naming a state the thing is already in is marked "✓" and disabled — project statuses and quick dates alike.
+
+**Chip rule**:
+A chip opens what edits it: task date chips open the schedule menu, the project deadline chip opens the deadline picker. Chips are the only date-shaped buttons on any row or header.
+
+**Quick-button rule**:
+At most one quick button, shown only when the panel is pressing for a decision (today: `→ now` on a pressing project header), in the one shared quick-action style, always mirrored by a menu item.
+
+**Primary-click rule**:
+Primary click does the surface's dominant act — task text jumps, project name folds. Because a header's click folds, headers carry visible ↗ and … entry points; rows carry neither. The context menu (right-click, long-press) carries every act on both surfaces: visible buttons are accelerators, never the only path.
 
 ### Sources
 

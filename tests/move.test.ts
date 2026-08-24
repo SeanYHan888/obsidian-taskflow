@@ -1,6 +1,6 @@
 import {assert, test} from 'vitest'
 
-import {cutTaskBlocks, insertUnderHeadingAt} from '../src/core/move'
+import {cutTaskBlocks, insertUnderHeadingAt, newTaskBlock} from '../src/core/move'
 import {relationsFromLines} from '../src/core/hierarchy'
 
 test('cutTaskBlocks removes a lone task and returns it as a block', () => {
@@ -220,4 +220,13 @@ test('a project-note source keeps date-bearing lines byte-identical through cut-
     '- [ ] camera ready paper ⏳ 2026-08-25 📅 2026-08-30',
     '  - [ ] fix figure 3 ⏳ 2026-08-24',
   ])
+})
+
+test('newTaskBlock writes the line verbatim after trimming, checkbox prefixed', () => {
+  assert.deepEqual(newTaskBlock('  buy milk 📅 2026-09-01  '), [['- [ ] buy milk 📅 2026-09-01']])
+})
+
+test('newTaskBlock is inert on blank input', () => {
+  assert.isNull(newTaskBlock('   '))
+  assert.isNull(newTaskBlock(''))
 })

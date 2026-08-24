@@ -97,7 +97,7 @@
   // there, in the glossary's vocabulary — never four identical silences.
   const todoEmpty = $derived(
     data.setup.includes('daily-notes-unconfigured')
-      ? 'Nothing to do yet. Turn on the core Daily Notes plugin to capture into an inbox, or schedule any task for today.'
+      ? 'Nothing to do yet. Turn on the core Daily Notes plugin to capture straight into To-do, or schedule any task for today.'
       : "Nothing to do — capture in today's note or pull from a project",
   )
   const projectsEmpty = $derived(
@@ -253,11 +253,13 @@
               <span class="taskflow-project-count">{countTaskTree(group.tasks)}</span>
             </button>
             {#if group.project.deadline != null && data.pacingMode !== 'wip'}
+              <!-- A chip opens what edits it (panel grammar) — the picker,
+                   not the whole menu, mirroring task chips → schedule menu. -->
               <button
                 class="taskflow-chip taskflow-chip-button taskflow-chip-due"
                 class:taskflow-chip-past={group.urgency === 'arrived'}
                 aria-label="Project deadline"
-                onclick={ev => callbacks.onProjectMenu(group.project, ev)}
+                onclick={() => callbacks.onProjectDeadline(group.project)}
               >
                 {chipLabel(group.project.deadline, data.today)}
               </button>
@@ -266,7 +268,7 @@
               <!-- The pressing loop: calendar says soon, commitments say not
                    yet — one tap answers. Ignoring it is also an answer. -->
               <button
-                class="taskflow-quick-now"
+                class="taskflow-quick-action"
                 aria-label="Move to now"
                 onclick={() => callbacks.onPromoteProject(group.project)}
               >
@@ -292,7 +294,6 @@
                 {task}
                 {ctx}
                 showSource={false}
-                quickToday
                 selectMode={selecting}
                 {selectedKeys}
                 onToggleSelect={toggleSelect}

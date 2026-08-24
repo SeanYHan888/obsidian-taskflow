@@ -49,6 +49,16 @@ export const cutTaskBlocks = (
   }
 }
 
+/**
+ * Add task (#12): one new checkbox line, written verbatim after trimming —
+ * typed Tasks-plugin syntax (📅, priorities) passes through unblessed; it is
+ * a line, not a note name, so no character stripping. Blank input is inert.
+ */
+export const newTaskBlock = (text: string): string[][] | null => {
+  const trimmed = text.trim()
+  return trimmed ? [[`- [ ] ${trimmed}`]] : null
+}
+
 const normalizeHeading = (heading: string) =>
   heading.replace(/^#+\s*/, '').trim().toLowerCase()
 

@@ -105,7 +105,7 @@ export class TaskflowSettingTab extends PluginSettingTab {
     )
     text(
       'Inbox heading',
-      'Only tasks under this daily-note heading count as capture. Plain text match — any language works.',
+      "Only tasks under this daily-note heading count as capture; they appear at the tail of the panel's To-do section. Plain text match — any language works.",
       'inboxHeading',
       DEFAULT_SETTINGS.inboxHeading,
     )

@@ -1,5 +1,6 @@
 import {inFolder} from './classify'
 import {isMachineManaged} from './machine-note'
+import {resolveQuickDate} from './schedule'
 
 import type {MachineNoteConfig} from './machine-note'
 import type {QuickDate} from './schedule'
@@ -10,6 +11,12 @@ import type {PacingMode, ProjectMeta, ProjectStatus, TaskflowTask} from './types
  * they mean; the view only turns a spec into an Obsidian Menu and dispatches
  * the chosen action. The policy (when Remove date appears, when a project can
  * be refiled) is testable here without a DOM.
+ *
+ * Both builders are instances of the one panel grammar (CONTEXT.md): navigate,
+ * then capture/commit, then pacing, then refile, then destructive — separators
+ * only between non-empty sections, first item always the jump ("Open note"),
+ * destructive acts always last, and any item naming a state the thing is
+ * already in marked "✓" and disabled.
  */
 
 export type MenuAction =
@@ -20,6 +27,7 @@ export type MenuAction =
   | {type: 'send-back'}
   | {type: 'cancel'}
   | {type: 'open-note'}
+  | {type: 'add-task'}
   | {type: 'promote'}
   | {type: 'set-status'; status: ProjectStatus}
   | {type: 'pick-deadline'}
@@ -39,30 +47,42 @@ const item = (
 
 const separator: MenuItemSpec = {kind: 'separator'}
 
+const QUICK_DATES: {kind: QuickDate; title: string; icon: string}[] = [
+  {kind: 'today', title: 'To-do (today)', icon: 'sun'},
+  {kind: 'tomorrow', title: 'Tomorrow', icon: 'sunrise'},
+  {kind: 'weekend', title: 'Weekend', icon: 'armchair'},
+]
+
+export type ScheduleMenuConfig = {projectsFolder: string; today: string}
+
 /**
- * The quick-date menu, for one task or a bulk selection. Remove date appears
- * once anything has a plan to withdraw; the two refiling acts (move, send
- * back) only when every task lives in a project note — a mixed selection
- * has no one source to send back from.
+ * The quick-date menu, for one task or a bulk selection: the pacing section
+ * (a quick date every selected task already holds is marked ✓ and disabled,
+ * the same state-marking the status items use; Remove date appears once
+ * anything has a plan to withdraw), then the refile section — only when
+ * every task lives in a project note, since a mixed selection has no one
+ * source to send back from.
  */
 export const scheduleMenuSpec = (
   tasks: readonly TaskflowTask[],
-  config: {projectsFolder: string},
+  config: ScheduleMenuConfig,
 ): MenuItemSpec[] => {
-  const spec: MenuItemSpec[] = [
-    item('To-do (today)', 'sun', {type: 'schedule', kind: 'today'}),
-    item('Tomorrow', 'sunrise', {type: 'schedule', kind: 'tomorrow'}),
-    item('Weekend', 'armchair', {type: 'schedule', kind: 'weekend'}),
-    item('Pick a date…', 'calendar', {type: 'pick-date'}),
-  ]
-  const hasPlan = tasks.some(t => t.scheduled != null)
+  const spec: MenuItemSpec[] = QUICK_DATES.map(({kind, title, icon}) => {
+    const held =
+      tasks.length > 0 &&
+      tasks.every(t => t.scheduled === resolveQuickDate(kind, config.today))
+    return item(held ? `${title} ✓` : title, icon, {type: 'schedule', kind}, held)
+  })
+  spec.push(item('Pick a date…', 'calendar', {type: 'pick-date'}))
+  if (tasks.some(t => t.scheduled != null)) {
+    spec.push(item('Remove date', 'eraser', {type: 'remove-date'}))
+  }
   const fromProject =
     tasks.length > 0 && tasks.every(t => inFolder(t.filePath, config.projectsFolder))
-  if (hasPlan || fromProject) spec.push(separator)
-  if (hasPlan) spec.push(item('Remove date', 'eraser', {type: 'remove-date'}))
   if (fromProject) {
+    spec.push(separator)
     spec.push(item('Move to project…', 'folder-input', {type: 'move-to-project'}))
-    spec.push(item('Send back to inbox', 'inbox', {type: 'send-back'}))
+    spec.push(item('Send back to To-do', 'inbox', {type: 'send-back'}))
   }
   return spec
 }
@@ -74,9 +94,9 @@ export const scheduleMenuSpec = (
  */
 export const taskMenuSpec = (
   task: TaskflowTask,
-  config: {projectsFolder: string} & MachineNoteConfig,
+  config: ScheduleMenuConfig & MachineNoteConfig,
 ): MenuItemSpec[] => {
-  const open = item('Open in note', 'file-text', {type: 'open-note'})
+  const open = item('Open note', 'file-text', {type: 'open-note'})
   if (isMachineManaged(task.filePath, config)) return [open]
   return [
     open,
@@ -100,19 +120,22 @@ export type ProjectMenuConfig = {
 }
 
 /**
- * The project lifecycle menu: navigate, commit, pace, retire. Pacing items
- * follow the mode — wip mode has no deadline concept to edit, and only
- * hybrid presses. Pressing puts "Move to now" first: the touch-parity twin
- * of the header's hover → now.
+ * The project lifecycle menu, in the same grammar as the task menu: the jump,
+ * then capture/commit (a pressing project puts "Move to now" first — the
+ * touch-parity twin of the header's hover → now — and "Add task…" is capture
+ * straight into the backlog), then pacing (status and, outside wip mode,
+ * deadline — wip has no deadline concept to edit), then retirement.
  */
 export const projectMenuSpec = (
   project: ProjectMeta,
   config: ProjectMenuConfig,
 ): MenuItemSpec[] => {
-  const spec: MenuItemSpec[] = [item('Open project note', 'file-text', {type: 'open-note'})]
+  const spec: MenuItemSpec[] = [item('Open note', 'file-text', {type: 'open-note'})]
+  spec.push(separator)
   if (config.pressing) {
     spec.push(item('Move to now', 'play', {type: 'promote'}))
   }
+  spec.push(item('Add task…', 'plus', {type: 'add-task'}))
   spec.push(separator)
   for (const status of ['now', 'next', 'later'] as ProjectStatus[]) {
     spec.push(
@@ -125,7 +148,6 @@ export const projectMenuSpec = (
     )
   }
   if (config.pacingMode !== 'wip') {
-    spec.push(separator)
     spec.push(
       item(
         project.deadline == null ? 'Set deadline…' : `Deadline ${project.deadline}…`,

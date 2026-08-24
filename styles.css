@@ -499,42 +499,6 @@
   width: 240px;
 }
 
-/* Polish (v0.4) */
-
-.taskflow-panel .taskflow-quick-today {
-  flex-shrink: 0;
-  align-self: center;
-  display: inline-block;
-  height: auto;
-  padding: 0 7px;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-  box-shadow: none;
-  cursor: pointer;
-  color: var(--text-accent);
-  font-size: var(--font-ui-smaller);
-  white-space: nowrap;
-  opacity: 0;
-}
-
-.taskflow-row:hover .taskflow-quick-today,
-.taskflow-panel .taskflow-quick-today:focus-visible {
-  opacity: 1;
-}
-
-.taskflow-panel .taskflow-quick-today:hover {
-  background: var(--interactive-hover);
-}
-
-.taskflow-panel .taskflow-quick-today-undo {
-  color: var(--text-muted);
-}
-
-.taskflow-panel .taskflow-quick-today-undo:hover {
-  color: var(--text-error);
-}
-
 /* Drag and drop (v0.5): targets light up on lift, glow under the row */
 
 .taskflow-panel .taskflow-drop-ready {
@@ -578,8 +542,7 @@
   padding: 0;
 }
 
-.is-mobile .taskflow-panel .taskflow-add-date,
-.is-mobile .taskflow-panel .taskflow-quick-today {
+.is-mobile .taskflow-panel .taskflow-add-date {
   opacity: 0.7;
 }
 
@@ -656,10 +619,11 @@
   }
 }
 
-/* The pressing loop (hybrid pacing): → now on a header whose deadline is
-   inside the attention window while the project isn't committed. Same
-   quick-commit grammar as → to-do on backlog rows. */
-.taskflow-panel .taskflow-quick-now {
+/* The one sanctioned quick button (panel grammar): shown only when the panel
+   is pressing for a decision — today, → now on a header whose deadline is
+   inside the attention window while the project isn't committed. Chip-shaped,
+   hover-revealed, always mirrored by a menu item. */
+.taskflow-panel .taskflow-quick-action {
   flex-shrink: 0;
   align-self: center;
   display: inline-block;
@@ -677,15 +641,15 @@
   opacity: 0;
 }
 
-.taskflow-project-header:hover .taskflow-quick-now,
-.taskflow-panel .taskflow-quick-now:focus-visible {
+.taskflow-project-header:hover .taskflow-quick-action,
+.taskflow-panel .taskflow-quick-action:focus-visible {
   opacity: 1;
 }
 
-.taskflow-panel .taskflow-quick-now:hover {
+.taskflow-panel .taskflow-quick-action:hover {
   background: var(--interactive-hover);
 }
 
-.is-mobile .taskflow-panel .taskflow-quick-now {
+.is-mobile .taskflow-panel .taskflow-quick-action {
   opacity: 0.7;
 }

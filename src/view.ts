@@ -108,6 +108,7 @@ export class TaskflowView extends ItemView {
             this.handleDrop(task, target, ev),
           onProjectMenu: (project: ProjectMeta, ev: MouseEvent) =>
             this.showProjectMenu(project, ev),
+          onProjectDeadline: (project: ProjectMeta) => void this.pickProjectDeadline(project),
           onPromoteProject: (project: ProjectMeta) => void this.promote(project),
         },
       },
@@ -205,14 +206,19 @@ export class TaskflowView extends ItemView {
       void this.openFile(tasks[0].filePath, tasks[0].line, ev)
   }
 
+  /** The menu builders' slice of the world: settings plus the injected clock. */
+  private menuConfig() {
+    return {...this.plugin.settings, today: localToday()}
+  }
+
   private showScheduleMenu(tasks: TaskflowTask[], ev: MouseEvent): void {
-    this.runMenu(scheduleMenuSpec(tasks, this.plugin.settings), ev, action =>
+    this.runMenu(scheduleMenuSpec(tasks, this.menuConfig()), ev, action =>
       this.dispatchTaskAction(tasks, action, ev),
     )
   }
 
   private showRowMenu(task: TaskflowTask, ev: MouseEvent): void {
-    this.runMenu(taskMenuSpec(task, this.plugin.settings), ev, action =>
+    this.runMenu(taskMenuSpec(task, this.menuConfig()), ev, action =>
       this.dispatchTaskAction([task], action, ev),
     )
   }
@@ -246,12 +252,23 @@ export class TaskflowView extends ItemView {
     })
     this.runMenu(spec, ev, action => {
       if (action.type === 'open-note') void this.openFile(project.path)
+      else if (action.type === 'add-task') void this.addTaskPrompt(project)
       else if (action.type === 'promote') void this.promote(project)
       else if (action.type === 'set-status') void this.changeStatus(project, action.status)
       else if (action.type === 'pick-deadline') void this.pickProjectDeadline(project)
       else if (action.type === 'clear-deadline') void this.changeDeadline(project, null)
       else if (action.type === 'retire') void this.retireProject(project, action.status)
     })
+  }
+
+  /** Add task (#12): one line of typing, straight into the project's backlog. */
+  private async addTaskPrompt(project: ProjectMeta): Promise<void> {
+    const text = await askText(this.app, {
+      title: `Add task to ${project.name}`,
+      placeholder: 'Task',
+      submitLabel: 'Add',
+    })
+    if (text) await this.act(() => this.ports.editor.addTask(project.path, text))
   }
 
   /**

@@ -3,7 +3,7 @@ import {Notice, TFile, moment} from 'obsidian'
 import {relationsFromLines} from '../core/hierarchy'
 import {toJournalEntry} from '../core/journal'
 import {plural} from '../core/labels'
-import {cutTaskBlocks, insertUnderHeadingAt} from '../core/move'
+import {cutTaskBlocks, insertUnderHeadingAt, newTaskBlock} from '../core/move'
 
 import type {App} from 'obsidian'
 import type {JournalEntry, LineRecord} from '../core/journal'
@@ -146,6 +146,42 @@ export const moveTasksToProject = async (
 }
 
 /**
+ * Add task (#12): a task born straight into a project — the append half of a
+ * move, without the cut half. Same landing contract (the move-target heading,
+ * created when missing), same journal record shape, so undo depth and
+ * staleness rules are inherited, not reimplemented.
+ */
+export const addTaskToProject = async (
+  app: App,
+  projectPath: string,
+  text: string,
+  targetHeading: string,
+): Promise<JournalEntry | null> => {
+  const block = newTaskBlock(text)
+  if (!block) return null
+  const projectFile = app.vault.getAbstractFileByPath(projectPath)
+  if (!(projectFile instanceof TFile)) {
+    new Notice(`Taskflow: project note not found: ${projectPath}`)
+    return null
+  }
+
+  const records: LineRecord[] = []
+  await app.vault.process(projectFile, data => {
+    const insertion = insertUnderHeadingAt(data.split('\n'), targetHeading, block, {
+      createMissing: true,
+    })
+    if (!insertion) return data
+    insertion.inserted.forEach((line, i) =>
+      records.push({kind: 'insert', file: projectPath, line: insertion.insertAt + i, text: line}),
+    )
+    return insertion.lines.join('\n')
+  })
+
+  const projectName = (projectPath.split('/').pop() ?? projectPath).replace(/\.md$/, '')
+  return toJournalEntry(`added a task to ${projectName}`, records)
+}
+
+/**
  * The Daily Notes core plugin's configuration — the single source of truth
  * for where daily notes live (#6): classification filters by the same folder
  * send-back writes to, so the two halves of triage can never disagree. Null
@@ -217,7 +253,7 @@ export const sendTasksBackToInbox = async (
   const total = outcome.moved + outcome.duplicated
   return {
     moved: total,
-    entry: toJournalEntry(`sent ${plural(total)} back to inbox`, outcome.records),
+    entry: toJournalEntry(`sent ${plural(total)} back to To-do`, outcome.records),
   }
 }
 

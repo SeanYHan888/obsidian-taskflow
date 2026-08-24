@@ -17,7 +17,6 @@
     selectMode = false,
     selectedKeys = null,
     onToggleSelect = null,
-    quickToday = false,
     nested = false,
   }: {
     task: TaskflowTask
@@ -27,7 +26,6 @@
     selectMode?: boolean
     selectedKeys?: ReadonlySet<string> | null
     onToggleSelect?: ((task: TaskflowTask) => void) | null
-    quickToday?: boolean
     nested?: boolean
   } = $props()
 
@@ -143,25 +141,6 @@
       use:icon={'calendar-plus'}
     ></button>
   {/if}
-  {#if quickToday && canSchedule}
-    {#if task.scheduled === ctx.today}
-      <button
-        class="taskflow-quick-today taskflow-quick-today-undo"
-        aria-label="Remove from To-do"
-        onclick={() => ctx.callbacks.onUnschedule(task)}
-      >
-        ✕ to-do
-      </button>
-    {:else}
-      <button
-        class="taskflow-quick-today"
-        aria-label="Move to To-do"
-        onclick={() => ctx.callbacks.onSchedule(task, 'today')}
-      >
-        → to-do
-      </button>
-    {/if}
-  {/if}
 </div>
 {#if slippedActions && canSchedule}
   <div class="taskflow-actions">
@@ -196,7 +175,6 @@
         {selectMode}
         {selectedKeys}
         {onToggleSelect}
-        {quickToday}
         nested
       />
     {/each}

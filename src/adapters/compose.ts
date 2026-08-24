@@ -2,6 +2,7 @@ import {TFolder, normalizePath} from 'obsidian'
 
 import {cancelTask, rescheduleTasks, unscheduleTasks} from './edit-lines'
 import {
+  addTaskToProject,
   createProjectFromTemplate,
   dailyNotesConfig,
   moveTasksToProject,
@@ -81,5 +82,7 @@ export const createPorts = (app: App, settings: () => TaskflowSettings): Ports =
       moveTasksToProject(app, tasks, projectPath, settings().moveTargetHeading),
     sendBackToInbox: (tasks, today) =>
       sendTasksBackToInbox(app, tasks, settings().inboxHeading, today),
+    addTask: (projectPath, text) =>
+      addTaskToProject(app, projectPath, text, settings().moveTargetHeading),
   },
 })

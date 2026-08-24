@@ -46,6 +46,8 @@ export type LineEditor = {
   cancel(task: TaskflowTask): Promise<JournalEntry | null>
   moveToProject(tasks: TaskflowTask[], projectPath: string): Promise<MoveOutcome>
   sendBackToInbox(tasks: TaskflowTask[], today: string): Promise<MoveOutcome>
+  /** Appends one new task line under the project's move-target heading. */
+  addTask(projectPath: string, text: string): Promise<JournalEntry | null>
 }
 
 export type Ports = {
