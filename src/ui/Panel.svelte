@@ -307,21 +307,36 @@
     </Section>
 
     <!-- One bar for the one selection, wherever its rows live — it follows
-         the panel bottom so a backlog-only selection still has its actions. -->
-    {#if selecting && selectedTasks.length > 0}
+         the panel bottom so a backlog-only selection still has its actions.
+         Present from the moment select mode starts: the bar is the mode's
+         one surface, so it announces the mode, carries its acts (disabled
+         until something is picked), and offers the exit. -->
+    {#if selecting}
       <div class="taskflow-select-bar">
-        <span class="taskflow-select-count">{selectedTasks.length} selected</span>
+        <span class="taskflow-select-count">
+          {selectedTasks.length > 0 ? `${selectedTasks.length} selected` : 'Select tasks'}
+        </span>
         <button
           class="taskflow-action"
+          disabled={selectedTasks.length === 0}
           onclick={() => callbacks.onBulkMove(selectedTasks)}
         >
+          <span aria-hidden="true" use:icon={'folder-input'}></span>
           move to project
         </button>
         <button
           class="taskflow-action"
-          aria-label="Schedule selected"
+          disabled={selectedTasks.length === 0}
           onclick={ev => callbacks.onBulkScheduleMenu(selectedTasks, ev)}
-          use:icon={'clock'}
+        >
+          <span aria-hidden="true" use:icon={'clock'}></span>
+          schedule
+        </button>
+        <button
+          class="taskflow-action"
+          aria-label="Done selecting"
+          onclick={toggleSelecting}
+          use:icon={'x'}
         ></button>
       </div>
     {/if}
