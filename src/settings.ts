@@ -1,6 +1,7 @@
 import {PluginSettingTab, Setting} from 'obsidian'
 
 import type {App} from 'obsidian'
+import type {PacingMode} from './core/types'
 import type TaskflowPlugin from './main'
 
 export type SectionKey = 'today' | 'slipped' | 'upcoming' | 'inbox' | 'projects'
@@ -15,7 +16,11 @@ export type TaskflowSettings = {
   moveTargetHeading: string
   /** Optional: '' falls back to the built-in project scaffold. */
   projectTemplatePath: string
+  /** Which pacing signals render: wip | deadline | hybrid (both + pressing). */
+  pacingMode: PacingMode
   wipLimit: number
+  /** Hybrid only: days before a deadline that the header offers → now; 0 waits for arrival. */
+  pressWindow: number
   collapsed: Partial<Record<SectionKey, boolean>>
   /** Folded project groups, keyed by project note path. */
   collapsedProjects: Record<string, boolean>
@@ -29,7 +34,10 @@ export const DEFAULT_SETTINGS: TaskflowSettings = {
   inboxHeading: 'Inbox',
   moveTargetHeading: 'Tasks',
   projectTemplatePath: '',
+  // Hybrid preserves pre-mode behavior: both signals on, plus the pressing loop.
+  pacingMode: 'hybrid',
   wipLimit: 3,
+  pressWindow: 7,
   collapsed: {},
   collapsedProjects: {},
 }
@@ -116,6 +124,22 @@ export class TaskflowSettingTab extends PluginSettingTab {
     )
 
     new Setting(this.containerEl)
+      .setName('Project pacing')
+      .setDesc(
+        'How projects are paced. Capacity shows a badge counting projects in "now" against the limit. Deadlines gives each project a date, sorted soonest first. Hybrid shows both and offers "→ now" on projects whose deadline is close but not yet committed. Switching is lossless — statuses and deadlines stay in each note.',
+      )
+      .addDropdown(dropdown =>
+        dropdown
+          .addOption('hybrid', 'Hybrid (capacity + deadlines)')
+          .addOption('wip', 'Capacity only')
+          .addOption('deadline', 'Deadlines only')
+          .setValue(this.plugin.settings.pacingMode)
+          .onChange(async value => {
+            await this.plugin.updateSettings({pacingMode: value as PacingMode})
+          }),
+      )
+
+    new Setting(this.containerEl)
       .setName('Work-in-progress limit')
       .setDesc('Projects allowed in "now" before the badge warns. Warns, never blocks.')
       .addText(input =>
@@ -123,6 +147,20 @@ export class TaskflowSettingTab extends PluginSettingTab {
           const parsed = Number.parseInt(value, 10)
           if (Number.isFinite(parsed) && parsed > 0) {
             await this.plugin.updateSettings({wipLimit: parsed})
+          }
+        }),
+      )
+
+    new Setting(this.containerEl)
+      .setName('Deadline attention window')
+      .setDesc(
+        'Hybrid pacing only: days before a project deadline that its header offers "→ now". Set it to zero to wait until the deadline arrives.',
+      )
+      .addText(input =>
+        input.setValue(String(this.plugin.settings.pressWindow)).onChange(async value => {
+          const parsed = Number.parseInt(value, 10)
+          if (Number.isFinite(parsed) && parsed >= 0) {
+            await this.plugin.updateSettings({pressWindow: parsed})
           }
         }),
       )

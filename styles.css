@@ -655,3 +655,37 @@
     animation: none !important;
   }
 }
+
+/* The pressing loop (hybrid pacing): → now on a header whose deadline is
+   inside the attention window while the project isn't committed. Same
+   quick-commit grammar as → to-do on backlog rows. */
+.taskflow-panel .taskflow-quick-now {
+  flex-shrink: 0;
+  align-self: center;
+  display: inline-block;
+  height: auto;
+  padding: 0 7px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  color: var(--text-accent);
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.taskflow-project-header:hover .taskflow-quick-now,
+.taskflow-panel .taskflow-quick-now:focus-visible {
+  opacity: 1;
+}
+
+.taskflow-panel .taskflow-quick-now:hover {
+  background: var(--interactive-hover);
+}
+
+.is-mobile .taskflow-panel .taskflow-quick-now {
+  opacity: 0.7;
+}

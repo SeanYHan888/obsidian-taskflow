@@ -81,6 +81,8 @@ test('with no machine-managed note, classify excludes nothing as a calendar bloc
     projectsFolder: 'Projects/Active',
     machineNotePath: '',
     inboxHeading: 'Inbox',
+    pacingMode: 'hybrid',
+    pressWindow: 7,
   }
   // A dated line that a managed note would hide is a plain task here.
   const block = task({description: 'time block', filePath: MANAGED, scheduled: '2026-08-21'})

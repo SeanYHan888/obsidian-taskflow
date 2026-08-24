@@ -30,7 +30,7 @@ export const cancelLine = (line: string): string =>
 export const clearScheduled = (line: string): string =>
   line.replace(/\s*⏳\s*\d{4}-\d{2}-\d{2}/, '')
 
-const addDays = (iso: string, days: number): string => {
+export const addDays = (iso: string, days: number): string => {
   const date = new Date(`${iso}T00:00:00`)
   date.setDate(date.getDate() + days)
   const month = String(date.getMonth() + 1).padStart(2, '0')

@@ -2,7 +2,7 @@ import type {SectionKey} from '../settings'
 import type {DropTarget} from '../core/drop'
 import type {QuickDate} from '../core/schedule'
 import type {SetupMessageKey} from '../core/setup'
-import type {ProjectMeta, Sections, TaskflowTask} from '../core/types'
+import type {PacingMode, ProjectMeta, Sections, TaskflowTask} from '../core/types'
 
 export type PanelData = {
   sections: Sections | null
@@ -21,6 +21,8 @@ export type PanelData = {
   projectsFolder: string
   /** For the template-missing hint; '' means the built-in scaffold. */
   templatePath: string
+  /** Which pacing signals to render: wip hides chips, deadline hides the badge. */
+  pacingMode: PacingMode
 }
 
 /** Everything a task row needs regardless of which section rendered it. */
@@ -60,4 +62,6 @@ export type PanelCallbacks = {
   onDrop: (task: TaskflowTask, target: DropTarget, ev: DragEvent) => void
   /** Project lifecycle menu: status now/next/later, done/dropped + archive. */
   onProjectMenu: (project: ProjectMeta, ev: MouseEvent) => void
+  /** The pressing loop's one tap: commit a pressing project to `now`. */
+  onPromoteProject: (project: ProjectMeta) => void
 }

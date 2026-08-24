@@ -60,7 +60,14 @@ Project-level commitment frontmatter. `now` = being worked, `next` = queued, `la
 How many projects `now` may hold (configurable, default 3). Exceeding it warns (red badge), never blocks.
 
 **Project deadline**:
-Optional `deadline` frontmatter (ISO date) on a project note — a project-level commitment date, distinct from a task's due (📅) field. Dated projects lead the Backlogs soonest-first; undated ones follow in status order. The header chip is amber while ahead, red once arrived — the same urgency grammar as task due chips. Coexists with the WIP badge (hybrid pacing: both signals, neither blocks).
+Optional `deadline` frontmatter (ISO date) on a project note — a project-level commitment date, distinct from a task's due (📅) field. Dated projects lead the Backlogs soonest-first; undated ones follow in status order. The header chip is amber while ahead, red once arrived — the same urgency grammar as task due chips. Rendered in the deadline and hybrid pacing modes; capacity mode ignores it (the frontmatter stays).
+
+**Pacing mode (capacity / deadlines / hybrid)**:
+Which pacing signals the Backlogs render and act on. Capacity (`wip`): the WIP badge only, status order. Deadlines (`deadline`): chips and deadline-first sort, no badge. Hybrid (default): both signals plus the pressing loop. A pure rendering filter — statuses and deadlines live in frontmatter regardless, so switching is instant and lossless.
+
+**Pressing**:
+Hybrid mode's reconciliation signal: a project whose deadline is inside the attention window (`pressWindow` days, default 7, arrival included) while its status isn't `now` — the calendar and the commitments disagree. A pressing header offers a hover-revealed `→ now` (and a "Move to now" menu item); one tap commits, ignoring it is a legitimate refusal. Promoting past the WIP limit goes through and the notice names the consequence — warn, never block, on both signals at once.
+_Avoid_: urgent, overdue (pressing is about commitment, not the chip's color)
 
 **Triage**:
 The act of emptying the Inbox: moving a task to a project, stamping a date, or cancelling it.

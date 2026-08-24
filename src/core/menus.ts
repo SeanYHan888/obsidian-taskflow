@@ -3,7 +3,7 @@ import {isMachineManaged} from './machine-note'
 
 import type {MachineNoteConfig} from './machine-note'
 import type {QuickDate} from './schedule'
-import type {ProjectMeta, ProjectStatus, TaskflowTask} from './types'
+import type {PacingMode, ProjectMeta, ProjectStatus, TaskflowTask} from './types'
 
 /**
  * Menus as data: core decides which items exist, what they say, and what
@@ -20,6 +20,7 @@ export type MenuAction =
   | {type: 'send-back'}
   | {type: 'cancel'}
   | {type: 'open-note'}
+  | {type: 'promote'}
   | {type: 'set-status'; status: ProjectStatus}
   | {type: 'pick-deadline'}
   | {type: 'clear-deadline'}
@@ -92,12 +93,27 @@ const STATUS_ICON: Record<ProjectStatus, string> = {
   later: 'moon',
 }
 
-/** The project lifecycle menu: navigate, commit, pace, retire. */
-export const projectMenuSpec = (project: ProjectMeta): MenuItemSpec[] => {
-  const spec: MenuItemSpec[] = [
-    item('Open project note', 'file-text', {type: 'open-note'}),
-    separator,
-  ]
+export type ProjectMenuConfig = {
+  pacingMode: PacingMode
+  /** From the project's group: hybrid's calendar/commitment disagreement. */
+  pressing: boolean
+}
+
+/**
+ * The project lifecycle menu: navigate, commit, pace, retire. Pacing items
+ * follow the mode — wip mode has no deadline concept to edit, and only
+ * hybrid presses. Pressing puts "Move to now" first: the touch-parity twin
+ * of the header's hover → now.
+ */
+export const projectMenuSpec = (
+  project: ProjectMeta,
+  config: ProjectMenuConfig,
+): MenuItemSpec[] => {
+  const spec: MenuItemSpec[] = [item('Open project note', 'file-text', {type: 'open-note'})]
+  if (config.pressing) {
+    spec.push(item('Move to now', 'play', {type: 'promote'}))
+  }
+  spec.push(separator)
   for (const status of ['now', 'next', 'later'] as ProjectStatus[]) {
     spec.push(
       item(
@@ -108,16 +124,18 @@ export const projectMenuSpec = (project: ProjectMeta): MenuItemSpec[] => {
       ),
     )
   }
-  spec.push(separator)
-  spec.push(
-    item(
-      project.deadline == null ? 'Set deadline…' : `Deadline ${project.deadline}…`,
-      'calendar-clock',
-      {type: 'pick-deadline'},
-    ),
-  )
-  if (project.deadline != null) {
-    spec.push(item('Clear deadline', 'eraser', {type: 'clear-deadline'}))
+  if (config.pacingMode !== 'wip') {
+    spec.push(separator)
+    spec.push(
+      item(
+        project.deadline == null ? 'Set deadline…' : `Deadline ${project.deadline}…`,
+        'calendar-clock',
+        {type: 'pick-deadline'},
+      ),
+    )
+    if (project.deadline != null) {
+      spec.push(item('Clear deadline', 'eraser', {type: 'clear-deadline'}))
+    }
   }
   spec.push(separator)
   spec.push(item('Mark done & archive', 'check-circle', {type: 'retire', status: 'done'}))

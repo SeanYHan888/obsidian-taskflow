@@ -1,6 +1,6 @@
 import {countTaskTree, flattenTaskTree, locationKey} from './hierarchy'
 
-import type {Sections, TaskflowTask} from './types'
+import type {PacingMode, Sections, TaskflowTask} from './types'
 
 /**
  * Queries over a classified Sections projection — the questions the panel
@@ -68,13 +68,34 @@ export type WipBadge = {
   danger: boolean
 }
 
-export const wipBadge = (sections: Sections | null, wipLimit: number): WipBadge | null =>
-  sections && sections.wipNowCount > 0
+/** The capacity signal — deadline mode shows one pacing signal, so no badge. */
+export const wipBadge = (
+  sections: Sections | null,
+  wipLimit: number,
+  pacingMode: PacingMode,
+): WipBadge | null =>
+  pacingMode !== 'deadline' && sections && sections.wipNowCount > 0
     ? {
         label: `now ${sections.wipNowCount}/${wipLimit}`,
         danger: sections.wipNowCount > wipLimit,
       }
     : null
+
+export type PromotionOutcome = {
+  /** The `now` count after this promotion lands. */
+  count: number
+  /** Past the limit: allowed (warn never block), but the notice names it. */
+  over: boolean
+}
+
+/** What promoting one more project to `now` does to capacity. */
+export const promotionOutcome = (
+  sections: Sections | null,
+  wipLimit: number,
+): PromotionOutcome => {
+  const count = (sections?.wipNowCount ?? 0) + 1
+  return {count, over: count > wipLimit}
+}
 
 export type RetirePlan = {
   openCount: number

@@ -1,5 +1,6 @@
 import {buildTaskTree} from './hierarchy'
 import {isCalendarBlock} from './machine-note'
+import {addDays} from './schedule'
 
 import type {ClassifyConfig, ProjectMeta, Sections, TaskflowTask} from './types'
 
@@ -84,6 +85,11 @@ export const classifySections = (
   const statusRank = (status: ProjectMeta['status']) =>
     status === 'now' ? 0 : status === 'next' ? 1 : status === 'later' ? 2 : 3
 
+  // Pacing is a rendering filter, not a data model: wip mode ignores the
+  // deadline signal entirely, and only hybrid runs the pressing loop.
+  const deadlinesOn = config.pacingMode !== 'wip'
+  const pressEdge = addDays(config.today, Math.max(0, config.pressWindow))
+
   const projectGroups = projects
     .map(project => ({
       project,
@@ -95,19 +101,28 @@ export const classifySections = (
       // Same urgency grammar as task due chips: red is for dates that have
       // actually arrived, deadline-day included.
       urgency:
-        project.deadline == null
+        !deadlinesOn || project.deadline == null
           ? null
           : project.deadline <= config.today
             ? ('arrived' as const)
             : ('ahead' as const),
+      // Pressing (hybrid only): the deadline is inside the attention window
+      // while the project isn't `now` — the two signals disagree, and the
+      // header offers → now until the user answers or refuses.
+      pressing:
+        config.pacingMode === 'hybrid' &&
+        project.deadline != null &&
+        project.deadline <= pressEdge &&
+        project.status !== 'now',
     }))
     .filter(group => group.tasks.length > 0)
     // Deadline outranks status: a dated commitment is more urgent information
     // than now/next/later, so dated projects lead, soonest first. Undated
     // projects keep the status order — deadlines are optional, never hiding.
+    // In wip mode the deadline signal is off, so status order alone applies.
     .sort((a, b) => {
-      const aDeadline = a.project.deadline ?? NO_DEADLINE
-      const bDeadline = b.project.deadline ?? NO_DEADLINE
+      const aDeadline = deadlinesOn ? (a.project.deadline ?? NO_DEADLINE) : NO_DEADLINE
+      const bDeadline = deadlinesOn ? (b.project.deadline ?? NO_DEADLINE) : NO_DEADLINE
       return (
         aDeadline.localeCompare(bDeadline) ||
         statusRank(a.project.status) - statusRank(b.project.status) ||

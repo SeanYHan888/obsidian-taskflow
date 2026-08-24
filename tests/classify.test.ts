@@ -10,6 +10,8 @@ const CONFIG: ClassifyConfig = {
   projectsFolder: 'Projects/Active',
   machineNotePath: 'Indexes/System/Apple Sync.md',
   inboxHeading: 'Inbox',
+  pacingMode: 'hybrid',
+  pressWindow: 7,
 }
 
 let nextLine = 0

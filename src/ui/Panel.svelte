@@ -25,6 +25,7 @@
     machineNotePath: '',
     projectsFolder: '',
     templatePath: '',
+    pacingMode: 'hybrid',
   })
 
   let selecting = $state(false)
@@ -90,7 +91,7 @@
     callbacks,
   })
 
-  const wip = $derived(wipBadge(data.sections, data.wipLimit))
+  const wip = $derived(wipBadge(data.sections, data.wipLimit, data.pacingMode))
 
   // Empty states teach (#6): each says what would appear and how to get it
   // there, in the glossary's vocabulary — never four identical silences.
@@ -251,7 +252,7 @@
               {/if}
               <span class="taskflow-project-count">{countTaskTree(group.tasks)}</span>
             </button>
-            {#if group.project.deadline != null}
+            {#if group.project.deadline != null && data.pacingMode !== 'wip'}
               <button
                 class="taskflow-chip taskflow-chip-button taskflow-chip-due"
                 class:taskflow-chip-past={group.urgency === 'arrived'}
@@ -259,6 +260,17 @@
                 onclick={ev => callbacks.onProjectMenu(group.project, ev)}
               >
                 {chipLabel(group.project.deadline, data.today)}
+              </button>
+            {/if}
+            {#if group.pressing}
+              <!-- The pressing loop: calendar says soon, commitments say not
+                   yet — one tap answers. Ignoring it is also an answer. -->
+              <button
+                class="taskflow-quick-now"
+                aria-label="Move to now"
+                onclick={() => callbacks.onPromoteProject(group.project)}
+              >
+                → now
               </button>
             {/if}
             <button

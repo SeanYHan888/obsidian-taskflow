@@ -51,6 +51,8 @@ test('refiling acts appear only when every task lives in a project note', () => 
   assert.notInclude(titles(scheduleMenuSpec([], CONFIG)), 'Move to project…')
 })
 
+const HYBRID = {pacingMode: 'hybrid' as const, pressing: false}
+
 const project = (overrides: Partial<ProjectMeta> = {}): ProjectMeta => ({
   path: 'Projects/Active/colm-paper.md',
   name: 'colm-paper',
@@ -60,7 +62,7 @@ const project = (overrides: Partial<ProjectMeta> = {}): ProjectMeta => ({
 })
 
 test('the current status is checked and disabled; the others actionable', () => {
-  const spec = projectMenuSpec(project({status: 'next'}))
+  const spec = projectMenuSpec(project({status: 'next'}), HYBRID)
   const items = spec.filter(e => e.kind === 'item')
   const next = items.find(e => e.title.startsWith('next'))
   assert.equal(next?.title, 'next ✓')
@@ -70,14 +72,14 @@ test('the current status is checked and disabled; the others actionable', () => 
 })
 
 test('clear deadline exists only once a deadline is set', () => {
-  assert.notInclude(titles(projectMenuSpec(project())), 'Clear deadline')
-  const dated = projectMenuSpec(project({deadline: '2026-09-01'}))
+  assert.notInclude(titles(projectMenuSpec(project(), HYBRID)), 'Clear deadline')
+  const dated = projectMenuSpec(project({deadline: '2026-09-01'}), HYBRID)
   assert.include(titles(dated), 'Clear deadline')
   assert.include(titles(dated), 'Deadline 2026-09-01…')
 })
 
 test('every project menu opens with the note and closes with retirement', () => {
-  const all = titles(projectMenuSpec(project()))
+  const all = titles(projectMenuSpec(project(), HYBRID))
   assert.equal(all[0], 'Open project note')
   assert.deepEqual(all.slice(-2), ['Mark done & archive', 'Mark dropped & archive'])
 })

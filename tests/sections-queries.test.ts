@@ -19,6 +19,8 @@ const CONFIG: ClassifyConfig = {
   projectsFolder: 'Projects/Active',
   machineNotePath: '',
   inboxHeading: 'Inbox',
+  pacingMode: 'hybrid',
+  pressWindow: 7,
 }
 
 let nextLine = 0
@@ -107,10 +109,10 @@ test('the WIP badge appears with any now-project and warns only past the limit',
     [project(), project({path: 'Projects/Active/b.md', name: 'b'})],
     CONFIG,
   )
-  assert.deepEqual(wipBadge(busy, 3), {label: 'now 2/3', danger: false})
-  assert.deepEqual(wipBadge(busy, 1), {label: 'now 2/1', danger: true})
+  assert.deepEqual(wipBadge(busy, 3, 'hybrid'), {label: 'now 2/3', danger: false})
+  assert.deepEqual(wipBadge(busy, 1, 'hybrid'), {label: 'now 2/1', danger: true})
   const idle = classifySections([], [project({status: 'later'})], CONFIG)
-  assert.isNull(wipBadge(idle, 3))
+  assert.isNull(wipBadge(idle, 3, 'hybrid'))
 })
 
 test('retiring confirms only while open tasks would leave the panel', () => {

@@ -34,9 +34,22 @@ export type ProjectMeta = {
 export type ProjectGroup = {
   project: ProjectMeta
   tasks: TaskflowTask[]
-  /** 'ahead' (amber) until the deadline, 'arrived' (red) from that day on, null when undated. */
+  /** 'ahead' (amber) until the deadline, 'arrived' (red) from that day on, null when undated or in wip mode. */
   urgency: 'ahead' | 'arrived' | null
+  /**
+   * Hybrid mode's reconciliation signal: the deadline is inside the attention
+   * window but the project isn't `now` — the calendar and the commitments
+   * disagree, so the header offers → now. Always false outside hybrid.
+   */
+  pressing: boolean
 }
+
+/**
+ * Which pacing signals the panel renders and acts on. Pure filter: deadlines
+ * and statuses live in frontmatter regardless, so switching is lossless.
+ * 'hybrid' (the default) shows both and adds the pressing loop.
+ */
+export type PacingMode = 'wip' | 'deadline' | 'hybrid'
 
 export type ClassifyConfig = {
   /** ISO date injected by the caller — core never reads the clock. */
@@ -47,6 +60,9 @@ export type ClassifyConfig = {
   machineNotePath: string
   /** Heading text without `#` marks; capture outside it is not Taskflow's business. */
   inboxHeading: string
+  pacingMode: PacingMode
+  /** Days before a deadline that hybrid mode starts pressing; 0 waits for arrival. */
+  pressWindow: number
 }
 
 export type Sections = {

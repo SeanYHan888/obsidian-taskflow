@@ -11,7 +11,7 @@ import {flattenTaskTree} from './core/hierarchy'
 import {editableTasks} from './core/machine-note'
 import {projectMenuSpec, scheduleMenuSpec, taskMenuSpec} from './core/menus'
 import {resolveQuickDate} from './core/schedule'
-import {retirePlan} from './core/sections'
+import {promotionOutcome, retirePlan} from './core/sections'
 
 import type {WorkspaceLeaf} from 'obsidian'
 import type {DropTarget} from './core/drop'
@@ -108,6 +108,7 @@ export class TaskflowView extends ItemView {
             this.handleDrop(task, target, ev),
           onProjectMenu: (project: ProjectMeta, ev: MouseEvent) =>
             this.showProjectMenu(project, ev),
+          onPromoteProject: (project: ProjectMeta) => void this.promote(project),
         },
       },
     }) as unknown as {update: (data: PanelData) => void}
@@ -151,6 +152,7 @@ export class TaskflowView extends ItemView {
       machineNotePath: settings.machineNotePath,
       projectsFolder: settings.projectsFolder,
       templatePath: settings.projectTemplatePath,
+      pacingMode: settings.pacingMode,
     }
 
     if (setup.includes('tasks-plugin-missing')) {
@@ -165,6 +167,8 @@ export class TaskflowView extends ItemView {
       projectsFolder: settings.projectsFolder,
       machineNotePath: settings.machineNotePath,
       inboxHeading: settings.inboxHeading,
+      pacingMode: settings.pacingMode,
+      pressWindow: settings.pressWindow,
     })
 
     this.lastSections = sections
@@ -234,13 +238,37 @@ export class TaskflowView extends ItemView {
   }
 
   private showProjectMenu(project: ProjectMeta, ev: MouseEvent): void {
-    this.runMenu(projectMenuSpec(project), ev, action => {
+    const pressing =
+      this.lastSections?.projects.find(g => g.project.path === project.path)?.pressing ?? false
+    const spec = projectMenuSpec(project, {
+      pacingMode: this.plugin.settings.pacingMode,
+      pressing,
+    })
+    this.runMenu(spec, ev, action => {
       if (action.type === 'open-note') void this.openFile(project.path)
+      else if (action.type === 'promote') void this.promote(project)
       else if (action.type === 'set-status') void this.changeStatus(project, action.status)
       else if (action.type === 'pick-deadline') void this.pickProjectDeadline(project)
       else if (action.type === 'clear-deadline') void this.changeDeadline(project, null)
       else if (action.type === 'retire') void this.retireProject(project, action.status)
     })
+  }
+
+  /**
+   * The pressing loop's one tap: commit a pressing project to `now`. Over
+   * the limit it still goes through — warn never block — and the notice
+   * names the capacity consequence instead of a modal standing in the way.
+   */
+  private async promote(project: ProjectMeta): Promise<void> {
+    const {count, over} = promotionOutcome(this.lastSections, this.plugin.settings.wipLimit)
+    if (await this.ports.projects.setStatus(project.path, 'now')) {
+      new Notice(
+        over
+          ? `Taskflow: ${project.name} → now — now is full (${count}/${this.plugin.settings.wipLimit})`
+          : `Taskflow: ${project.name} → now`,
+      )
+    }
+    this.refresh()
   }
 
   private async changeStatus(project: ProjectMeta, status: ProjectStatus): Promise<void> {
