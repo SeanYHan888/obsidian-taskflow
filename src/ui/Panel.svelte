@@ -4,7 +4,7 @@
   import {stillInside} from './dnd'
   import {icon} from './icon'
   import {dropIntent} from '../core/drop'
-  import {locationKey} from '../core/hierarchy'
+  import {countTaskTree, locationKey} from '../core/hierarchy'
   import {chipLabel} from '../core/schedule'
   import {pruneSelection, sectionCounts, selectionTasks, wipBadge} from '../core/sections'
 
@@ -247,6 +247,10 @@
                 use:icon={'chevron-right'}
               ></span>
               <span class="taskflow-project-name">{group.project.name}</span>
+              <!-- Signals sit with the title (panel grammar): the same count
+                   pill section headers wear, so both header levels read alike
+                   and the right edge stays dates-only. -->
+              <span class="taskflow-count">{countTaskTree(group.tasks)}</span>
               {#if group.project.status}
                 <span class="taskflow-status taskflow-status-{group.project.status}">
                   {group.project.status}
