@@ -4,7 +4,7 @@
   import {stillInside} from './dnd'
   import {icon} from './icon'
   import {dropIntent} from '../core/drop'
-  import {countTaskTree, locationKey} from '../core/hierarchy'
+  import {locationKey} from '../core/hierarchy'
   import {chipLabel} from '../core/schedule'
   import {pruneSelection, sectionCounts, selectionTasks, wipBadge} from '../core/sections'
 
@@ -252,7 +252,6 @@
                   {group.project.status}
                 </span>
               {/if}
-              <span class="taskflow-project-count">{countTaskTree(group.tasks)}</span>
             </button>
             {#if group.pressing}
               <!-- The pressing loop: calendar says soon, commitments say not

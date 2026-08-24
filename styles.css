@@ -341,11 +341,6 @@
   color: var(--color-blue);
 }
 
-.taskflow-project-count {
-  margin-left: auto;
-  color: var(--text-faint);
-  font-size: var(--font-ui-smaller);
-}
 
 /* Scheduling affordances (v0.2) */
 

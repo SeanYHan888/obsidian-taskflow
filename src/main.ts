@@ -25,6 +25,7 @@ export default class TaskflowPlugin extends Plugin {
 
     this.registerView(TASKFLOW_VIEW_TYPE, leaf => new TaskflowView(leaf, this))
     this.addSettingTab(new TaskflowSettingTab(this.app, this))
+    this.addRibbonIcon('list-checks', 'Open Taskflow', () => void this.activateView())
     this.addCommand({
       id: 'open-panel',
       name: 'Open panel',
