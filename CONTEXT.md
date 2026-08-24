@@ -92,10 +92,10 @@ A chip opens what edits it: task date chips open the schedule menu, the project 
 At most one quick button per header, shown only when the panel is pressing for a decision — today: `→ now` on a pressing project header — in the one shared quick-action style, always mirrored by a menu item. (The repair queue's `All → to-do` was retired to its section menu's "Reschedule all to today": one visible accelerator vocabulary, not two.)
 
 **Header chrome**:
-Signals (the count, the WIP badge) sit with the title inside the fold toggle; the right edge of any header holds acts only — a `…` menu when the section has acts (#15). Mode toggles (select) are menu items, not buttons: a mode is not a pressing decision. A header with no acts (Upcoming) shows nothing, by rule. On project headers the deadline chip renders last, past the hover-revealed `↗` and `…`, so at rest every date in the panel — task chips and project deadlines — sits flush against the same right edge.
+Signals (the count, the WIP badge) sit with the title inside the fold toggle; the right edge of any header holds acts only — a `…` menu when the section has acts (#15). Mode toggles (select) are menu items, not buttons: a mode is not a pressing decision. A header with no acts (Upcoming) shows nothing, by rule. On project headers the deadline chip renders last, past the hover-revealed `…`, so at rest every date in the panel — task chips and project deadlines — sits flush against the same right edge.
 
 **Primary-click rule**:
-Primary click does the surface's dominant act — task text jumps, project name folds. Because a header's click folds, headers carry visible ↗ and … entry points; rows carry neither. The context menu (right-click, long-press) carries every act on both surfaces: visible buttons are accelerators, never the only path.
+Primary click does the surface's dominant act — task text jumps, project name folds. Because a header's click folds, headers carry a visible … entry point; rows carry none. The jump on a header is mod+click, middle-click, or the menu's Open note (the ↗ button was retired — three paths didn't need a fourth). The context menu (right-click, long-press) carries every act on both surfaces: visible buttons are accelerators, never the only path.
 
 ### Sources
 

@@ -231,7 +231,7 @@
           >
             <!-- Group headers fold, like section headers and every tree since
                  Finder — jumping to the note is the smaller, deliberate act:
-                 the hover ↗, mod+click, middle-click, or the menu. -->
+                 mod+click, middle-click, or the menu's Open note. -->
             <button
               class="taskflow-project-toggle"
               aria-expanded={!folded}
@@ -265,12 +265,6 @@
                 → now
               </button>
             {/if}
-            <button
-              class="taskflow-project-goto"
-              aria-label="Open project note"
-              onclick={ev => callbacks.onOpenFile(group.project.path, ev)}
-              use:icon={'arrow-up-right'}
-            ></button>
             <button
               class="taskflow-project-menu"
               aria-label="Project actions"

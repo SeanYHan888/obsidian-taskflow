@@ -266,30 +266,12 @@
   opacity: 0;
 }
 
-/* The ↗ jump shares the menu's quiet, hover-revealed treatment: navigation
-   is the deliberate secondary act on a header whose whole surface folds. */
-.taskflow-panel .taskflow-project-goto {
-  flex-shrink: 0;
-  height: auto;
-  padding: 0 6px;
-  background: transparent;
-  box-shadow: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-muted);
-  font-weight: 600;
-  opacity: 0;
-}
-
 .taskflow-project-header:hover .taskflow-project-menu,
-.taskflow-panel .taskflow-project-menu:focus-visible,
-.taskflow-project-header:hover .taskflow-project-goto,
-.taskflow-panel .taskflow-project-goto:focus-visible {
+.taskflow-panel .taskflow-project-menu:focus-visible {
   opacity: 1;
 }
 
-.taskflow-panel .taskflow-project-menu:hover,
-.taskflow-panel .taskflow-project-goto:hover {
+.taskflow-panel .taskflow-project-menu:hover {
   color: var(--text-normal);
   background: var(--interactive-hover);
   border-radius: 6px;
@@ -367,18 +349,32 @@
 
 /* Scheduling affordances (v0.2) */
 
+/* A real click target, not a decoration: 16px glyph in a ~32×26 box, plus
+   a forgiving invisible halo — mis-aiming here used to hit the row instead. */
 .taskflow-panel .taskflow-add-date {
   flex-shrink: 0;
   align-self: center;
   display: inline-block;
-  padding: 0 4px;
+  position: relative;
+  padding: 4px 8px;
   height: auto;
   border: none;
   background: transparent;
   box-shadow: none;
   cursor: pointer;
   font-size: var(--font-ui-smaller);
-  opacity: 0.3;
+  opacity: 0.4;
+}
+
+.taskflow-panel .taskflow-add-date::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.taskflow-panel .taskflow-add-date:hover {
+  background: var(--interactive-hover);
+  border-radius: 6px;
 }
 
 .taskflow-row:hover .taskflow-add-date,
@@ -619,7 +615,6 @@
 }
 
 /* Lucide glyphs (ui/icon.ts): center the svg and size it per control */
-.taskflow-panel .taskflow-project-goto,
 .taskflow-panel .taskflow-project-menu {
   display: inline-flex;
   align-items: center;
@@ -631,7 +626,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  --icon-size: 14px;
+  --icon-size: 16px;
 }
 
 .taskflow-panel .taskflow-action {

@@ -134,10 +134,15 @@
       </span>
     {/if}
   {:else if canSchedule && task.due == null}
+    <!-- A press that wanders must stay a click, never lift the row. -->
     <button
       class="taskflow-add-date"
       aria-label="Schedule task"
       onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
+      ondragstart={ev => {
+        ev.preventDefault()
+        ev.stopPropagation()
+      }}
       use:icon={'calendar-plus'}
     ></button>
   {/if}
