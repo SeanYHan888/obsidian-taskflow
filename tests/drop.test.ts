@@ -7,13 +7,18 @@ import type {DropConfig} from '../src/core/drop'
 const CONFIG: DropConfig = {
   machineNotePath: 'Indexes/System/Apple Sync.md',
   projectsFolder: 'Projects/Active',
+  dailyNotesFolder: 'Daily Notes',
+  inboxHeading: 'Inbox',
   today: '2026-08-22',
 }
 
-const dailyTask = (overrides: {scheduled?: string | null; due?: string | null} = {}) => ({
+const dailyTask = (
+  overrides: {scheduled?: string | null; due?: string | null; heading?: string | null} = {},
+) => ({
   filePath: 'Daily Notes/2026/08/08-22, Sat.md',
   scheduled: null,
   due: null,
+  heading: 'Inbox',
   ...overrides,
 })
 
@@ -21,12 +26,20 @@ const projectTask = () => ({
   filePath: 'Projects/Active/colm-paper.md',
   scheduled: null,
   due: null,
+  heading: 'Tasks',
 })
 
-test('dropping on To-do means stamp ⏳ today', () => {
+test('a dated task dropped on To-do means stamp ⏳ today', () => {
+  assert.deepEqual(
+    dropIntent(dailyTask({scheduled: '2026-08-25'}), {kind: 'section', key: 'today'}, CONFIG),
+    {kind: 'schedule-today'},
+  )
+})
+
+test('an inbox capture dropped on To-do is inert — it already renders there', () => {
   assert.deepEqual(
     dropIntent(dailyTask(), {kind: 'section', key: 'today'}, CONFIG),
-    {kind: 'schedule-today'},
+    {kind: 'none'},
   )
 })
 
@@ -94,7 +107,12 @@ test('backlog tasks accept the time targets like any other row', () => {
 })
 
 test('apple sync tasks accept no drop at all', () => {
-  const appleTask = {filePath: CONFIG.machineNotePath, scheduled: null, due: '2026-08-25'}
+  const appleTask = {
+    filePath: CONFIG.machineNotePath,
+    scheduled: null,
+    due: '2026-08-25',
+    heading: null,
+  }
   assert.deepEqual(dropIntent(appleTask, {kind: 'section', key: 'today'}, CONFIG), {
     kind: 'none',
   })

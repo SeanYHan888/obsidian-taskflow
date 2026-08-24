@@ -24,6 +24,8 @@
     draggable: false,
     machineNotePath: '',
     projectsFolder: '',
+    dailyNotesFolder: '',
+    inboxHeading: '',
     templatePath: '',
     pacingMode: 'hybrid',
   })
@@ -47,6 +49,8 @@
     dropIntent(dragTask, target, {
       machineNotePath: data.machineNotePath,
       projectsFolder: data.projectsFolder,
+      dailyNotesFolder: data.dailyNotesFolder,
+      inboxHeading: data.inboxHeading,
       today: data.today,
     }).kind !== 'none'
 

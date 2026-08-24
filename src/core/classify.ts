@@ -10,6 +10,21 @@ export const inFolder = (filePath: string, folder: string): boolean =>
 const normalizeHeading = (heading: string) =>
   heading.replace(/^#+\s*/, '').trim().toLowerCase()
 
+/**
+ * An inbox capture: undated, in a daily note, under the inbox heading —
+ * rendered at the tail of the To-do section. Shared with dropIntent, which
+ * must treat a capture's drop on To-do as inert (it already lives there).
+ */
+export const isInboxCapture = (
+  task: {filePath: string; scheduled: string | null; due: string | null; heading: string | null},
+  config: {dailyNotesFolder: string; inboxHeading: string},
+): boolean =>
+  task.scheduled == null &&
+  task.due == null &&
+  (config.dailyNotesFolder === '' || inFolder(task.filePath, config.dailyNotesFolder)) &&
+  task.heading != null &&
+  normalizeHeading(task.heading) === normalizeHeading(config.inboxHeading)
+
 const isEventsHeading = (heading: string) =>
   normalizeHeading(heading).replace(/:$/, '') === 'events'
 
@@ -48,16 +63,8 @@ export const classifySections = (
 
   const today = visible.filter(isToday)
 
-  const inboxHeading = normalizeHeading(config.inboxHeading)
   const inbox = visible
-    .filter(
-      t =>
-        t.scheduled == null &&
-        t.due == null &&
-        underDailyNotes(t) &&
-        t.heading != null &&
-        normalizeHeading(t.heading) === inboxHeading,
-    )
+    .filter(t => isInboxCapture(t, config))
     .sort((a, b) => b.filePath.localeCompare(a.filePath) || a.line - b.line)
 
   const slippedDate = (t: TaskflowTask) => t.due ?? t.scheduled ?? ''

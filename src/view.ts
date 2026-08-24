@@ -164,6 +164,8 @@ export class TaskflowView extends ItemView {
       draggable: Platform.isDesktop,
       machineNotePath: settings.machineNotePath,
       projectsFolder: settings.projectsFolder,
+      dailyNotesFolder: effectiveDailyNotesFolder(this.app, settings),
+      inboxHeading: settings.inboxHeading,
       templatePath: settings.projectTemplatePath,
       pacingMode: settings.pacingMode,
     }
@@ -259,6 +261,8 @@ export class TaskflowView extends ItemView {
     const intent = dropIntent(task, target, {
       machineNotePath: settings.machineNotePath,
       projectsFolder: settings.projectsFolder,
+      dailyNotesFolder: effectiveDailyNotesFolder(this.app, settings),
+      inboxHeading: settings.inboxHeading,
       today: this.lastToday,
     })
     if (intent.kind === 'schedule-today') void this.reschedule([task], localToday())

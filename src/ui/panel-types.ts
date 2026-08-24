@@ -19,6 +19,9 @@ export type PanelData = {
   machineNotePath: string
   /** Membership is location (CONTEXT.md); drop validity needs it too. */
   projectsFolder: string
+  /** Inbox captures render inside To-do; drop validity must know them. */
+  dailyNotesFolder: string
+  inboxHeading: string
   /** For the template-missing hint; '' means the built-in scaffold. */
   templatePath: string
   /** Which pacing signals to render: wip hides chips, deadline hides the badge. */

@@ -94,9 +94,15 @@ test('with no machine-managed note, classify excludes nothing as a calendar bloc
 })
 
 test('with no machine-managed note, every row may be dropped', () => {
-  const config = {machineNotePath: '', projectsFolder: 'Projects/Active', today: '2026-08-21'}
+  const config = {
+    machineNotePath: '',
+    projectsFolder: 'Projects/Active',
+    dailyNotesFolder: 'Daily Notes',
+    inboxHeading: 'Inbox',
+    today: '2026-08-21',
+  }
   const intent = dropIntent(
-    {filePath: MANAGED, scheduled: null, due: null},
+    {filePath: MANAGED, scheduled: null, due: null, heading: null},
     {kind: 'section', key: 'today'},
     config,
   )
