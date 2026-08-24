@@ -25,8 +25,10 @@ const prompt = <T>(
     new (class extends Modal {
       onOpen(): void {
         render(this, value => {
-          this.close()
+          // Settle before close(): Modal.close() runs onClose synchronously,
+          // and its fallback must lose to the submitted value, not race it.
           done(value)
+          this.close()
         })
       }
       onClose(): void {
