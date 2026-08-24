@@ -198,6 +198,8 @@
         {@const folded = data.collapsedProjects[group.project.path] ?? false}
         <div
           class="taskflow-project"
+          class:taskflow-drop-ready={dropValid({kind: 'project', path: group.project.path})}
+          class:taskflow-drop-over={dragOverProject === group.project.path}
           role="presentation"
           ondragenter={ev => {
             if (dropValid({kind: 'project', path: group.project.path})) ev.preventDefault()
@@ -222,8 +224,6 @@
             class="taskflow-project-header"
             role="group"
             aria-label={group.project.name}
-            class:taskflow-drop-ready={dropValid({kind: 'project', path: group.project.path})}
-            class:taskflow-drop-over={dragOverProject === group.project.path}
             oncontextmenu={ev => {
               ev.preventDefault()
               callbacks.onProjectMenu(group.project, ev)

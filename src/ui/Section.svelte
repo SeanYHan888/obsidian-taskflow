@@ -46,6 +46,8 @@
      anywhere over the section means the same thing. -->
 <section
   class="taskflow-section"
+  class:taskflow-drop-ready={droppable}
+  class:taskflow-drop-over={droppable && dragOver}
   role={droppable ? 'region' : undefined}
   ondragenter={ev => {
     if (droppable) ev.preventDefault()
@@ -68,11 +70,9 @@
 >
   <!-- Fold and the header action are sibling buttons, never nested
        interactive content — each is real, focusable, and screen-readable. -->
-  <div
-    class="taskflow-section-header"
-    class:taskflow-drop-ready={droppable}
-    class:taskflow-drop-over={droppable && dragOver}
-  >
+  <!-- The highlight rings the whole section, exactly the surface that
+       catches the drop — the header alone undersold the target. -->
+  <div class="taskflow-section-header">
     <button
       class="taskflow-section-toggle"
       aria-expanded={!collapsed}
