@@ -300,7 +300,8 @@ test('projects group by note ordered now, next, later, then alphabetically', () 
   assert.deepEqual(descriptions(sections.projects[1].tasks), [
     'camera ready paper',
   ])
-  assert.equal(sections.wipNowCount, 3)
+  // emptyProject is `now` but renders no group, so it stays out of the badge.
+  assert.equal(sections.wipNowCount, 2)
 })
 
 test('projects with deadlines order soonest-first ahead of undated ones', () => {

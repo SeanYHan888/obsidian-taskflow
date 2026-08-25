@@ -72,6 +72,6 @@ export type Sections = {
   upcoming: TaskflowTask[]
   inbox: TaskflowTask[]
   projects: ProjectGroup[]
-  /** Number of projects with status `now`, for the WIP badge. */
+  /** Rendered project groups with status `now`, for the WIP badge. */
   wipNowCount: number
 }
