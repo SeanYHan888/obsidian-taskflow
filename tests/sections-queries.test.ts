@@ -105,7 +105,10 @@ test('counts include nested subtasks; a null projection counts zero everywhere',
 
 test('the WIP badge appears with any now-project and warns only past the limit', () => {
   const busy = classifySections(
-    [task({filePath: 'Projects/Active/colm-paper.md'})],
+    [
+      task({filePath: 'Projects/Active/colm-paper.md'}),
+      task({filePath: 'Projects/Active/b.md', line: 20}),
+    ],
     [project(), project({path: 'Projects/Active/b.md', name: 'b'})],
     CONFIG,
   )

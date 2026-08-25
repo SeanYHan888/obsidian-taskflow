@@ -143,6 +143,9 @@ export const classifySections = (
     upcoming: toTree(upcoming),
     inbox: toTree(inbox),
     projects: projectGroups,
-    wipNowCount: projects.filter(p => p.status === 'now').length,
+    // Counted over rendered groups, not all project notes: a `now` note with
+    // no open tasks is invisible in the panel, and a badge that includes it
+    // reads as a miscount because nothing on screen accounts for it.
+    wipNowCount: projectGroups.filter(g => g.project.status === 'now').length,
   }
 }
