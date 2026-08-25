@@ -127,7 +127,8 @@ const truncate = (text: string, max: number): string =>
 export const statusBarLabel = (state: FocusState, at: number): string | null => {
   if (state.phase === 'idle') return null
   if (state.phase === 'work') {
-    return `🍅 ${countdown(state.endsAt - at)} ${truncate(state.task.description, 28)}`
+    // trimEnd: a blank-description task must not leave a dangling space.
+    return `🍅 ${countdown(state.endsAt - at)} ${truncate(state.task.description, 28)}`.trimEnd()
   }
   return `☕ ${countdown(state.endsAt - at)}`
 }
