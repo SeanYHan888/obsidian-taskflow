@@ -39,7 +39,10 @@ TypeScript 5 (strict) + Svelte 5 (runes) + esbuild + Vitest. See ADR-0002. The b
 
 ## Dev loop
 
-`npm install && npm run dev` (esbuild watch) → build lands in the vault's `.obsidian/plugins/taskflow/` → Hot Reload plugin or the obsidian-cli skill to reload, capture console errors, and screenshot the panel in the real vault. The vault is Sean's live personal vault: test builds fine (git-protected), never mass-edit notes — the plugin edits single task lines on explicit user action only. Day Planner's `data.json` contains private calendar URLs — never commit or copy it.
+Two vaults, strictly separated:
+
+- **Dev vault** — `~/Projects/taskflow-demo-vault` (override: `TASKFLOW_DEV_PLUGIN_DIR`). `npm install && npm run dev` (esbuild watch) builds straight into its `.obsidian/plugins/taskflow/` → Hot Reload plugin or the obsidian-cli skill to reload, capture console errors, and screenshot the panel there. All development and testing happens here.
+- **Live vault** — Sean's personal vault (iCloud). It NEVER receives dev builds. The only path to it is `npm run deploy:prod` (production build + copy via `scripts/deploy-prod.mjs`), run deliberately from a stable branch — never run it as part of a dev loop. Never mass-edit notes there — the plugin edits single task lines on explicit user action only. Day Planner's `data.json` contains private calendar URLs — never commit or copy it.
 
 ## Agent skills
 
