@@ -97,6 +97,21 @@ Signals (the count, the WIP badge) sit with the title inside the fold toggle; th
 **Primary-click rule**:
 Primary click does the surface's dominant act — task text jumps, project name folds. Because a header's click folds, headers carry a visible … entry point; rows carry none. The jump on a header is mod+click, middle-click, or the menu's Open note (the ↗ button was retired — three paths didn't need a fourth). The context menu (right-click, long-press) carries every act on both surfaces: visible buttons are accelerators, never the only path.
 
+### Focus (the timer, #16)
+
+**Focus session**:
+A pomodoro-style work interval bound to one task, started from its row — no note opened. One at a time; it lives on the plugin, so it outlives the panel but not an Obsidian restart. UI copy says focus, never pomodoro — 🍅 is the glyph and the inline-field key.
+_Avoid_: pomodoro (in UI copy), timer (as the session's name)
+
+**Work interval**:
+The timed stretch of a focus session (default 40 min). Only a fully elapsed work interval writes: bump `[🍅:: n]` on the task's line (the `n/m` estimate form moves only `n`; machine-managed lines are skipped) and append the session to the Focus Log — one journal entry, undoable together. Cancels — explicit, task-switch, or check-off of the focused task — write nothing.
+
+**Break interval**:
+The rest after a completed work interval (default 5 min; 0 skips it). Notified, never logged — only worked time enters the record.
+
+**Focus Log**:
+The one note where completed work sessions are appended, one line each (`**WORK(40m)**: 14:19 - 14:59 — task text`); path in settings, created on first use. The single time record — its older anonymous lines stay valid.
+
 ### Sources
 
 **Daily note**:
