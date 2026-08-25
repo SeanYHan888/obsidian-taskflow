@@ -5,7 +5,12 @@ import {projectMenuSpec, scheduleMenuSpec, sectionMenuSpec, selectBarMenuSpec, t
 import type {MenuItemSpec} from '../src/core/menus'
 import type {ProjectMeta, TaskflowTask} from '../src/core/types'
 
-const CONFIG = {projectsFolder: 'Projects/Active', today: '2026-08-24', machineNotePath: ''}
+const CONFIG = {
+  projectsFolder: 'Projects/Active',
+  today: '2026-08-24',
+  machineNotePath: '',
+  focusedLocation: null,
+}
 
 let nextLine = 0
 const task = (overrides: Partial<TaskflowTask> = {}): TaskflowTask => ({
@@ -120,12 +125,33 @@ test('the project menu carries the capture act, pressing puts the commit first',
   assert.isBelow(pressing.indexOf('Move to now'), pressing.indexOf('Add task…'))
 })
 
-test('a machine-managed row offers only the jump', () => {
+test('a machine-managed row offers the jump and the focus session, nothing else', () => {
   const managed = task({filePath: 'Sync/Reminders.md'})
   assert.deepEqual(
     titles(taskMenuSpec(managed, {...CONFIG, machineNotePath: 'Sync/Reminders.md'})),
-    ['Open note'],
+    ['Open note', '—', 'Start focus'],
   )
+})
+
+test('every task menu carries Start focus right after the jump (#16)', () => {
+  const spec = titles(taskMenuSpec(task(), CONFIG))
+  assert.deepEqual(spec.slice(0, 3), ['Open note', '—', 'Start focus'])
+})
+
+test('the focused task marks its own Start focus ✓ and disabled (#16)', () => {
+  const focused = task()
+  const spec = taskMenuSpec(focused, {
+    ...CONFIG,
+    focusedLocation: `${focused.filePath}:${focused.line}`,
+  })
+  const items = spec.filter(e => e.kind === 'item')
+  const focus = items.find(e => e.title.startsWith('Start focus'))
+  assert.equal(focus?.title, 'Start focus ✓')
+  assert.isTrue(focus?.disabled)
+
+  const other = taskMenuSpec(task(), {...CONFIG, focusedLocation: 'somewhere else:0'})
+  const otherFocus = other.filter(e => e.kind === 'item').find(e => e.title.startsWith('Start focus'))
+  assert.isFalse(otherFocus?.disabled)
 })
 
 test('the section menu carries the acts: select for selectable, repair for slipped', () => {

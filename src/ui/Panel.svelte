@@ -22,6 +22,7 @@
     collapsed: {},
     collapsedProjects: {},
     draggable: false,
+    focusLocation: null,
     machineNotePath: '',
     projectsFolder: '',
     dailyNotesFolder: '',
@@ -90,6 +91,7 @@
 
   const ctx: RowContext = $derived({
     today: data.today,
+    focusLocation: data.focusLocation,
     machineNotePath: data.machineNotePath,
     draggable: data.draggable,
     onDragStart: (task: TaskflowTask) => (dragTask = task),

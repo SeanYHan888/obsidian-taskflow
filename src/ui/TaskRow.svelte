@@ -48,12 +48,14 @@
 
   const chipText = (date: string) => chipLabel(date, ctx.today)
   const sourceLabel = $derived(labelFor(task.filePath))
+  const inFocus = $derived(ctx.focusLocation === locationKey(task.filePath, task.line))
 </script>
 
 <div class="taskflow-item" class:taskflow-item-nested={nested}>
 <div
   class="taskflow-row"
   class:taskflow-row-selected={selected}
+  class:taskflow-row-focus={inFocus}
   draggable={rowDraggable}
   role="listitem"
   ondragstart={ev => {
@@ -96,6 +98,21 @@
       <span class="taskflow-source">{sourceLabel}</span>
     {/if}
   </button>
+  {#if aff.canFocus}
+    <!-- The 🍅 act (#16): hover-revealed accelerator, mirrored by the menu's
+         Start focus. Stays on machine-managed rows — the session's log write
+         lives outside the note. A press that wanders must stay a click. -->
+    <button
+      class="taskflow-focus-start"
+      aria-label="Start focus session"
+      disabled={inFocus}
+      onclick={() => ctx.callbacks.onStartFocus(task)}
+      ondragstart={ev => {
+        ev.preventDefault()
+        ev.stopPropagation()
+      }}
+    >🍅</button>
+  {/if}
   {#if task.due != null}
     {#if canSchedule}
       <button

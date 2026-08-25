@@ -1,4 +1,5 @@
 import {inFolder} from './classify'
+import {locationKey} from './hierarchy'
 import {isMachineManaged} from './machine-note'
 import {resolveQuickDate} from './schedule'
 
@@ -27,6 +28,7 @@ export type MenuAction =
   | {type: 'send-back'}
   | {type: 'cancel'}
   | {type: 'open-note'}
+  | {type: 'start-focus'}
   | {type: 'add-task'}
   | {type: 'promote'}
   | {type: 'set-status'; status: ProjectStatus}
@@ -89,19 +91,35 @@ export const scheduleMenuSpec = (
   return spec
 }
 
+export type FocusMenuConfig = {
+  /** locationKey of the task in focus, or null — marks its row's item ✓. */
+  focusedLocation: string | null
+}
+
 /**
  * A task row's context menu: every hover affordance again, plus the jump —
  * hover doesn't exist on mobile, so the menu is the touch-parity surface.
- * A machine-managed row offers only the jump (its line is read-only).
+ * A machine-managed row keeps the jump and the focus session (which only
+ * appends to the log — the line increment is the adapter's rule to skip);
+ * its line itself stays read-only.
  */
 export const taskMenuSpec = (
   task: TaskflowTask,
-  config: ScheduleMenuConfig & MachineNoteConfig,
+  config: ScheduleMenuConfig & MachineNoteConfig & FocusMenuConfig,
 ): MenuItemSpec[] => {
   const open = item('Open note', 'file-text', {type: 'open-note'})
-  if (isMachineManaged(task.filePath, config)) return [open]
+  const focused = config.focusedLocation === locationKey(task.filePath, task.line)
+  const focus = item(
+    focused ? 'Start focus ✓' : 'Start focus',
+    'timer',
+    {type: 'start-focus'},
+    focused,
+  )
+  if (isMachineManaged(task.filePath, config)) return [open, separator, focus]
   return [
     open,
+    separator,
+    focus,
     separator,
     ...scheduleMenuSpec([task], config),
     separator,

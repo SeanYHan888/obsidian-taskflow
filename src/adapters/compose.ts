@@ -1,6 +1,7 @@
 import {TFolder, normalizePath} from 'obsidian'
 
 import {cancelTask, rescheduleTasks, unscheduleTasks} from './edit-lines'
+import {recordFocusSession} from './focus-log'
 import {
   addTaskToProject,
   createProjectFromTemplate,
@@ -84,5 +85,10 @@ export const createPorts = (app: App, settings: () => TaskflowSettings): Ports =
       sendTasksBackToInbox(app, tasks, settings().inboxHeading, today),
     addTask: (projectPath, text) =>
       addTaskToProject(app, projectPath, text, settings().moveTargetHeading),
+    recordFocusSession: (task, session) =>
+      recordFocusSession(app, task, session, {
+        logPath: settings().focusLogPath,
+        machineNotePath: settings().machineNotePath,
+      }),
   },
 })

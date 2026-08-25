@@ -15,6 +15,8 @@ export type PanelData = {
   collapsedProjects: Record<string, boolean>
   /** Rows can be dragged to section and project headers (desktop only). */
   draggable: boolean
+  /** locationKey of the task in focus (#16), or null — highlights its row. */
+  focusLocation: string | null
   /** Machine-managed rows get check-off only (core/machine-note.ts, ADR-0003). */
   machineNotePath: string
   /** Membership is location (CONTEXT.md); drop validity needs it too. */
@@ -31,6 +33,7 @@ export type PanelData = {
 /** Everything a task row needs regardless of which section rendered it. */
 export type RowContext = {
   today: string
+  focusLocation: string | null
   machineNotePath: string
   /** Desktop drag: rows lift, headers catch. The drag state lives in the panel. */
   draggable: boolean
@@ -52,6 +55,8 @@ export type PanelCallbacks = {
   onScheduleMenu: (task: TaskflowTask, ev: MouseEvent) => void
   /** The row's context menu: every hover affordance, for right-click and touch. */
   onRowMenu: (task: TaskflowTask, ev: MouseEvent) => void
+  /** The 🍅 act (#16): start a focus session on this task, no note opened. */
+  onStartFocus: (task: TaskflowTask) => void
   onSchedule: (task: TaskflowTask, kind: QuickDate) => void
   /** Removes the ⏳ plan — puts a To-do task back to wherever it lives. */
   onUnschedule: (task: TaskflowTask) => void
