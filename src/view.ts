@@ -17,7 +17,7 @@ import {
   selectBarMenuSpec,
   taskMenuSpec,
 } from './core/menus'
-import {moveWrites, organizeByStatus, topRank} from './core/order'
+import {moveWrites, organizeByStatus, placeWrites, topRank} from './core/order'
 import {resolveQuickDate} from './core/schedule'
 import {promotionOutcome, retirePlan} from './core/sections'
 
@@ -135,6 +135,8 @@ export class TaskflowView extends ItemView {
             ),
           onDrop: (task: TaskflowTask, target: DropTarget, ev: DragEvent) =>
             this.handleDrop(task, target, ev),
+          onReorderProject: (path: string, targetPath: string) =>
+            void this.placeProject(path, targetPath),
           onProjectMenu: (project: ProjectMeta, ev: MouseEvent) =>
             this.showProjectMenu(project, ev),
           onProjectDeadline: (project: ProjectMeta) => void this.pickProjectDeadline(project),
@@ -383,6 +385,13 @@ export class TaskflowView extends ItemView {
   /** Move to top/up/down/bottom (#20): core names the writes, this runs them. */
   private async moveProject(project: ProjectMeta, direction: MoveDirection): Promise<void> {
     const writes = moveWrites(this.movableProjects(), project.path, direction)
+    for (const write of writes) await this.ports.projects.setOrder(write.path, write.order)
+    if (writes.length > 0) this.refresh()
+  }
+
+  /** Drag-to-reorder (#21): the same writer as the menu moves, one drop at a time. */
+  private async placeProject(path: string, targetPath: string): Promise<void> {
+    const writes = placeWrites(this.movableProjects(), path, targetPath)
     for (const write of writes) await this.ports.projects.setOrder(write.path, write.order)
     if (writes.length > 0) this.refresh()
   }

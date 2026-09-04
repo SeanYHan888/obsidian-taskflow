@@ -127,3 +127,35 @@ export const organizeByStatus = (
     .map((project, i) => ({path: project.path, order: i + 1}))
     .filter(write => sequence[write.order - 1].order !== write.order)
 }
+
+/**
+ * Whether dropping `path` on `target` can change anything (#21): both must
+ * be in the movable list (arrived-deadline projects are neither lifted nor
+ * landed on) and differ.
+ */
+export const canPlace = (displayed: readonly ProjectMeta[], path: string, target: string): boolean =>
+  path !== target &&
+  displayed.some(p => p.path === path) &&
+  displayed.some(p => p.path === target)
+
+/**
+ * Drag-to-reorder (#21): the dragged project takes the target's slot —
+ * dragging up lands it before the target, dragging down lands it after,
+ * the way every list drag reads. Same writer as the menu moves: landing
+ * first is one write (min − 1), anything else re-stamps only what the new
+ * sequence needs.
+ */
+export const placeWrites = (
+  displayed: readonly ProjectMeta[],
+  path: string,
+  target: string,
+): OrderWrite[] => {
+  if (!canPlace(displayed, path, target)) return []
+  const from = displayed.findIndex(p => p.path === path)
+  const to = displayed.findIndex(p => p.path === target)
+  if (to === 0) return [{path, order: topRank(displayed)}]
+  const moved = displayed[from]
+  const rest = displayed.filter(p => p.path !== path)
+  const sequence = [...rest.slice(0, to), moved, ...rest.slice(to)]
+  return settle(sequence, Math.max(from, to))
+}

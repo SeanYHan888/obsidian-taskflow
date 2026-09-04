@@ -81,6 +81,8 @@ export type PanelCallbacks = {
   onBulkActionsMenu: (tasks: TaskflowTask[], ev: MouseEvent) => void
   /** A drop names an existing edit; core resolves which one (dropIntent). */
   onDrop: (task: TaskflowTask, target: DropTarget, ev: DragEvent) => void
+  /** A project header dropped on another (#21): take its slot (core/order placeWrites). */
+  onReorderProject: (path: string, targetPath: string) => void
   /** Project lifecycle menu: status now/next/later, done/dropped + archive. */
   onProjectMenu: (project: ProjectMeta, ev: MouseEvent) => void
   /** The deadline chip's act — a chip opens what edits it (panel grammar). */

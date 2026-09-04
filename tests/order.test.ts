@@ -1,6 +1,6 @@
 import {assert, test} from 'vitest'
 
-import {compareProjects, moveWrites, organizeByStatus, topRank} from '../src/core/order'
+import {canPlace, compareProjects, moveWrites, organizeByStatus, placeWrites, topRank} from '../src/core/order'
 
 import type {ProjectMeta} from '../src/core/types'
 
@@ -91,4 +91,22 @@ test('organize by status regroups now → next → later, keeping order inside e
 test('organize writes nothing for projects already holding their new rank', () => {
   const list = [meta('a', {status: 'now', order: 1}), meta('b', {status: 'next'})]
   assert.deepEqual(organizeByStatus(list, 'hybrid'), [{path: 'Projects/Active/b.md', order: 2}])
+})
+
+test('a dropped header takes the target slot: before it dragging up, after it dragging down (#21)', () => {
+  const list = [meta('a', {order: 1}), meta('b', {order: 2}), meta('c', {order: 3}), meta('d')]
+  const P = (n: string) => `Projects/Active/${n}.md`
+  assert.deepEqual(after(list, placeWrites(list, P('a'), P('c'))), ['b', 'c', 'a', 'd'])
+  assert.deepEqual(after(list, placeWrites(list, P('d'), P('b'))), ['a', 'd', 'b', 'c'])
+  // Landing first is the one-write top rank.
+  assert.deepEqual(placeWrites(list, P('c'), P('a')), [{path: P('c'), order: 0}])
+  assert.deepEqual(after(list, placeWrites(list, P('c'), P('a'))), ['c', 'a', 'b', 'd'])
+})
+
+test('canPlace: both in the movable list and different; nothing else drops (#21)', () => {
+  const list = [meta('a'), meta('b')]
+  assert.isTrue(canPlace(list, 'Projects/Active/a.md', 'Projects/Active/b.md'))
+  assert.isFalse(canPlace(list, 'Projects/Active/a.md', 'Projects/Active/a.md'))
+  assert.isFalse(canPlace(list, 'Projects/Active/a.md', 'Projects/Active/arrived.md'))
+  assert.deepEqual(placeWrites(list, 'Projects/Active/a.md', 'Projects/Active/a.md'), [])
 })

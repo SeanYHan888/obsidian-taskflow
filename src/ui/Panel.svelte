@@ -4,6 +4,7 @@
   import {stillInside} from './dnd'
   import {icon} from './icon'
   import {dropIntent} from '../core/drop'
+import {canPlace} from '../core/order'
   import {countTaskTree, locationKey} from '../core/hierarchy'
   import {chipLabel} from '../core/schedule'
   import {pruneSelection, sectionCounts, selectionTasks, wipBadge} from '../core/sections'
@@ -36,6 +37,8 @@
   /** Sidebar width, for the select bar's narrow-panel overflow. */
   let panelWidth = $state(0)
   let dragTask: TaskflowTask | null = $state(null)
+  /** A project header being dragged (#21) — a different payload from a row. */
+  let dragProject: string | null = $state(null)
   let dragOverProject: string | null = $state(null)
 
   const dropOn = (target: DropTarget) => (ev: DragEvent) => {
@@ -54,6 +57,28 @@
       inboxHeading: data.inboxHeading,
       today: data.today,
     }).kind !== 'none'
+
+  // Drag-to-reorder (#21): the movable list is the Backlogs as displayed
+  // minus arrived-deadline projects, which lead regardless of rank.
+  const movableProjects = $derived(
+    (data.sections?.projects ?? [])
+      .filter(group => group.urgency !== 'arrived')
+      .map(group => group.project),
+  )
+  const reorderValid = (targetPath: string): boolean =>
+    dragProject != null && canPlace(movableProjects, dragProject, targetPath)
+  /** Where the dragged header would land relative to the target: a line above or below it. */
+  const reorderEdge = (targetPath: string): 'before' | 'after' | null => {
+    if (dragProject == null || dragOverProject !== targetPath || !reorderValid(targetPath)) return null
+    const from = movableProjects.findIndex(p => p.path === dragProject)
+    const to = movableProjects.findIndex(p => p.path === targetPath)
+    return from < to ? 'after' : 'before'
+  }
+  /** Either payload may land on a project group; the drop handler tells them apart. */
+  const projectTargetValid = (path: string): boolean =>
+    dropValid({kind: 'project', path}) || reorderValid(path)
+  const headerDraggable = (group: {urgency: 'ahead' | 'arrived' | null}): boolean =>
+    data.draggable && !selecting && group.urgency !== 'arrived'
 
   export const update = (next: PanelData) => {
     data = next
@@ -211,13 +236,16 @@
         <div
           class="taskflow-project"
           class:taskflow-drop-ready={dropValid({kind: 'project', path: group.project.path})}
-          class:taskflow-drop-over={dragOverProject === group.project.path}
+          class:taskflow-drop-over={dragTask != null && dragOverProject === group.project.path}
+          class:taskflow-drop-before={reorderEdge(group.project.path) === 'before'}
+          class:taskflow-drop-after={reorderEdge(group.project.path) === 'after'}
+          class:taskflow-dragging={dragProject === group.project.path}
           role="presentation"
           ondragenter={ev => {
-            if (dropValid({kind: 'project', path: group.project.path})) ev.preventDefault()
+            if (projectTargetValid(group.project.path)) ev.preventDefault()
           }}
           ondragover={ev => {
-            if (!dropValid({kind: 'project', path: group.project.path})) return
+            if (!projectTargetValid(group.project.path)) return
             ev.preventDefault()
             dragOverProject = group.project.path
           }}
@@ -226,16 +254,36 @@
             if (dragOverProject === group.project.path) dragOverProject = null
           }}
           ondrop={ev => {
-            if (!dropValid({kind: 'project', path: group.project.path})) return
+            if (!projectTargetValid(group.project.path)) return
             ev.preventDefault()
             dragOverProject = null
+            if (dragProject != null) {
+              // A header landing on a header is a reorder, never a task move.
+              callbacks.onReorderProject(dragProject, group.project.path)
+              dragProject = null
+              return
+            }
             dropOn({kind: 'project', path: group.project.path})(ev)
           }}
         >
+          <!-- The header lifts as a unit (#21, desktop, not in select mode,
+               never an arrived deadline); its buttons stay clicks. The drop
+               target is the whole group so rows can still land on it. -->
           <div
             class="taskflow-project-header"
             role="group"
             aria-label={group.project.name}
+            draggable={headerDraggable(group)}
+            ondragstart={ev => {
+              if (!headerDraggable(group)) return
+              ev.dataTransfer?.setData('text/plain', group.project.name)
+              if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move'
+              dragProject = group.project.path
+            }}
+            ondragend={() => {
+              dragProject = null
+              dragOverProject = null
+            }}
             oncontextmenu={ev => {
               ev.preventDefault()
               callbacks.onProjectMenu(group.project, ev)
