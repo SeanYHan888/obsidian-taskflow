@@ -1,11 +1,25 @@
 import {assert, test} from 'vitest'
 
-import {projectMenuSpec, scheduleMenuSpec, sectionMenuSpec, selectBarMenuSpec, taskMenuSpec} from '../src/core/menus'
+import {
+  dueMenuSpec,
+  projectMenuSpec,
+  scheduleMenuSpec,
+  sectionMenuSpec,
+  selectBarMenuSpec,
+  taskMenuSpec,
+} from '../src/core/menus'
 
 import type {MenuItemSpec} from '../src/core/menus'
 import type {ProjectMeta, TaskflowTask} from '../src/core/types'
 
-const CONFIG = {projectsFolder: 'Projects/Active', today: '2026-08-24', machineNotePath: ''}
+const CONFIG = {
+  projectsFolder: 'Projects/Active',
+  today: '2026-08-24',
+  machineNotePath: '',
+  focusedLocation: null,
+  selectable: false,
+  selected: false,
+}
 
 let nextLine = 0
 const task = (overrides: Partial<TaskflowTask> = {}): TaskflowTask => ({
@@ -74,13 +88,15 @@ test('user-facing copy never says inbox (#13)', () => {
   }
 })
 
-const HYBRID = {pacingMode: 'hybrid' as const, pressing: false}
+const MOVABLE = {up: true, down: true}
+const HYBRID = {pacingMode: 'hybrid' as const, pressing: false, canMove: MOVABLE}
 
 const project = (overrides: Partial<ProjectMeta> = {}): ProjectMeta => ({
   path: 'Projects/Active/colm-paper.md',
   name: 'colm-paper',
   status: 'now',
   deadline: null,
+  order: null,
   ...overrides,
 })
 
@@ -120,27 +136,48 @@ test('the project menu carries the capture act, pressing puts the commit first',
   assert.isBelow(pressing.indexOf('Move to now'), pressing.indexOf('Add task…'))
 })
 
-test('a machine-managed row offers only the jump', () => {
+test('a machine-managed row offers the jump and the focus session, nothing else', () => {
   const managed = task({filePath: 'Sync/Reminders.md'})
   assert.deepEqual(
     titles(taskMenuSpec(managed, {...CONFIG, machineNotePath: 'Sync/Reminders.md'})),
-    ['Open note'],
+    ['Open note', '—', 'Start focus'],
   )
 })
 
+test('every task menu carries Start focus right after the jump (#16)', () => {
+  const spec = titles(taskMenuSpec(task(), CONFIG))
+  assert.deepEqual(spec.slice(0, 3), ['Open note', '—', 'Start focus'])
+})
+
+test('the focused task marks its own Start focus ✓ and disabled (#16)', () => {
+  const focused = task()
+  const spec = taskMenuSpec(focused, {
+    ...CONFIG,
+    focusedLocation: `${focused.filePath}:${focused.line}`,
+  })
+  const items = spec.filter(e => e.kind === 'item')
+  const focus = items.find(e => e.title.startsWith('Start focus'))
+  assert.equal(focus?.title, 'Start focus ✓')
+  assert.isTrue(focus?.disabled)
+
+  const other = taskMenuSpec(task(), {...CONFIG, focusedLocation: 'somewhere else:0'})
+  const otherFocus = other.filter(e => e.kind === 'item').find(e => e.title.startsWith('Start focus'))
+  assert.isFalse(otherFocus?.disabled)
+})
+
 test('the section menu carries the acts: select for selectable, repair for slipped', () => {
-  const selectable = titles(sectionMenuSpec({selecting: false, selectable: true, repairable: false}))
+  const selectable = titles(sectionMenuSpec({selecting: false, selectable: true, repairable: false, organizable: false}))
   assert.deepEqual(selectable, ['Select tasks…'])
 
-  const selecting = titles(sectionMenuSpec({selecting: true, selectable: true, repairable: false}))
+  const selecting = titles(sectionMenuSpec({selecting: true, selectable: true, repairable: false, organizable: false}))
   assert.deepEqual(selecting, ['Done selecting'])
 
-  const repair = titles(sectionMenuSpec({selecting: false, selectable: false, repairable: true}))
+  const repair = titles(sectionMenuSpec({selecting: false, selectable: false, repairable: true, organizable: false}))
   assert.deepEqual(repair, ['Reschedule all to today'])
 })
 
 test('a section with no acts gets an empty spec — no menu at all', () => {
-  assert.deepEqual(sectionMenuSpec({selecting: false, selectable: false, repairable: false}), [])
+  assert.deepEqual(sectionMenuSpec({selecting: false, selectable: false, repairable: false, organizable: false}), [])
 })
 
 test('the select bar overflow prepends move-to-project for triage selections only', () => {
@@ -151,4 +188,96 @@ test('the select bar overflow prepends move-to-project for triage selections onl
   const refile = selectBarMenuSpec([task({filePath: 'Projects/Active/colm-paper.md'})], CONFIG)
   const moves = refile.filter(e => e.kind === 'item' && e.action.type === 'move-to-project')
   assert.lengthOf(moves, 1)
+})
+
+test('the due chip opens a menu that edits the due field only — no quick dates (#18)', () => {
+  assert.deepEqual(titles(dueMenuSpec(task({due: '2026-09-05'}))), ['Pick a date…', 'Remove due date'])
+  assert.deepEqual(titles(dueMenuSpec(task())), ['Pick a date…'])
+  for (const entry of dueMenuSpec(task({due: '2026-09-05'}))) {
+    if (entry.kind === 'item') assert.match(entry.action.type, /due/)
+  }
+})
+
+test('the row menu offers the due date after the plan items, in the pacing group (#18)', () => {
+  const undated = titles(taskMenuSpec(task(), CONFIG))
+  assert.isAbove(undated.indexOf('Set due date…'), undated.indexOf('Pick a date…'))
+  assert.notInclude(undated, 'Remove due date')
+
+  const dated = titles(taskMenuSpec(task({due: '2026-09-05'}), CONFIG))
+  assert.include(dated, 'Due 2026-09-05…')
+  assert.include(dated, 'Remove due date')
+
+  // In a project note the refile group follows; the due items stay ahead of it.
+  const inProject = titles(taskMenuSpec(task({filePath: 'Projects/Active/Taxes.md'}), CONFIG))
+  assert.isBelow(inProject.indexOf('Set due date…'), inProject.indexOf('Move to project…'))
+  assert.equal(inProject[inProject.indexOf('Set due date…') + 1], '—')
+})
+
+test('bulk schedule menus never carry due items — one row, its own deadline (#18)', () => {
+  const bulk = titles(scheduleMenuSpec([task(), task({due: '2026-09-05'})], CONFIG))
+  assert.notInclude(bulk, 'Set due date…')
+  assert.notInclude(bulk, 'Remove due date')
+})
+
+test('every row can be moved to a project; only project rows can be sent back (#19)', () => {
+  const daily = titles(taskMenuSpec(task(), CONFIG))
+  assert.include(daily, 'Move to project…')
+  assert.notInclude(daily, 'Send back to To-do')
+
+  const inProject = titles(taskMenuSpec(task({filePath: 'Projects/Active/Taxes.md'}), CONFIG))
+  assert.include(inProject, 'Move to project…')
+  assert.include(inProject, 'Send back to To-do')
+
+  // Refile is its own group, between pacing and the destructive act.
+  assert.equal(daily[daily.indexOf('Move to project…') - 1], '—')
+  assert.deepEqual(daily.slice(daily.indexOf('Move to project…') + 1), ['—', 'Cancel task'])
+})
+
+test('Select sits after Start focus in selectable sections only, ✓ once selected (#19)', () => {
+  const plain = titles(taskMenuSpec(task(), CONFIG))
+  assert.notInclude(plain, 'Select')
+
+  const selectable = taskMenuSpec(task(), {...CONFIG, selectable: true})
+  const t = titles(selectable)
+  assert.deepEqual(t.slice(0, 4), ['Open note', '—', 'Start focus', 'Select'])
+  assert.equal(t[4], '—')
+
+  const selected = taskMenuSpec(task(), {...CONFIG, selectable: true, selected: true})
+  const entry = selected.find(e => e.kind === 'item' && e.action.type === 'select')
+  assert.ok(entry && entry.kind === 'item' && entry.title === 'Select ✓' && entry.disabled)
+})
+
+test('the ⏳ chip menu is unchanged by #19: refile still only for all-project selections', () => {
+  assert.notInclude(titles(scheduleMenuSpec([task()], CONFIG)), 'Move to project…')
+})
+
+test('the Backlogs menu carries Organize by status after the select toggle (#20)', () => {
+  const backlogs = titles(
+    sectionMenuSpec({selecting: false, selectable: true, repairable: false, organizable: true}),
+  )
+  assert.deepEqual(backlogs, ['Select tasks…', 'Organize by status'])
+})
+
+test('the project menu carries the four moves between pacing and retirement (#20)', () => {
+  const spec = projectMenuSpec(project(), HYBRID)
+  const t = titles(spec)
+  const moves = ['Move to top', 'Move up', 'Move down', 'Move to bottom']
+  const start = t.indexOf('Move to top')
+  assert.deepEqual(t.slice(start, start + 4), moves)
+  assert.equal(t[start - 1], '—')
+  assert.deepEqual(t.slice(start + 4), ['—', 'Mark done & archive', 'Mark dropped & archive'])
+  for (const entry of spec) {
+    if (entry.kind === 'item' && entry.action.type === 'move') assert.isFalse(entry.disabled)
+  }
+})
+
+test('moves that cannot change anything are disabled: the ends, and arrived deadlines (#20)', () => {
+  const disabledMoves = (canMove: {up: boolean; down: boolean}) =>
+    projectMenuSpec(project(), {...HYBRID, canMove})
+      .filter(e => e.kind === 'item' && e.action.type === 'move' && e.disabled)
+      .map(e => (e.kind === 'item' ? e.title : ''))
+  assert.deepEqual(disabledMoves({up: false, down: true}), ['Move to top', 'Move up'])
+  assert.deepEqual(disabledMoves({up: true, down: false}), ['Move down', 'Move to bottom'])
+  // An arrived deadline leads regardless of rank: the view passes both false.
+  assert.lengthOf(disabledMoves({up: false, down: false}), 4)
 })

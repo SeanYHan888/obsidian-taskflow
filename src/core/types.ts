@@ -29,6 +29,8 @@ export type ProjectMeta = {
   status: ProjectStatus | null
   /** Project-level commitment date from frontmatter (ISO), or null. Distinct from a task's due (📅) field. */
   deadline: string | null
+  /** Manual rank from frontmatter (#20): ranked projects lead the Backlogs, ascending. Null = unranked. */
+  order: number | null
 }
 
 export type ProjectGroup = {

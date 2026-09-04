@@ -31,6 +31,12 @@ export const editableTasks = <T extends {filePath: string}>(
 export type RowAffordances = {
   /** Date chips clickable and the add-date button shown. */
   canSchedule: boolean
+  /**
+   * The 🍅 start-focus act (#16). Machine-managed rows keep it — a session's
+   * log write lives outside the note, and the adapter skips the increment —
+   * so the only gate is select mode.
+   */
+  canFocus: boolean
   /** May join a selection — machine-managed rows never do. */
   selectable: boolean
   draggable: boolean
@@ -53,6 +59,7 @@ export const rowAffordances = (
   const managed = isMachineManaged(task.filePath, opts)
   return {
     canSchedule: !managed && !opts.selectMode,
+    canFocus: !opts.selectMode,
     selectable: opts.selectMode && !managed,
     draggable: opts.dragEnabled && !opts.selectMode && !managed,
     duePast: task.due != null && task.due <= opts.today,

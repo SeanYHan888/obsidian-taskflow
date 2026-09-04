@@ -14,7 +14,7 @@ _Avoid_: todo, item, card
 The day the user plans to work on a task. Slideable without guilt; the only date most tasks ever get.
 
 **Due (📅)**:
-A real external deadline. Rare; mostly arrives via Apple Reminders sync.
+A real external deadline. Rare; mostly arrives via Apple Reminders sync or is typed into a daily note. Edited only by its own chip's **due menu** (pick / remove — no quick dates, a deadline is picked, never guessed) and the row menu's "Set due date…"; scheduling never touches it, and a task holding both fields shows both chips (#18).
 _Avoid_: deadline (in code/UI — the emoji vocabulary is Tasks-plugin canon)
 
 **Undated**:
@@ -54,13 +54,17 @@ A note in `Projects/Active/` with `status` frontmatter. Membership is location: 
 _Avoid_: project tags on task lines
 
 **Status (now / next / later)**:
-Project-level commitment frontmatter. `now` = being worked, `next` = queued, `later` = someday. Lifecycle continues to `done` / `dropped` on retirement to `Projects/Archive/`. Orders the undated Backlogs and tiebreaks equal deadlines — a project deadline outranks it.
+Project-level commitment frontmatter. `now` = being worked, `next` = queued, `later` = someday. Lifecycle continues to `done` / `dropped` on retirement to `Projects/Archive/`. Orders the unranked, undated Backlogs and tiebreaks equal deadlines — a project deadline outranks it, and a manual order outranks both. A transition to `now` lifts the project to the top of the list (#20).
+
+**Order**:
+Optional integer `order` frontmatter on a project note — the user's hand-arranged rank (#20). Ranked projects lead the Backlogs ascending; unranked ones follow under the pacing rules. Written only by the header menu's four moves (Move to top / up / down / to bottom — sparse integers, only the notes involved are touched), by a transition to `now` (min − 1: above everything), and by the Backlogs menu's **Organize by status** (renumbers every active project 1..n grouped now → next → later, keeping the order inside each tier — idempotent, notice-only, no confirmation). Never journaled: frontmatter is its own text record. An arrived deadline still leads regardless of rank, and its move items render disabled.
+_Avoid_: pin, priority (order is placement, not importance)
 
 **WIP limit**:
 How many projects `now` may hold (configurable, default 3). Exceeding it warns (red badge), never blocks.
 
 **Project deadline**:
-Optional `deadline` frontmatter (ISO date) on a project note — a project-level commitment date, distinct from a task's due (📅) field. Dated projects lead the Backlogs soonest-first; undated ones follow in status order. The header chip is amber while ahead, red once arrived — the same urgency grammar as task due chips. Rendered in the deadline and hybrid pacing modes; capacity mode ignores it (the frontmatter stays).
+Optional `deadline` frontmatter (ISO date) on a project note — a project-level commitment date, distinct from a task's due (📅) field. Among unranked projects, dated ones lead soonest-first and undated ones follow in status order; a manual order sits above that, and an *arrived* deadline sits above everything (#20). The header chip is amber while ahead, red once arrived — the same urgency grammar as task due chips. Rendered in the deadline and hybrid pacing modes; capacity mode ignores it (the frontmatter stays).
 
 **Pacing mode (capacity / deadlines / hybrid)**:
 Which pacing signals the Backlogs render and act on. Capacity (`wip`): the WIP badge only, status order. Deadlines (`deadline`): chips and deadline-first sort, no badge. Hybrid (default): both signals plus the pressing loop. A pure rendering filter — statuses and deadlines live in frontmatter regardless, so switching is instant and lossless.
@@ -73,7 +77,7 @@ _Avoid_: urgent, overdue (pressing is about commitment, not the chip's color)
 The act of emptying the Inbox: moving a task to a project, stamping a date, or cancelling it.
 
 **Move to project**:
-Physically cutting a task line (with its subtask children) out of its source note into a project note's `## Tasks`. Not a copy, not a link. The source may be a daily note (triage) or another project note (refiling) — the cut defines the move, not the source.
+Physically cutting a task line (with its subtask children) out of its source note into a project note's `## Tasks`. Not a copy, not a link. The source may be a daily note (triage) or another project note (refiling) — the cut defines the move, not the source. Reachable from every row's context menu (#19), the select bar, and a drop on a project header; "Send back to To-do" is the project-row-only inverse. The row menu's "Select" (selectable sections only) enters select mode with that row in hand.
 
 **Events (`# Events:`)**:
 Day Planner's section of the daily note — time blocks, not tasks. Taskflow never reads or writes it.
@@ -86,7 +90,7 @@ The rules every menu and affordance obeys (#14), so the next one has a rule to f
 Every context menu reads navigate → capture/commit → pacing → refile → destructive, separators only between non-empty sections. The first item is always the jump ("Open note", file-text); destructive acts are always last. An item naming a state the thing is already in is marked "✓" and disabled — project statuses and quick dates alike.
 
 **Chip rule**:
-A chip opens what edits it: task date chips open the schedule menu, the project deadline chip opens the deadline picker. Chips are the only date-shaped buttons on any row or header.
+A chip opens what edits it: the ⏳ chip (and the add-date button) opens the schedule menu, the 📅 chip opens the due menu, the project deadline chip opens the deadline picker. Chips are the only date-shaped buttons on any row or header.
 
 **Quick-button rule**:
 At most one quick button per header, shown only when the panel is pressing for a decision — today: `→ now` on a pressing project header — in the one shared quick-action style, always mirrored by a menu item. (The repair queue's `All → to-do` was retired to its section menu's "Reschedule all to today": one visible accelerator vocabulary, not two.)
@@ -96,6 +100,21 @@ Signals (the count, the WIP badge) sit with the title inside the fold toggle; th
 
 **Primary-click rule**:
 Primary click does the surface's dominant act — task text jumps, project name folds. Because a header's click folds, headers carry a visible … entry point; rows carry none. The jump on a header is mod+click, middle-click, or the menu's Open note (the ↗ button was retired — three paths didn't need a fourth). The context menu (right-click, long-press) carries every act on both surfaces: visible buttons are accelerators, never the only path.
+
+### Focus (the timer, #16)
+
+**Focus session**:
+A pomodoro-style work interval bound to one task, started from its row — no note opened. One at a time; it lives on the plugin, so it outlives the panel but not an Obsidian restart. UI copy says focus, never pomodoro — 🍅 is the glyph and the inline-field key.
+_Avoid_: pomodoro (in UI copy), timer (as the session's name)
+
+**Work interval**:
+The timed stretch of a focus session (default 40 min). Only a fully elapsed work interval writes: bump `[🍅:: n]` on the task's line (the `n/m` estimate form moves only `n`; machine-managed lines are skipped) and append the session to the Focus Log — one journal entry, undoable together. Cancels — explicit, task-switch, or check-off of the focused task — write nothing.
+
+**Break interval**:
+The rest after a completed work interval (default 5 min; 0 skips it). Notified, never logged — only worked time enters the record.
+
+**Focus Log**:
+The one note where completed work sessions are appended, one line each (`**WORK(40m)**: 14:19 - 14:59 — task text`); path in settings, created on first use. The single time record — its older anonymous lines stay valid.
 
 ### Sources
 

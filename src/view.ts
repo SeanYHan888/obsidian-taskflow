@@ -7,15 +7,17 @@ import {createPorts, effectiveDailyNotesFolder, gatherSetupFacts} from './adapte
 import {classifySections} from './core/classify'
 import {setupState} from './core/setup'
 import {dropIntent} from './core/drop'
-import {flattenTaskTree} from './core/hierarchy'
+import {flattenTaskTree, locationKey} from './core/hierarchy'
 import {editableTasks} from './core/machine-note'
 import {
+  dueMenuSpec,
   projectMenuSpec,
   scheduleMenuSpec,
   sectionMenuSpec,
   selectBarMenuSpec,
   taskMenuSpec,
 } from './core/menus'
+import {moveWrites, organizeByStatus, topRank} from './core/order'
 import {resolveQuickDate} from './core/schedule'
 import {promotionOutcome, retirePlan} from './core/sections'
 
@@ -23,10 +25,18 @@ import type {WorkspaceLeaf} from 'obsidian'
 import type {DropTarget} from './core/drop'
 import type {JournalEntry} from './core/journal'
 import type {MenuAction, MenuItemSpec} from './core/menus'
+import type {MoveDirection} from './core/order'
+
+/** The mounted panel's exported seams. */
+type PanelHandle = {
+  update: (data: PanelData) => void
+  toggleSelectMode: () => void
+  selectTask: (task: TaskflowTask) => void
+}
 import type {Ports} from './core/ports'
 import type {QuickDate} from './core/schedule'
 import type {ProjectMeta, ProjectStatus, Sections, TaskflowTask} from './core/types'
-import type {PanelData} from './ui/panel-types'
+import type {PanelData, RowMenuState} from './ui/panel-types'
 import type {SectionKey, TaskflowSettings} from './settings'
 
 export const TASKFLOW_VIEW_TYPE = 'taskflow'
@@ -41,6 +51,10 @@ export type TaskflowServices = {
   updateSettings(updates: Partial<TaskflowSettings>): Promise<void>
   pushJournal(entry: JournalEntry): void
   undo(entry?: JournalEntry): Promise<void>
+  /** The focus timer (#16) lives on the plugin so it outlives the panel. */
+  startFocus(task: TaskflowTask): void
+  cancelFocus(): void
+  focusLocation(): string | null
 }
 
 const localToday = (): string => {
@@ -51,7 +65,7 @@ const localToday = (): string => {
 }
 
 export class TaskflowView extends ItemView {
-  private panel: {update: (data: PanelData) => void; toggleSelectMode: () => void} | null = null
+  private panel: PanelHandle | null = null
   private lastToday = localToday()
   private lastSections: Sections | null = null
   private portsCache: Ports | null = null
@@ -100,7 +114,10 @@ export class TaskflowView extends ItemView {
               : void this.setProjectCollapsed(path, !folded),
           onScheduleMenu: (task: TaskflowTask, ev: MouseEvent) =>
             this.showScheduleMenu([task], ev),
-          onRowMenu: (task: TaskflowTask, ev: MouseEvent) => this.showRowMenu(task, ev),
+          onDueMenu: (task: TaskflowTask, ev: MouseEvent) => this.showDueMenu(task, ev),
+          onStartFocus: (task: TaskflowTask) => this.plugin.startFocus(task),
+          onRowMenu: (task: TaskflowTask, ev: MouseEvent, row: RowMenuState) =>
+            this.showRowMenu(task, ev, row),
           onSchedule: (task: TaskflowTask, kind: QuickDate) =>
             void this.reschedule([task], resolveQuickDate(kind, localToday())),
           onUnschedule: (task: TaskflowTask) => void this.unschedule([task]),
@@ -124,7 +141,7 @@ export class TaskflowView extends ItemView {
           onPromoteProject: (project: ProjectMeta) => void this.promote(project),
         },
       },
-    }) as unknown as {update: (data: PanelData) => void; toggleSelectMode: () => void}
+    }) as unknown as PanelHandle
 
     const refreshSoon = debounce(() => this.refresh(), 350, true)
     // The task source owns its own change signal; frontmatter and file edits
@@ -162,6 +179,7 @@ export class TaskflowView extends ItemView {
       collapsed: settings.collapsed,
       collapsedProjects: settings.collapsedProjects,
       draggable: Platform.isDesktop,
+      focusLocation: this.plugin.focusLocation(),
       machineNotePath: settings.machineNotePath,
       projectsFolder: settings.projectsFolder,
       dailyNotesFolder: effectiveDailyNotesFolder(this.app, settings),
@@ -213,16 +231,24 @@ export class TaskflowView extends ItemView {
       void this.reschedule(tasks, resolveQuickDate(action.kind, localToday()))
     else if (action.type === 'pick-date') void this.pickDate(tasks)
     else if (action.type === 'remove-date') void this.unschedule(tasks)
+    else if (action.type === 'pick-due-date' && tasks[0]) void this.pickDueDate(tasks[0])
+    else if (action.type === 'remove-due-date') void this.act(() => this.ports.editor.clearDue(tasks))
     else if (action.type === 'move-to-project') void this.bulkMove(tasks)
     else if (action.type === 'send-back') void this.sendBack(tasks)
     else if (action.type === 'cancel' && tasks[0]) void this.cancel(tasks[0])
+    else if (action.type === 'start-focus' && tasks[0]) this.plugin.startFocus(tasks[0])
+    else if (action.type === 'select' && tasks[0]) this.panel?.selectTask(tasks[0])
     else if (action.type === 'open-note' && tasks[0])
       void this.openFile(tasks[0].filePath, tasks[0].line, ev)
   }
 
   /** The menu builders' slice of the world: settings plus the injected clock. */
   private menuConfig() {
-    return {...this.plugin.settings, today: localToday()}
+    return {
+      ...this.plugin.settings,
+      today: localToday(),
+      focusedLocation: this.plugin.focusLocation(),
+    }
   }
 
   private showScheduleMenu(tasks: TaskflowTask[], ev: MouseEvent): void {
@@ -231,8 +257,12 @@ export class TaskflowView extends ItemView {
     )
   }
 
-  private showRowMenu(task: TaskflowTask, ev: MouseEvent): void {
-    this.runMenu(taskMenuSpec(task, this.menuConfig()), ev, action =>
+  private showDueMenu(task: TaskflowTask, ev: MouseEvent): void {
+    this.runMenu(dueMenuSpec(task), ev, action => this.dispatchTaskAction([task], action, ev))
+  }
+
+  private showRowMenu(task: TaskflowTask, ev: MouseEvent, row: RowMenuState): void {
+    this.runMenu(taskMenuSpec(task, {...this.menuConfig(), ...row}), ev, action =>
       this.dispatchTaskAction([task], action, ev),
     )
   }
@@ -243,10 +273,12 @@ export class TaskflowView extends ItemView {
       selecting,
       selectable: key === 'today' || key === 'projects',
       repairable: key === 'slipped',
+      organizable: key === 'projects',
     })
     this.runMenu(spec, ev, action => {
       if (action.type === 'toggle-select') this.panel?.toggleSelectMode()
       else if (action.type === 'reschedule-all') void this.rescheduleAllSlipped()
+      else if (action.type === 'organize') void this.organizeProjects()
     })
   }
 
@@ -272,15 +304,28 @@ export class TaskflowView extends ItemView {
     else if (intent.kind === 'ask-date') this.showScheduleMenu([task], ev)
   }
 
+  /**
+   * The list a move works within (#20): the Backlogs as displayed, minus the
+   * arrived-deadline projects that lead regardless of rank.
+   */
+  private movableProjects(): ProjectMeta[] {
+    return (this.lastSections?.projects ?? [])
+      .filter(group => group.urgency !== 'arrived')
+      .map(group => group.project)
+  }
+
   private showProjectMenu(project: ProjectMeta, ev: MouseEvent): void {
-    const pressing =
-      this.lastSections?.projects.find(g => g.project.path === project.path)?.pressing ?? false
+    const group = this.lastSections?.projects.find(g => g.project.path === project.path)
+    const movable = this.movableProjects()
+    const at = movable.findIndex(p => p.path === project.path)
     const spec = projectMenuSpec(project, {
       pacingMode: this.plugin.settings.pacingMode,
-      pressing,
+      pressing: group?.pressing ?? false,
+      canMove: {up: at > 0, down: at !== -1 && at < movable.length - 1},
     })
     this.runMenu(spec, ev, action => {
       if (action.type === 'open-note') void this.openFile(project.path)
+      else if (action.type === 'move') void this.moveProject(project, action.direction)
       else if (action.type === 'add-task') void this.addTaskPrompt(project)
       else if (action.type === 'promote') void this.promote(project)
       else if (action.type === 'set-status') void this.changeStatus(project, action.status)
@@ -308,6 +353,7 @@ export class TaskflowView extends ItemView {
   private async promote(project: ProjectMeta): Promise<void> {
     const {count, over} = promotionOutcome(this.lastSections, this.plugin.settings.wipLimit)
     if (await this.ports.projects.setStatus(project.path, 'now')) {
+      await this.liftToTop(project)
       new Notice(
         over
           ? `Taskflow: ${project.name} → now — now is full (${count}/${this.plugin.settings.wipLimit})`
@@ -319,8 +365,41 @@ export class TaskflowView extends ItemView {
 
   private async changeStatus(project: ProjectMeta, status: ProjectStatus): Promise<void> {
     if (await this.ports.projects.setStatus(project.path, status)) {
+      if (status === 'now') await this.liftToTop(project)
       new Notice(`Taskflow: ${project.name} → ${status}`)
     }
+    this.refresh()
+  }
+
+  /**
+   * A transition to `now` puts the project above everything (#20): the thing
+   * just committed to is what should be seen first. Other status changes and
+   * deadline edits leave the rank alone.
+   */
+  private async liftToTop(project: ProjectMeta): Promise<void> {
+    await this.ports.projects.setOrder(project.path, topRank(this.ports.projects.read()))
+  }
+
+  /** Move to top/up/down/bottom (#20): core names the writes, this runs them. */
+  private async moveProject(project: ProjectMeta, direction: MoveDirection): Promise<void> {
+    const writes = moveWrites(this.movableProjects(), project.path, direction)
+    for (const write of writes) await this.ports.projects.setOrder(write.path, write.order)
+    if (writes.length > 0) this.refresh()
+  }
+
+  /**
+   * Organize by status (#20): renumber every active project now → next →
+   * later, keeping the current order inside each tier. Reversible by the same
+   * menu, so no confirmation — the notice names what happened.
+   */
+  private async organizeProjects(): Promise<void> {
+    const writes = organizeByStatus(this.ports.projects.read(), this.plugin.settings.pacingMode)
+    for (const write of writes) await this.ports.projects.setOrder(write.path, write.order)
+    new Notice(
+      writes.length === 0
+        ? 'Taskflow: projects already organized by status'
+        : `Taskflow: organized ${writes.length} project${writes.length === 1 ? '' : 's'} by status`,
+    )
     this.refresh()
   }
 
@@ -390,6 +469,16 @@ export class TaskflowView extends ItemView {
     if (date) await this.reschedule(tasks, date)
   }
 
+  /** The due picker (#18): opens on the task's own due date, else today. */
+  private async pickDueDate(task: TaskflowTask): Promise<void> {
+    const date = await askDate(this.app, {
+      defaultDate: task.due ?? localToday(),
+      title: 'Due on…',
+      submitLabel: 'Set due date',
+    })
+    if (date) await this.act(() => this.ports.editor.setDue([task], date))
+  }
+
   /** The uniform write pipeline: run the edit, journal + notice it, reproject. */
   private async act(run: () => Promise<JournalEntry | null>): Promise<void> {
     this.record(await run())
@@ -451,6 +540,11 @@ export class TaskflowView extends ItemView {
   }
 
   private async toggle(task: TaskflowTask): Promise<void> {
+    // Checking off the focused task ends its session unlogged: the interval
+    // didn't elapse, and the record only ever holds full intervals.
+    if (this.plugin.focusLocation() === locationKey(task.filePath, task.line)) {
+      this.plugin.cancelFocus()
+    }
     await this.ports.tasks.toggle(task)
     this.refresh()
   }

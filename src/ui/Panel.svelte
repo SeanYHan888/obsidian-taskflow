@@ -22,6 +22,7 @@
     collapsed: {},
     collapsedProjects: {},
     draggable: false,
+    focusLocation: null,
     machineNotePath: '',
     projectsFolder: '',
     dailyNotesFolder: '',
@@ -70,6 +71,12 @@
   /** The view's seam for the section menu's toggle-select act (#15). */
   export const toggleSelectMode = () => toggleSelecting()
 
+  /** The row menu's Select (#19): enter select mode with this row in hand. */
+  export const selectTask = (task: {filePath: string; line: number}) => {
+    selecting = true
+    selectedKeys = new Set([...selectedKeys, locationKey(task.filePath, task.line)])
+  }
+
   /** Escape leaves select mode, the convention every multi-select app keeps. */
   const onPanelKeydown = (ev: KeyboardEvent) => {
     if (ev.key === 'Escape' && selecting) {
@@ -90,6 +97,7 @@
 
   const ctx: RowContext = $derived({
     today: data.today,
+    focusLocation: data.focusLocation,
     machineNotePath: data.machineNotePath,
     draggable: data.draggable,
     onDragStart: (task: TaskflowTask) => (dragTask = task),

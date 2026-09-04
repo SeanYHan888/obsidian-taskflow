@@ -21,6 +21,14 @@ export type TaskflowSettings = {
   wipLimit: number
   /** Hybrid only: days before a deadline that the header offers → now; 0 waits for arrival. */
   pressWindow: number
+  /** Focus timer (#16): work interval length in minutes. */
+  focusWorkMinutes: number
+  /** Break after each work interval; 0 skips the break. */
+  focusBreakMinutes: number
+  /** Where completed work sessions are appended. */
+  focusLogPath: string
+  /** Notices on work-interval and break completion. */
+  focusNotify: boolean
   collapsed: Partial<Record<SectionKey, boolean>>
   /** Folded project groups, keyed by project note path. */
   collapsedProjects: Record<string, boolean>
@@ -38,6 +46,10 @@ export const DEFAULT_SETTINGS: TaskflowSettings = {
   pacingMode: 'hybrid',
   wipLimit: 3,
   pressWindow: 7,
+  focusWorkMinutes: 40,
+  focusBreakMinutes: 5,
+  focusLogPath: 'Indexes/System/Focus Log.md',
+  focusNotify: true,
   collapsed: {},
   collapsedProjects: {},
 }
@@ -162,6 +174,54 @@ export class TaskflowSettingTab extends PluginSettingTab {
           if (Number.isFinite(parsed) && parsed >= 0) {
             await this.plugin.updateSettings({pressWindow: parsed})
           }
+        }),
+      )
+
+    new Setting(this.containerEl).setName('Focus timer').setHeading()
+
+    const minutes = (
+      name: string,
+      desc: string,
+      key: 'focusWorkMinutes' | 'focusBreakMinutes',
+      /** The break may be 0 (skipped); the work interval may not. */
+      min: number,
+    ) =>
+      new Setting(this.containerEl)
+        .setName(name)
+        .setDesc(desc)
+        .addText(input =>
+          input.setValue(String(this.plugin.settings[key])).onChange(async value => {
+            const parsed = Number.parseInt(value, 10)
+            if (Number.isFinite(parsed) && parsed >= min) {
+              await this.plugin.updateSettings({[key]: parsed})
+            }
+          }),
+        )
+
+    minutes(
+      'Work length',
+      'Minutes per focus session. A running session keeps the length it started with.',
+      'focusWorkMinutes',
+      1,
+    )
+    minutes(
+      'Break length',
+      'Minutes of break after each completed session. Zero skips the break.',
+      'focusBreakMinutes',
+      0,
+    )
+    text(
+      'Focus log',
+      'Note where completed sessions are appended, one line each with start, end, and the task. Created on first use.',
+      'focusLogPath',
+      DEFAULT_SETTINGS.focusLogPath,
+    )
+    new Setting(this.containerEl)
+      .setName('Completion notices')
+      .setDesc('Announce when a work session or break ends. The status-bar countdown shows either way.')
+      .addToggle(toggle =>
+        toggle.setValue(this.plugin.settings.focusNotify).onChange(async value => {
+          await this.plugin.updateSettings({focusNotify: value})
         }),
       )
   }

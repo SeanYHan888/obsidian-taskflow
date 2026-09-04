@@ -1,6 +1,7 @@
 import {TFolder, normalizePath} from 'obsidian'
 
-import {cancelTask, rescheduleTasks, unscheduleTasks} from './edit-lines'
+import {cancelTask, clearDueTasks, rescheduleTasks, setDueTasks, unscheduleTasks} from './edit-lines'
+import {recordFocusSession} from './focus-log'
 import {
   addTaskToProject,
   createProjectFromTemplate,
@@ -8,12 +9,7 @@ import {
   moveTasksToProject,
   sendTasksBackToInbox,
 } from './move-tasks'
-import {
-  archiveProject,
-  readProjects,
-  setProjectDeadline,
-  setProjectStatus,
-} from './projects'
+import {archiveProject, readProjects, setProjectDeadline, setProjectOrder, setProjectStatus} from './projects'
 import {getTasksPlugin, onTasksChange, readTasks, toggleTask} from './tasks-plugin'
 
 import type {App} from 'obsidian'
@@ -60,6 +56,7 @@ export const createPorts = (app: App, settings: () => TaskflowSettings): Ports =
     read: () => readProjects(app, settings().projectsFolder),
     setStatus: (path, status) => setProjectStatus(app, path, status),
     setDeadline: (path, deadline) => setProjectDeadline(app, path, deadline),
+    setOrder: (path, order) => setProjectOrder(app, path, order),
     archive: (path, status) => archiveProject(app, path, status, settings().archiveFolder),
     create: async (name, today) => {
       const current = settings()
@@ -77,6 +74,8 @@ export const createPorts = (app: App, settings: () => TaskflowSettings): Ports =
   editor: {
     reschedule: (tasks, date) => rescheduleTasks(app, tasks, date),
     unschedule: tasks => unscheduleTasks(app, tasks),
+    setDue: (tasks, date) => setDueTasks(app, tasks, date),
+    clearDue: tasks => clearDueTasks(app, tasks),
     cancel: task => cancelTask(app, task),
     moveToProject: (tasks, projectPath) =>
       moveTasksToProject(app, tasks, projectPath, settings().moveTargetHeading),
@@ -84,5 +83,10 @@ export const createPorts = (app: App, settings: () => TaskflowSettings): Ports =
       sendTasksBackToInbox(app, tasks, settings().inboxHeading, today),
     addTask: (projectPath, text) =>
       addTaskToProject(app, projectPath, text, settings().moveTargetHeading),
+    recordFocusSession: (task, session) =>
+      recordFocusSession(app, task, session, {
+        logPath: settings().focusLogPath,
+        machineNotePath: settings().machineNotePath,
+      }),
   },
 })

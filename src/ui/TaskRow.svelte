@@ -48,12 +48,14 @@
 
   const chipText = (date: string) => chipLabel(date, ctx.today)
   const sourceLabel = $derived(labelFor(task.filePath))
+  const inFocus = $derived(ctx.focusLocation === locationKey(task.filePath, task.line))
 </script>
 
 <div class="taskflow-item" class:taskflow-item-nested={nested}>
 <div
   class="taskflow-row"
   class:taskflow-row-selected={selected}
+  class:taskflow-row-focus={inFocus}
   draggable={rowDraggable}
   role="listitem"
   ondragstart={ev => {
@@ -64,7 +66,7 @@
   ondragend={() => ctx.onDragEnd()}
   oncontextmenu={ev => {
     ev.preventDefault()
-    ctx.callbacks.onRowMenu(task, ev)
+    ctx.callbacks.onRowMenu(task, ev, {selectable: onToggleSelect != null, selected})
   }}
 >
   {#if selectable && onToggleSelect}
@@ -96,13 +98,28 @@
       <span class="taskflow-source">{sourceLabel}</span>
     {/if}
   </button>
+  {#if aff.canFocus}
+    <!-- The 🍅 act (#16): hover-revealed accelerator, mirrored by the menu's
+         Start focus. Stays on machine-managed rows — the session's log write
+         lives outside the note. A press that wanders must stay a click. -->
+    <button
+      class="taskflow-focus-start"
+      aria-label="Start focus session"
+      disabled={inFocus}
+      onclick={() => ctx.callbacks.onStartFocus(task)}
+      ondragstart={ev => {
+        ev.preventDefault()
+        ev.stopPropagation()
+      }}
+    >🍅</button>
+  {/if}
   {#if task.due != null}
     {#if canSchedule}
       <button
         class="taskflow-chip taskflow-chip-button taskflow-chip-due"
         class:taskflow-chip-past={aff.duePast}
-        aria-label="Schedule task"
-        onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
+        aria-label="Edit due date"
+        onclick={ev => ctx.callbacks.onDueMenu(task, ev)}
       >
         {chipText(task.due)}
       </button>

@@ -1,5 +1,7 @@
 import esbuild from 'esbuild'
 import process from 'process'
+import fs from 'fs'
+import path from 'path'
 import builtins from 'builtin-modules'
 import sveltePlugin from 'esbuild-svelte'
 
@@ -10,6 +12,12 @@ if you want to view the source, please visit the github repository of this plugi
 `
 
 const prod = process.argv[2] === 'production'
+
+// Dev builds land in the dev vault, never in Sean's live vault.
+// Production deploys to the live vault go through `npm run deploy:prod`.
+const devPluginDir =
+  process.env.TASKFLOW_DEV_PLUGIN_DIR ??
+  path.resolve('../taskflow-demo-vault/.obsidian/plugins/taskflow')
 
 const options = {
   banner: {
@@ -43,12 +51,25 @@ const options = {
       compilerOptions: {css: 'injected'},
     }),
   ],
-  outfile: 'main.js',
+  outfile: prod ? 'main.js' : path.join(devPluginDir, 'main.js'),
 }
 
 if (prod) {
   await esbuild.build(options).catch(() => process.exit(1))
 } else {
+  fs.mkdirSync(devPluginDir, {recursive: true})
+  // .hotreload makes the Hot Reload plugin pick up rebuilds automatically
+  fs.writeFileSync(path.join(devPluginDir, '.hotreload'), '')
+  const syncStatic = () => {
+    for (const file of ['manifest.json', 'styles.css']) {
+      fs.copyFileSync(file, path.join(devPluginDir, file))
+    }
+  }
+  syncStatic()
+  for (const file of ['manifest.json', 'styles.css']) {
+    fs.watchFile(file, {interval: 500}, syncStatic)
+  }
+  console.log(`dev build → ${devPluginDir}`)
   const ctx = await esbuild.context(options)
   await ctx.watch()
 }
