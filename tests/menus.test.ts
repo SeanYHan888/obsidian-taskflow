@@ -17,6 +17,8 @@ const CONFIG = {
   today: '2026-08-24',
   machineNotePath: '',
   focusedLocation: null,
+  selectable: false,
+  selected: false,
 }
 
 let nextLine = 0
@@ -213,4 +215,36 @@ test('bulk schedule menus never carry due items — one row, its own deadline (#
   const bulk = titles(scheduleMenuSpec([task(), task({due: '2026-09-05'})], CONFIG))
   assert.notInclude(bulk, 'Set due date…')
   assert.notInclude(bulk, 'Remove due date')
+})
+
+test('every row can be moved to a project; only project rows can be sent back (#19)', () => {
+  const daily = titles(taskMenuSpec(task(), CONFIG))
+  assert.include(daily, 'Move to project…')
+  assert.notInclude(daily, 'Send back to To-do')
+
+  const inProject = titles(taskMenuSpec(task({filePath: 'Projects/Active/Taxes.md'}), CONFIG))
+  assert.include(inProject, 'Move to project…')
+  assert.include(inProject, 'Send back to To-do')
+
+  // Refile is its own group, between pacing and the destructive act.
+  assert.equal(daily[daily.indexOf('Move to project…') - 1], '—')
+  assert.deepEqual(daily.slice(daily.indexOf('Move to project…') + 1), ['—', 'Cancel task'])
+})
+
+test('Select sits after Start focus in selectable sections only, ✓ once selected (#19)', () => {
+  const plain = titles(taskMenuSpec(task(), CONFIG))
+  assert.notInclude(plain, 'Select')
+
+  const selectable = taskMenuSpec(task(), {...CONFIG, selectable: true})
+  const t = titles(selectable)
+  assert.deepEqual(t.slice(0, 4), ['Open note', '—', 'Start focus', 'Select'])
+  assert.equal(t[4], '—')
+
+  const selected = taskMenuSpec(task(), {...CONFIG, selectable: true, selected: true})
+  const entry = selected.find(e => e.kind === 'item' && e.action.type === 'select')
+  assert.ok(entry && entry.kind === 'item' && entry.title === 'Select ✓' && entry.disabled)
+})
+
+test('the ⏳ chip menu is unchanged by #19: refile still only for all-project selections', () => {
+  assert.notInclude(titles(scheduleMenuSpec([task()], CONFIG)), 'Move to project…')
 })

@@ -66,7 +66,7 @@
   ondragend={() => ctx.onDragEnd()}
   oncontextmenu={ev => {
     ev.preventDefault()
-    ctx.callbacks.onRowMenu(task, ev)
+    ctx.callbacks.onRowMenu(task, ev, {selectable: onToggleSelect != null, selected})
   }}
 >
   {#if selectable && onToggleSelect}

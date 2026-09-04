@@ -38,6 +38,7 @@ export type MenuAction =
   | {type: 'clear-deadline'}
   | {type: 'retire'; status: 'done' | 'dropped'}
   | {type: 'toggle-select'}
+  | {type: 'select'}
   | {type: 'reschedule-all'}
 
 export type MenuItemSpec =
@@ -73,6 +74,14 @@ export const scheduleMenuSpec = (
   tasks: readonly TaskflowTask[],
   config: ScheduleMenuConfig,
 ): MenuItemSpec[] => {
+  const refile = bulkRefileItems(tasks, config)
+  return refile.length === 0
+    ? planItems(tasks, config)
+    : [...planItems(tasks, config), separator, ...refile]
+}
+
+/** The pacing group's plan items: quick dates, the picker, and Remove date. */
+const planItems = (tasks: readonly TaskflowTask[], config: ScheduleMenuConfig): MenuItemSpec[] => {
   const spec: MenuItemSpec[] = QUICK_DATES.map(({kind, title, icon}) => {
     const held =
       tasks.length > 0 &&
@@ -83,15 +92,33 @@ export const scheduleMenuSpec = (
   if (tasks.some(t => t.scheduled != null)) {
     spec.push(item('Remove date', 'eraser', {type: 'remove-date'}))
   }
-  const fromProject =
-    tasks.length > 0 && tasks.every(t => inFolder(t.filePath, config.projectsFolder))
-  if (fromProject) {
-    spec.push(separator)
-    spec.push(item('Move to project…', 'folder-input', {type: 'move-to-project'}))
-    spec.push(item('Send back to To-do', 'inbox', {type: 'send-back'}))
-  }
   return spec
 }
+
+const MOVE_TO_PROJECT = item('Move to project…', 'folder-input', {type: 'move-to-project'})
+const SEND_BACK = item('Send back to To-do', 'inbox', {type: 'send-back'})
+
+/**
+ * A selection's refile group: only when every task lives in a project note,
+ * since a mixed selection has no one source to send back from (triage
+ * selections get their move on the select bar instead).
+ */
+const bulkRefileItems = (
+  tasks: readonly TaskflowTask[],
+  config: ScheduleMenuConfig,
+): MenuItemSpec[] => {
+  const fromProject =
+    tasks.length > 0 && tasks.every(t => inFolder(t.filePath, config.projectsFolder))
+  return fromProject ? [MOVE_TO_PROJECT, SEND_BACK] : []
+}
+
+/**
+ * One row's refile group (#19): any row can be moved to a project — triage
+ * from the daily note is one right-click away — and a row already in a
+ * project can also be sent back.
+ */
+const rowRefileItems = (task: TaskflowTask, config: ScheduleMenuConfig): MenuItemSpec[] =>
+  inFolder(task.filePath, config.projectsFolder) ? [MOVE_TO_PROJECT, SEND_BACK] : [MOVE_TO_PROJECT]
 
 /**
  * The 📅 chip's menu (#18): a chip opens what edits it, and this one edits
@@ -125,16 +152,24 @@ export type FocusMenuConfig = {
   focusedLocation: string | null
 }
 
+export type SelectMenuConfig = {
+  /** Whether the row's section has a select mode (To-do, Backlogs). */
+  selectable: boolean
+  /** Already in the selection — its Select item is ✓ and disabled. */
+  selected: boolean
+}
+
 /**
  * A task row's context menu: every hover affordance again, plus the jump —
  * hover doesn't exist on mobile, so the menu is the touch-parity surface.
- * A machine-managed row keeps the jump and the focus session (which only
- * appends to the log — the line increment is the adapter's rule to skip);
- * its line itself stays read-only.
+ * Grammar: jump · focus and (in a selectable section) Select · plan and due
+ * · refile · destructive. A machine-managed row keeps the jump and the
+ * focus session (which only appends to the log — the line increment is the
+ * adapter's rule to skip); its line itself stays read-only.
  */
 export const taskMenuSpec = (
   task: TaskflowTask,
-  config: ScheduleMenuConfig & MachineNoteConfig & FocusMenuConfig,
+  config: ScheduleMenuConfig & MachineNoteConfig & FocusMenuConfig & SelectMenuConfig,
 ): MenuItemSpec[] => {
   const open = item('Open note', 'file-text', {type: 'open-note'})
   const focused = config.focusedLocation === locationKey(task.filePath, task.line)
@@ -145,24 +180,22 @@ export const taskMenuSpec = (
     focused,
   )
   if (isMachineManaged(task.filePath, config)) return [open, separator, focus]
+  const select = config.selectable
+    ? [item(config.selected ? 'Select ✓' : 'Select', 'copy-check', {type: 'select'}, config.selected)]
+    : []
   return [
     open,
     separator,
     focus,
+    ...select,
     separator,
-    ...withDueItems(scheduleMenuSpec([task], config), dueItems(task)),
+    ...planItems([task], config),
+    ...dueItems(task),
+    separator,
+    ...rowRefileItems(task, config),
     separator,
     item('Cancel task', 'x', {type: 'cancel'}),
   ]
-}
-
-/**
- * Splices the due items into the schedule spec's pacing group: right after
- * the plan items, before the refile separator when one follows.
- */
-const withDueItems = (spec: MenuItemSpec[], due: MenuItemSpec[]): MenuItemSpec[] => {
-  const refile = spec.findIndex(entry => entry.kind === 'separator')
-  return refile === -1 ? [...spec, ...due] : [...spec.slice(0, refile), ...due, ...spec.slice(refile)]
 }
 
 export type SectionMenuConfig = {

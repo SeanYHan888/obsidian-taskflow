@@ -24,10 +24,17 @@ import type {WorkspaceLeaf} from 'obsidian'
 import type {DropTarget} from './core/drop'
 import type {JournalEntry} from './core/journal'
 import type {MenuAction, MenuItemSpec} from './core/menus'
+
+/** The mounted panel's exported seams. */
+type PanelHandle = {
+  update: (data: PanelData) => void
+  toggleSelectMode: () => void
+  selectTask: (task: TaskflowTask) => void
+}
 import type {Ports} from './core/ports'
 import type {QuickDate} from './core/schedule'
 import type {ProjectMeta, ProjectStatus, Sections, TaskflowTask} from './core/types'
-import type {PanelData} from './ui/panel-types'
+import type {PanelData, RowMenuState} from './ui/panel-types'
 import type {SectionKey, TaskflowSettings} from './settings'
 
 export const TASKFLOW_VIEW_TYPE = 'taskflow'
@@ -56,7 +63,7 @@ const localToday = (): string => {
 }
 
 export class TaskflowView extends ItemView {
-  private panel: {update: (data: PanelData) => void; toggleSelectMode: () => void} | null = null
+  private panel: PanelHandle | null = null
   private lastToday = localToday()
   private lastSections: Sections | null = null
   private portsCache: Ports | null = null
@@ -107,7 +114,8 @@ export class TaskflowView extends ItemView {
             this.showScheduleMenu([task], ev),
           onDueMenu: (task: TaskflowTask, ev: MouseEvent) => this.showDueMenu(task, ev),
           onStartFocus: (task: TaskflowTask) => this.plugin.startFocus(task),
-          onRowMenu: (task: TaskflowTask, ev: MouseEvent) => this.showRowMenu(task, ev),
+          onRowMenu: (task: TaskflowTask, ev: MouseEvent, row: RowMenuState) =>
+            this.showRowMenu(task, ev, row),
           onSchedule: (task: TaskflowTask, kind: QuickDate) =>
             void this.reschedule([task], resolveQuickDate(kind, localToday())),
           onUnschedule: (task: TaskflowTask) => void this.unschedule([task]),
@@ -131,7 +139,7 @@ export class TaskflowView extends ItemView {
           onPromoteProject: (project: ProjectMeta) => void this.promote(project),
         },
       },
-    }) as unknown as {update: (data: PanelData) => void; toggleSelectMode: () => void}
+    }) as unknown as PanelHandle
 
     const refreshSoon = debounce(() => this.refresh(), 350, true)
     // The task source owns its own change signal; frontmatter and file edits
@@ -227,6 +235,7 @@ export class TaskflowView extends ItemView {
     else if (action.type === 'send-back') void this.sendBack(tasks)
     else if (action.type === 'cancel' && tasks[0]) void this.cancel(tasks[0])
     else if (action.type === 'start-focus' && tasks[0]) this.plugin.startFocus(tasks[0])
+    else if (action.type === 'select' && tasks[0]) this.panel?.selectTask(tasks[0])
     else if (action.type === 'open-note' && tasks[0])
       void this.openFile(tasks[0].filePath, tasks[0].line, ev)
   }
@@ -250,8 +259,8 @@ export class TaskflowView extends ItemView {
     this.runMenu(dueMenuSpec(task), ev, action => this.dispatchTaskAction([task], action, ev))
   }
 
-  private showRowMenu(task: TaskflowTask, ev: MouseEvent): void {
-    this.runMenu(taskMenuSpec(task, this.menuConfig()), ev, action =>
+  private showRowMenu(task: TaskflowTask, ev: MouseEvent, row: RowMenuState): void {
+    this.runMenu(taskMenuSpec(task, {...this.menuConfig(), ...row}), ev, action =>
       this.dispatchTaskAction([task], action, ev),
     )
   }

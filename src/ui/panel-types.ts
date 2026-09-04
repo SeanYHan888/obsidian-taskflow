@@ -30,6 +30,13 @@ export type PanelData = {
   pacingMode: PacingMode
 }
 
+/** What only the row knows when its menu opens (#19): the select state. */
+export type RowMenuState = {
+  /** The row's section has a select mode (To-do, Backlogs). */
+  selectable: boolean
+  selected: boolean
+}
+
 /** Everything a task row needs regardless of which section rendered it. */
 export type RowContext = {
   today: string
@@ -56,7 +63,7 @@ export type PanelCallbacks = {
   /** The 📅 chip's menu (#18): pick or remove the due date — never the plan. */
   onDueMenu: (task: TaskflowTask, ev: MouseEvent) => void
   /** The row's context menu: every hover affordance, for right-click and touch. */
-  onRowMenu: (task: TaskflowTask, ev: MouseEvent) => void
+  onRowMenu: (task: TaskflowTask, ev: MouseEvent, row: RowMenuState) => void
   /** The 🍅 act (#16): start a focus session on this task, no note opened. */
   onStartFocus: (task: TaskflowTask) => void
   onSchedule: (task: TaskflowTask, kind: QuickDate) => void

@@ -73,7 +73,7 @@ _Avoid_: urgent, overdue (pressing is about commitment, not the chip's color)
 The act of emptying the Inbox: moving a task to a project, stamping a date, or cancelling it.
 
 **Move to project**:
-Physically cutting a task line (with its subtask children) out of its source note into a project note's `## Tasks`. Not a copy, not a link. The source may be a daily note (triage) or another project note (refiling) — the cut defines the move, not the source.
+Physically cutting a task line (with its subtask children) out of its source note into a project note's `## Tasks`. Not a copy, not a link. The source may be a daily note (triage) or another project note (refiling) — the cut defines the move, not the source. Reachable from every row's context menu (#19), the select bar, and a drop on a project header; "Send back to To-do" is the project-row-only inverse. The row menu's "Select" (selectable sections only) enters select mode with that row in hand.
 
 **Events (`# Events:`)**:
 Day Planner's section of the daily note — time blocks, not tasks. Taskflow never reads or writes it.
