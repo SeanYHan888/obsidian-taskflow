@@ -257,30 +257,35 @@ test('projects group by note ordered now, next, later, then alphabetically', () 
     name: 'colm-paper',
     status: 'now',
     deadline: null,
+    order: null,
   }
   const devSetup: ProjectMeta = {
     path: 'Projects/Active/dev-setup.md',
     name: 'dev-setup',
     status: 'next',
     deadline: null,
+    order: null,
   }
   const llmStudy: ProjectMeta = {
     path: 'Projects/Active/llm-study.md',
     name: 'llm-study',
     status: 'later',
     deadline: null,
+    order: null,
   }
   const knowledgeBase: ProjectMeta = {
     path: 'Projects/Active/build-knowledge-base.md',
     name: 'build-knowledge-base',
     status: 'now',
     deadline: null,
+    order: null,
   }
   const emptyProject: ProjectMeta = {
     path: 'Projects/Active/obsidian-fix.md',
     name: 'obsidian-fix',
     status: 'now',
     deadline: null,
+    order: null,
   }
 
   const sections = classify(
@@ -310,18 +315,21 @@ test('projects with deadlines order soonest-first ahead of undated ones', () => 
     name: 'colm-paper',
     status: 'now',
     deadline: null,
+    order: null,
   }
   const dueSoon: ProjectMeta = {
     path: 'Projects/Active/llm-study.md',
     name: 'llm-study',
     status: 'later',
     deadline: '2026-08-25',
+    order: null,
   }
   const dueLater: ProjectMeta = {
     path: 'Projects/Active/dev-setup.md',
     name: 'dev-setup',
     status: 'now',
     deadline: '2026-09-10',
+    order: null,
   }
 
   const sections = classify(
@@ -345,24 +353,28 @@ test('deadline urgency: ahead until today, arrived from today on, null when unda
     name: 'llm-study',
     status: 'later',
     deadline: '2026-08-22',
+    order: null,
   }
   const dueToday: ProjectMeta = {
     path: 'Projects/Active/colm-paper.md',
     name: 'colm-paper',
     status: 'now',
     deadline: '2026-08-21',
+    order: null,
   }
   const past: ProjectMeta = {
     path: 'Projects/Active/dev-setup.md',
     name: 'dev-setup',
     status: 'now',
     deadline: '2026-08-19',
+    order: null,
   }
   const undated: ProjectMeta = {
     path: 'Projects/Active/build-knowledge-base.md',
     name: 'build-knowledge-base',
     status: 'now',
     deadline: null,
+    order: null,
   }
   const projects = [ahead, dueToday, past, undated]
 
@@ -388,12 +400,14 @@ test('equal deadlines tiebreak by status rank then name; WIP count is unaffected
     name: 'llm-study',
     status: 'later',
     deadline: '2026-08-25',
+    order: null,
   }
   const nowProject: ProjectMeta = {
     path: 'Projects/Active/colm-paper.md',
     name: 'colm-paper',
     status: 'now',
     deadline: '2026-08-25',
+    order: null,
   }
 
   const sections = classify(
@@ -417,6 +431,7 @@ test('a project task dated today appears in both today and its project group', (
     name: 'colm-paper',
     status: 'now',
     deadline: null,
+    order: null,
   }
   const crossCutting = task({
     description: 'test model for lsc-dpo',
@@ -438,6 +453,7 @@ test('sections preserve subtask hierarchy and promote orphaned children', () => 
     name: 'colm-paper',
     status: 'now',
     deadline: null,
+    order: null,
   }
   const parent = task({
     description: 'camera ready paper',
@@ -517,4 +533,54 @@ test('a blank daily-notes folder means the vault root — capture works anywhere
   })
   const sections = classify([capture], [], {dailyNotesFolder: ''})
   assert.deepEqual(descriptions(sections.inbox), ['root capture'])
+})
+
+test('ranked projects lead by order; unranked follow under the pacing rules (#20)', () => {
+  const meta = (name: string, overrides: Partial<ProjectMeta>): ProjectMeta => ({
+    path: `Projects/Active/${name}.md`,
+    name,
+    status: 'next',
+    deadline: null,
+    order: null,
+    ...overrides,
+  })
+  const projects = [
+    meta('unranked-now', {status: 'now'}),
+    meta('unranked-dated', {status: 'later', deadline: '2026-09-10'}),
+    meta('ranked-later', {status: 'later', order: 5}),
+    meta('ranked-next', {status: 'next', order: -2}),
+  ]
+  const sections = classify(
+    projects.map(p => task({description: p.name, filePath: p.path})),
+    projects,
+  )
+  assert.deepEqual(
+    sections.projects.map(g => g.project.name),
+    ['ranked-next', 'ranked-later', 'unranked-dated', 'unranked-now'],
+  )
+})
+
+test('an arrived deadline leads regardless of rank — except in capacity mode (#20)', () => {
+  const meta = (name: string, overrides: Partial<ProjectMeta>): ProjectMeta => ({
+    path: `Projects/Active/${name}.md`,
+    name,
+    status: 'next',
+    deadline: null,
+    order: null,
+    ...overrides,
+  })
+  const projects = [
+    meta('hand-placed', {order: 1}),
+    meta('came-due', {status: 'later', deadline: '2026-08-20'}),
+    meta('due-today', {status: 'later', deadline: '2026-08-21', order: 9}),
+  ]
+  const tasks = projects.map(p => task({description: p.name, filePath: p.path}))
+  assert.deepEqual(
+    classify(tasks, projects).projects.map(g => g.project.name),
+    ['came-due', 'due-today', 'hand-placed'],
+  )
+  assert.deepEqual(
+    classify(tasks, projects, {pacingMode: 'wip'}).projects.map(g => g.project.name),
+    ['hand-placed', 'due-today', 'came-due'],
+  )
 })

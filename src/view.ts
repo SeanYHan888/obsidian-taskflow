@@ -17,6 +17,7 @@ import {
   selectBarMenuSpec,
   taskMenuSpec,
 } from './core/menus'
+import {moveWrites, organizeByStatus, topRank} from './core/order'
 import {resolveQuickDate} from './core/schedule'
 import {promotionOutcome, retirePlan} from './core/sections'
 
@@ -24,6 +25,7 @@ import type {WorkspaceLeaf} from 'obsidian'
 import type {DropTarget} from './core/drop'
 import type {JournalEntry} from './core/journal'
 import type {MenuAction, MenuItemSpec} from './core/menus'
+import type {MoveDirection} from './core/order'
 
 /** The mounted panel's exported seams. */
 type PanelHandle = {
@@ -271,10 +273,12 @@ export class TaskflowView extends ItemView {
       selecting,
       selectable: key === 'today' || key === 'projects',
       repairable: key === 'slipped',
+      organizable: key === 'projects',
     })
     this.runMenu(spec, ev, action => {
       if (action.type === 'toggle-select') this.panel?.toggleSelectMode()
       else if (action.type === 'reschedule-all') void this.rescheduleAllSlipped()
+      else if (action.type === 'organize') void this.organizeProjects()
     })
   }
 
@@ -300,15 +304,28 @@ export class TaskflowView extends ItemView {
     else if (intent.kind === 'ask-date') this.showScheduleMenu([task], ev)
   }
 
+  /**
+   * The list a move works within (#20): the Backlogs as displayed, minus the
+   * arrived-deadline projects that lead regardless of rank.
+   */
+  private movableProjects(): ProjectMeta[] {
+    return (this.lastSections?.projects ?? [])
+      .filter(group => group.urgency !== 'arrived')
+      .map(group => group.project)
+  }
+
   private showProjectMenu(project: ProjectMeta, ev: MouseEvent): void {
-    const pressing =
-      this.lastSections?.projects.find(g => g.project.path === project.path)?.pressing ?? false
+    const group = this.lastSections?.projects.find(g => g.project.path === project.path)
+    const movable = this.movableProjects()
+    const at = movable.findIndex(p => p.path === project.path)
     const spec = projectMenuSpec(project, {
       pacingMode: this.plugin.settings.pacingMode,
-      pressing,
+      pressing: group?.pressing ?? false,
+      canMove: {up: at > 0, down: at !== -1 && at < movable.length - 1},
     })
     this.runMenu(spec, ev, action => {
       if (action.type === 'open-note') void this.openFile(project.path)
+      else if (action.type === 'move') void this.moveProject(project, action.direction)
       else if (action.type === 'add-task') void this.addTaskPrompt(project)
       else if (action.type === 'promote') void this.promote(project)
       else if (action.type === 'set-status') void this.changeStatus(project, action.status)
@@ -336,6 +353,7 @@ export class TaskflowView extends ItemView {
   private async promote(project: ProjectMeta): Promise<void> {
     const {count, over} = promotionOutcome(this.lastSections, this.plugin.settings.wipLimit)
     if (await this.ports.projects.setStatus(project.path, 'now')) {
+      await this.liftToTop(project)
       new Notice(
         over
           ? `Taskflow: ${project.name} → now — now is full (${count}/${this.plugin.settings.wipLimit})`
@@ -347,8 +365,41 @@ export class TaskflowView extends ItemView {
 
   private async changeStatus(project: ProjectMeta, status: ProjectStatus): Promise<void> {
     if (await this.ports.projects.setStatus(project.path, status)) {
+      if (status === 'now') await this.liftToTop(project)
       new Notice(`Taskflow: ${project.name} → ${status}`)
     }
+    this.refresh()
+  }
+
+  /**
+   * A transition to `now` puts the project above everything (#20): the thing
+   * just committed to is what should be seen first. Other status changes and
+   * deadline edits leave the rank alone.
+   */
+  private async liftToTop(project: ProjectMeta): Promise<void> {
+    await this.ports.projects.setOrder(project.path, topRank(this.ports.projects.read()))
+  }
+
+  /** Move to top/up/down/bottom (#20): core names the writes, this runs them. */
+  private async moveProject(project: ProjectMeta, direction: MoveDirection): Promise<void> {
+    const writes = moveWrites(this.movableProjects(), project.path, direction)
+    for (const write of writes) await this.ports.projects.setOrder(write.path, write.order)
+    if (writes.length > 0) this.refresh()
+  }
+
+  /**
+   * Organize by status (#20): renumber every active project now → next →
+   * later, keeping the current order inside each tier. Reversible by the same
+   * menu, so no confirmation — the notice names what happened.
+   */
+  private async organizeProjects(): Promise<void> {
+    const writes = organizeByStatus(this.ports.projects.read(), this.plugin.settings.pacingMode)
+    for (const write of writes) await this.ports.projects.setOrder(write.path, write.order)
+    new Notice(
+      writes.length === 0
+        ? 'Taskflow: projects already organized by status'
+        : `Taskflow: organized ${writes.length} project${writes.length === 1 ? '' : 's'} by status`,
+    )
     this.refresh()
   }
 

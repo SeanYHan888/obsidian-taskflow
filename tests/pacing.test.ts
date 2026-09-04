@@ -34,6 +34,7 @@ const project = (overrides: Partial<ProjectMeta> = {}): ProjectMeta => ({
   name: 'colm-paper',
   status: 'next',
   deadline: null,
+  order: null,
   ...overrides,
 })
 
@@ -82,6 +83,7 @@ test('wip mode switches the deadline signal off: no urgency, status order only',
     name: 'b',
     status: 'later',
     deadline: '2026-08-22',
+    order: null,
   })
   const undatedNow = project({path: 'Projects/Active/a.md', name: 'a', status: 'now'})
 
@@ -125,17 +127,17 @@ test('the menu paces by mode: pressing leads with Move to now, wip hides deadlin
   const titles = (spec: ReturnType<typeof projectMenuSpec>) =>
     spec.map(e => (e.kind === 'item' ? e.title : '—'))
 
-  const pressing = titles(projectMenuSpec(project(), {pacingMode: 'hybrid', pressing: true}))
+  const pressing = titles(projectMenuSpec(project(), {pacingMode: 'hybrid', pressing: true, canMove: {up: true, down: true}}))
   assert.deepEqual(pressing.slice(0, 3), ['Open note', '—', 'Move to now'])
 
-  const calm = titles(projectMenuSpec(project(), {pacingMode: 'hybrid', pressing: false}))
+  const calm = titles(projectMenuSpec(project(), {pacingMode: 'hybrid', pressing: false, canMove: {up: true, down: true}}))
   assert.notInclude(calm, 'Move to now')
 
-  const wip = titles(projectMenuSpec(project(), {pacingMode: 'wip', pressing: false}))
+  const wip = titles(projectMenuSpec(project(), {pacingMode: 'wip', pressing: false, canMove: {up: true, down: true}}))
   assert.notInclude(wip, 'Set deadline…')
 
   const dated = titles(
-    projectMenuSpec(project({deadline: '2026-09-01'}), {pacingMode: 'deadline', pressing: false}),
+    projectMenuSpec(project({deadline: '2026-09-01'}), {pacingMode: 'deadline', pressing: false, canMove: {up: true, down: true}}),
   )
   assert.include(dated, 'Deadline 2026-09-01…')
   assert.include(dated, 'Clear deadline')

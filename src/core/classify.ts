@@ -1,5 +1,6 @@
 import {buildTaskTree} from './hierarchy'
 import {isCalendarBlock} from './machine-note'
+import {compareProjects} from './order'
 import {addDays} from './schedule'
 
 import type {ClassifyConfig, ProjectMeta, Sections, TaskflowTask} from './types'
@@ -27,9 +28,6 @@ export const isInboxCapture = (
 
 const isEventsHeading = (heading: string) =>
   normalizeHeading(heading).replace(/:$/, '') === 'events'
-
-/** Sorts after every real ISO date, so undated projects follow dated ones. */
-const NO_DEADLINE = '9999-99-99'
 
 /**
  * A task can appear in more than one section (Today and its project group),
@@ -89,9 +87,6 @@ export const classifySections = (
     )
     .sort((a, b) => upcomingDate(a).localeCompare(upcomingDate(b)))
 
-  const statusRank = (status: ProjectMeta['status']) =>
-    status === 'now' ? 0 : status === 'next' ? 1 : status === 'later' ? 2 : 3
-
   // Pacing is a rendering filter, not a data model: wip mode ignores the
   // deadline signal entirely, and only hybrid runs the pressing loop.
   const deadlinesOn = config.pacingMode !== 'wip'
@@ -123,18 +118,21 @@ export const classifySections = (
         project.status !== 'now',
     }))
     .filter(group => group.tasks.length > 0)
-    // Deadline outranks status: a dated commitment is more urgent information
-    // than now/next/later, so dated projects lead, soonest first. Undated
-    // projects keep the status order — deadlines are optional, never hiding.
-    // In wip mode the deadline signal is off, so status order alone applies.
+    // Arrived deadlines lead, soonest first — a commitment that has come due
+    // is never buried by a hand-arranged order (#20). Then the resting order:
+    // ranked projects by `order`, then unranked ones under the pacing rules
+    // (deadline soonest first outside wip mode, then status, then name).
     .sort((a, b) => {
-      const aDeadline = deadlinesOn ? (a.project.deadline ?? NO_DEADLINE) : NO_DEADLINE
-      const bDeadline = deadlinesOn ? (b.project.deadline ?? NO_DEADLINE) : NO_DEADLINE
-      return (
-        aDeadline.localeCompare(bDeadline) ||
-        statusRank(a.project.status) - statusRank(b.project.status) ||
-        a.project.name.localeCompare(b.project.name)
-      )
+      const aArrived = a.urgency === 'arrived'
+      const bArrived = b.urgency === 'arrived'
+      if (aArrived !== bArrived) return aArrived ? -1 : 1
+      if (aArrived && bArrived) {
+        return (
+          a.project.deadline!.localeCompare(b.project.deadline!) ||
+          compareProjects(a.project, b.project, config.pacingMode)
+        )
+      }
+      return compareProjects(a.project, b.project, config.pacingMode)
     })
 
   return {

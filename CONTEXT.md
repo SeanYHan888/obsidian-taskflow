@@ -54,13 +54,17 @@ A note in `Projects/Active/` with `status` frontmatter. Membership is location: 
 _Avoid_: project tags on task lines
 
 **Status (now / next / later)**:
-Project-level commitment frontmatter. `now` = being worked, `next` = queued, `later` = someday. Lifecycle continues to `done` / `dropped` on retirement to `Projects/Archive/`. Orders the undated Backlogs and tiebreaks equal deadlines — a project deadline outranks it.
+Project-level commitment frontmatter. `now` = being worked, `next` = queued, `later` = someday. Lifecycle continues to `done` / `dropped` on retirement to `Projects/Archive/`. Orders the unranked, undated Backlogs and tiebreaks equal deadlines — a project deadline outranks it, and a manual order outranks both. A transition to `now` lifts the project to the top of the list (#20).
+
+**Order**:
+Optional integer `order` frontmatter on a project note — the user's hand-arranged rank (#20). Ranked projects lead the Backlogs ascending; unranked ones follow under the pacing rules. Written only by the header menu's four moves (Move to top / up / down / to bottom — sparse integers, only the notes involved are touched), by a transition to `now` (min − 1: above everything), and by the Backlogs menu's **Organize by status** (renumbers every active project 1..n grouped now → next → later, keeping the order inside each tier — idempotent, notice-only, no confirmation). Never journaled: frontmatter is its own text record. An arrived deadline still leads regardless of rank, and its move items render disabled.
+_Avoid_: pin, priority (order is placement, not importance)
 
 **WIP limit**:
 How many projects `now` may hold (configurable, default 3). Exceeding it warns (red badge), never blocks.
 
 **Project deadline**:
-Optional `deadline` frontmatter (ISO date) on a project note — a project-level commitment date, distinct from a task's due (📅) field. Dated projects lead the Backlogs soonest-first; undated ones follow in status order. The header chip is amber while ahead, red once arrived — the same urgency grammar as task due chips. Rendered in the deadline and hybrid pacing modes; capacity mode ignores it (the frontmatter stays).
+Optional `deadline` frontmatter (ISO date) on a project note — a project-level commitment date, distinct from a task's due (📅) field. Among unranked projects, dated ones lead soonest-first and undated ones follow in status order; a manual order sits above that, and an *arrived* deadline sits above everything (#20). The header chip is amber while ahead, red once arrived — the same urgency grammar as task due chips. Rendered in the deadline and hybrid pacing modes; capacity mode ignores it (the frontmatter stays).
 
 **Pacing mode (capacity / deadlines / hybrid)**:
 Which pacing signals the Backlogs render and act on. Capacity (`wip`): the WIP badge only, status order. Deadlines (`deadline`): chips and deadline-first sort, no badge. Hybrid (default): both signals plus the pressing loop. A pure rendering filter — statuses and deadlines live in frontmatter regardless, so switching is instant and lossless.

@@ -79,6 +79,8 @@ Fold a project group by clicking its header; the hover `↗` (or `Cmd/Ctrl+click
 
 - **Capacity** — a `now n/limit` badge counts projects in `now` against your work-in-progress limit. Red past the limit; warns, never blocks.
 - **Deadlines** — projects carry deadline chips and sort soonest-first; the badge stays out of the way.
+
+In every mode you can also arrange the list by hand: the project header's menu has Move to top / up / down / to bottom (stored as an `order` number in the note's frontmatter), setting a project to `now` lifts it to the top, and the Backlogs menu's **Organize by status** regroups everything now → next → later. A deadline that has arrived always leads.
 - **Hybrid** (default) — both signals, plus the **pressing loop**: when a project's deadline is within the attention window (7 days by default) but the project isn't in `now`, its header offers a one-tap **→ now**. Your calendar and your commitments disagree — one tap answers, ignoring it is also an answer. Promoting past your limit goes through, and the notice names it: *"conference-talk → now — now is full (4/3)"*.
 
 Switching modes is lossless: statuses and deadlines live in your notes' frontmatter, not in the plugin.

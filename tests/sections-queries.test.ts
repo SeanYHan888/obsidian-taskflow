@@ -42,6 +42,7 @@ const project = (overrides: Partial<ProjectMeta> = {}): ProjectMeta => ({
   name: 'colm-paper',
   status: 'now',
   deadline: null,
+  order: null,
   ...overrides,
 })
 

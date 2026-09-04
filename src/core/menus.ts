@@ -5,6 +5,7 @@ import {resolveQuickDate} from './schedule'
 
 import type {MachineNoteConfig} from './machine-note'
 import type {QuickDate} from './schedule'
+import type {MoveDirection} from './order'
 import type {PacingMode, ProjectMeta, ProjectStatus, TaskflowTask} from './types'
 
 /**
@@ -39,6 +40,8 @@ export type MenuAction =
   | {type: 'retire'; status: 'done' | 'dropped'}
   | {type: 'toggle-select'}
   | {type: 'select'}
+  | {type: 'move'; direction: MoveDirection}
+  | {type: 'organize'}
   | {type: 'reschedule-all'}
 
 export type MenuItemSpec =
@@ -205,6 +208,8 @@ export type SectionMenuConfig = {
   selectable: boolean
   /** The repair queue: Overdue & slipped. */
   repairable: boolean
+  /** The Backlogs: carries Organize by status (#20). */
+  organizable: boolean
 }
 
 /**
@@ -225,6 +230,9 @@ export const sectionMenuSpec = (config: SectionMenuConfig): MenuItemSpec[] => {
   }
   if (config.repairable) {
     spec.push(item('Reschedule all to today', 'sun', {type: 'reschedule-all'}))
+  }
+  if (config.organizable) {
+    spec.push(item('Organize by status', 'arrow-down-narrow-wide', {type: 'organize'}))
   }
   return spec
 }
@@ -257,14 +265,28 @@ export type ProjectMenuConfig = {
   pacingMode: PacingMode
   /** From the project's group: hybrid's calendar/commitment disagreement. */
   pressing: boolean
+  /**
+   * Which moves can change anything (#20): up/top need a project above,
+   * down/bottom one below; an arrived deadline leads regardless of rank, so
+   * both are false and the four items render disabled.
+   */
+  canMove: {up: boolean; down: boolean}
 }
+
+const MOVES: {direction: MoveDirection; title: string; icon: string; needs: 'up' | 'down'}[] = [
+  {direction: 'top', title: 'Move to top', icon: 'arrow-up-to-line', needs: 'up'},
+  {direction: 'up', title: 'Move up', icon: 'arrow-up', needs: 'up'},
+  {direction: 'down', title: 'Move down', icon: 'arrow-down', needs: 'down'},
+  {direction: 'bottom', title: 'Move to bottom', icon: 'arrow-down-to-line', needs: 'down'},
+]
 
 /**
  * The project lifecycle menu, in the same grammar as the task menu: the jump,
  * then capture/commit (a pressing project puts "Move to now" first — the
  * touch-parity twin of the header's hover → now — and "Add task…" is capture
  * straight into the backlog), then pacing (status and, outside wip mode,
- * deadline — wip has no deadline concept to edit), then retirement.
+ * deadline — wip has no deadline concept to edit), then the four moves that
+ * arrange the list by hand (#20), then retirement.
  */
 export const projectMenuSpec = (
   project: ProjectMeta,
@@ -298,6 +320,10 @@ export const projectMenuSpec = (
     if (project.deadline != null) {
       spec.push(item('Clear deadline', 'eraser', {type: 'clear-deadline'}))
     }
+  }
+  spec.push(separator)
+  for (const {direction, title, icon, needs} of MOVES) {
+    spec.push(item(title, icon, {type: 'move', direction}, !config.canMove[needs]))
   }
   spec.push(separator)
   spec.push(item('Mark done & archive', 'check-circle', {type: 'retire', status: 'done'}))

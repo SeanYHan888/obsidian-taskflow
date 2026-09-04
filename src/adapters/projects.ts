@@ -7,6 +7,10 @@ import type {ProjectMeta, ProjectStatus} from '../core/types'
 
 const ACTIVE_STATUSES: ReadonlySet<string> = new Set(['now', 'next', 'later'])
 
+/** Manual rank (#20): any integer counts; anything else is unranked. */
+const readOrder = (raw: unknown): number | null =>
+  typeof raw === 'number' && Number.isInteger(raw) ? raw : null
+
 /** Anything that isn't a plain ISO date string is treated as no deadline. */
 const readDeadline = (raw: unknown): string | null =>
   typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null
@@ -28,14 +32,20 @@ export const readProjects = (app: App, projectsFolder: string): ProjectMeta[] =>
           : typeof rawStatus === 'string'
             ? undefined
             : null
-      return {file, status, deadline: readDeadline(frontmatter?.deadline)}
+      return {
+        file,
+        status,
+        deadline: readDeadline(frontmatter?.deadline),
+        order: readOrder(frontmatter?.order),
+      }
     })
     .filter(({status}) => status !== undefined)
-    .map(({file, status, deadline}) => ({
+    .map(({file, status, deadline, order}) => ({
       path: file.path,
       name: file.basename,
       status: status as ProjectStatus | null,
       deadline,
+      order,
     }))
 }
 
@@ -73,6 +83,27 @@ export const setProjectDeadline = async (
   await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
     if (deadline == null) delete frontmatter.deadline
     else frontmatter.deadline = deadline
+  })
+  return true
+}
+
+/**
+ * Stamps (or clears, on null) the project's manual rank (#20). Frontmatter,
+ * not journaled, like status and deadline.
+ */
+export const setProjectOrder = async (
+  app: App,
+  projectPath: string,
+  order: number | null,
+): Promise<boolean> => {
+  const file = app.vault.getAbstractFileByPath(projectPath)
+  if (!(file instanceof TFile)) {
+    new Notice(`Taskflow: project note not found: ${projectPath}`)
+    return false
+  }
+  await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+    if (order == null) delete frontmatter.order
+    else frontmatter.order = order
   })
   return true
 }
