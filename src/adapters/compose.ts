@@ -1,6 +1,6 @@
 import {TFolder, normalizePath} from 'obsidian'
 
-import {cancelTask, rescheduleTasks, unscheduleTasks} from './edit-lines'
+import {cancelTask, clearDueTasks, rescheduleTasks, setDueTasks, unscheduleTasks} from './edit-lines'
 import {recordFocusSession} from './focus-log'
 import {
   addTaskToProject,
@@ -78,6 +78,8 @@ export const createPorts = (app: App, settings: () => TaskflowSettings): Ports =
   editor: {
     reschedule: (tasks, date) => rescheduleTasks(app, tasks, date),
     unschedule: tasks => unscheduleTasks(app, tasks),
+    setDue: (tasks, date) => setDueTasks(app, tasks, date),
+    clearDue: tasks => clearDueTasks(app, tasks),
     cancel: task => cancelTask(app, task),
     moveToProject: (tasks, projectPath) =>
       moveTasksToProject(app, tasks, projectPath, settings().moveTargetHeading),

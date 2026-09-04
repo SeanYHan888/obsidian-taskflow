@@ -118,8 +118,8 @@
       <button
         class="taskflow-chip taskflow-chip-button taskflow-chip-due"
         class:taskflow-chip-past={aff.duePast}
-        aria-label="Schedule task"
-        onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
+        aria-label="Edit due date"
+        onclick={ev => ctx.callbacks.onDueMenu(task, ev)}
       >
         {chipText(task.due)}
       </button>

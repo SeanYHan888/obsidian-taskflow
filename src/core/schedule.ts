@@ -1,4 +1,5 @@
 const SCHEDULED = /⏳\s*\d{4}-\d{2}-\d{2}/
+const DUE = /📅\s*\d{4}-\d{2}-\d{2}/
 const TRAILING_BLOCK_REF = /\s+\^[A-Za-z0-9-]+$/
 const OPEN_CHECKBOX = /^(\s*[-*+]\s+\[) (\])/
 
@@ -29,6 +30,25 @@ export const cancelLine = (line: string): string =>
  */
 export const clearScheduled = (line: string): string =>
   line.replace(/\s*⏳\s*\d{4}-\d{2}-\d{2}/, '')
+
+/**
+ * Stamps 📅 (a real external deadline) onto a task line — the due chip's own
+ * writer (#18). Same placement rules as setScheduled: replace in place, else
+ * append ahead of a trailing block reference. ⏳ is untouched: the plan and
+ * the deadline are two fields, each edited only by its own chip.
+ */
+export const setDue = (line: string, date: string): string => {
+  if (DUE.test(line)) return line.replace(DUE, `📅 ${date}`)
+  const blockRef = line.match(TRAILING_BLOCK_REF)
+  if (blockRef) {
+    return line.slice(0, blockRef.index) + ` 📅 ${date}` + blockRef[0]
+  }
+  return `${line} 📅 ${date}`
+}
+
+/** Removes the 📅 due date — the inverse of setDue. ⏳ is left alone. */
+export const clearDue = (line: string): string =>
+  line.replace(/\s*📅\s*\d{4}-\d{2}-\d{2}/, '')
 
 export const addDays = (iso: string, days: number): string => {
   const date = new Date(`${iso}T00:00:00`)

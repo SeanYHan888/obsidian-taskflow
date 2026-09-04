@@ -53,6 +53,8 @@ export type PanelCallbacks = {
   onProjectToggle: (path: string, folded: boolean, ev: MouseEvent) => void
   /** Opens the quick-date menu (today / tomorrow / weekend / pick) at the event. */
   onScheduleMenu: (task: TaskflowTask, ev: MouseEvent) => void
+  /** The 📅 chip's menu (#18): pick or remove the due date — never the plan. */
+  onDueMenu: (task: TaskflowTask, ev: MouseEvent) => void
   /** The row's context menu: every hover affordance, for right-click and touch. */
   onRowMenu: (task: TaskflowTask, ev: MouseEvent) => void
   /** The 🍅 act (#16): start a focus session on this task, no note opened. */

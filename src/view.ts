@@ -10,6 +10,7 @@ import {dropIntent} from './core/drop'
 import {flattenTaskTree, locationKey} from './core/hierarchy'
 import {editableTasks} from './core/machine-note'
 import {
+  dueMenuSpec,
   projectMenuSpec,
   scheduleMenuSpec,
   sectionMenuSpec,
@@ -104,6 +105,7 @@ export class TaskflowView extends ItemView {
               : void this.setProjectCollapsed(path, !folded),
           onScheduleMenu: (task: TaskflowTask, ev: MouseEvent) =>
             this.showScheduleMenu([task], ev),
+          onDueMenu: (task: TaskflowTask, ev: MouseEvent) => this.showDueMenu(task, ev),
           onStartFocus: (task: TaskflowTask) => this.plugin.startFocus(task),
           onRowMenu: (task: TaskflowTask, ev: MouseEvent) => this.showRowMenu(task, ev),
           onSchedule: (task: TaskflowTask, kind: QuickDate) =>
@@ -219,6 +221,8 @@ export class TaskflowView extends ItemView {
       void this.reschedule(tasks, resolveQuickDate(action.kind, localToday()))
     else if (action.type === 'pick-date') void this.pickDate(tasks)
     else if (action.type === 'remove-date') void this.unschedule(tasks)
+    else if (action.type === 'pick-due-date' && tasks[0]) void this.pickDueDate(tasks[0])
+    else if (action.type === 'remove-due-date') void this.act(() => this.ports.editor.clearDue(tasks))
     else if (action.type === 'move-to-project') void this.bulkMove(tasks)
     else if (action.type === 'send-back') void this.sendBack(tasks)
     else if (action.type === 'cancel' && tasks[0]) void this.cancel(tasks[0])
@@ -240,6 +244,10 @@ export class TaskflowView extends ItemView {
     this.runMenu(scheduleMenuSpec(tasks, this.menuConfig()), ev, action =>
       this.dispatchTaskAction(tasks, action, ev),
     )
+  }
+
+  private showDueMenu(task: TaskflowTask, ev: MouseEvent): void {
+    this.runMenu(dueMenuSpec(task), ev, action => this.dispatchTaskAction([task], action, ev))
   }
 
   private showRowMenu(task: TaskflowTask, ev: MouseEvent): void {
@@ -399,6 +407,16 @@ export class TaskflowView extends ItemView {
   private async pickDate(tasks: TaskflowTask[]): Promise<void> {
     const date = await askDate(this.app, {defaultDate: localToday()})
     if (date) await this.reschedule(tasks, date)
+  }
+
+  /** The due picker (#18): opens on the task's own due date, else today. */
+  private async pickDueDate(task: TaskflowTask): Promise<void> {
+    const date = await askDate(this.app, {
+      defaultDate: task.due ?? localToday(),
+      title: 'Due on…',
+      submitLabel: 'Set due date',
+    })
+    if (date) await this.act(() => this.ports.editor.setDue([task], date))
   }
 
   /** The uniform write pipeline: run the edit, journal + notice it, reproject. */

@@ -24,6 +24,8 @@ export type MenuAction =
   | {type: 'schedule'; kind: QuickDate}
   | {type: 'pick-date'}
   | {type: 'remove-date'}
+  | {type: 'pick-due-date'}
+  | {type: 'remove-due-date'}
   | {type: 'move-to-project'}
   | {type: 'send-back'}
   | {type: 'cancel'}
@@ -91,6 +93,33 @@ export const scheduleMenuSpec = (
   return spec
 }
 
+/**
+ * The 📅 chip's menu (#18): a chip opens what edits it, and this one edits
+ * the due field only. No quick dates — a deadline is an external fact, not a
+ * plan, so it is picked, never guessed at from "weekend".
+ */
+export const dueMenuSpec = (task: TaskflowTask): MenuItemSpec[] => {
+  const spec: MenuItemSpec[] = [item('Pick a date…', 'calendar-clock', {type: 'pick-due-date'})]
+  if (task.due != null) spec.push(item('Remove due date', 'eraser', {type: 'remove-due-date'}))
+  return spec
+}
+
+/**
+ * The row menu's due items: one row, its own deadline. Sits after the plan
+ * items in the pacing group, in the project menu's deadline vocabulary.
+ */
+const dueItems = (task: TaskflowTask): MenuItemSpec[] => {
+  const spec: MenuItemSpec[] = [
+    item(
+      task.due == null ? 'Set due date…' : `Due ${task.due}…`,
+      'calendar-clock',
+      {type: 'pick-due-date'},
+    ),
+  ]
+  if (task.due != null) spec.push(item('Remove due date', 'eraser', {type: 'remove-due-date'}))
+  return spec
+}
+
 export type FocusMenuConfig = {
   /** locationKey of the task in focus, or null — marks its row's item ✓. */
   focusedLocation: string | null
@@ -121,10 +150,19 @@ export const taskMenuSpec = (
     separator,
     focus,
     separator,
-    ...scheduleMenuSpec([task], config),
+    ...withDueItems(scheduleMenuSpec([task], config), dueItems(task)),
     separator,
     item('Cancel task', 'x', {type: 'cancel'}),
   ]
+}
+
+/**
+ * Splices the due items into the schedule spec's pacing group: right after
+ * the plan items, before the refile separator when one follows.
+ */
+const withDueItems = (spec: MenuItemSpec[], due: MenuItemSpec[]): MenuItemSpec[] => {
+  const refile = spec.findIndex(entry => entry.kind === 'separator')
+  return refile === -1 ? [...spec, ...due] : [...spec.slice(0, refile), ...due, ...spec.slice(refile)]
 }
 
 export type SectionMenuConfig = {

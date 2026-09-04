@@ -1,6 +1,13 @@
 import {assert, test} from 'vitest'
 
-import {projectMenuSpec, scheduleMenuSpec, sectionMenuSpec, selectBarMenuSpec, taskMenuSpec} from '../src/core/menus'
+import {
+  dueMenuSpec,
+  projectMenuSpec,
+  scheduleMenuSpec,
+  sectionMenuSpec,
+  selectBarMenuSpec,
+  taskMenuSpec,
+} from '../src/core/menus'
 
 import type {MenuItemSpec} from '../src/core/menus'
 import type {ProjectMeta, TaskflowTask} from '../src/core/types'
@@ -177,4 +184,33 @@ test('the select bar overflow prepends move-to-project for triage selections onl
   const refile = selectBarMenuSpec([task({filePath: 'Projects/Active/colm-paper.md'})], CONFIG)
   const moves = refile.filter(e => e.kind === 'item' && e.action.type === 'move-to-project')
   assert.lengthOf(moves, 1)
+})
+
+test('the due chip opens a menu that edits the due field only — no quick dates (#18)', () => {
+  assert.deepEqual(titles(dueMenuSpec(task({due: '2026-09-05'}))), ['Pick a date…', 'Remove due date'])
+  assert.deepEqual(titles(dueMenuSpec(task())), ['Pick a date…'])
+  for (const entry of dueMenuSpec(task({due: '2026-09-05'}))) {
+    if (entry.kind === 'item') assert.match(entry.action.type, /due/)
+  }
+})
+
+test('the row menu offers the due date after the plan items, in the pacing group (#18)', () => {
+  const undated = titles(taskMenuSpec(task(), CONFIG))
+  assert.isAbove(undated.indexOf('Set due date…'), undated.indexOf('Pick a date…'))
+  assert.notInclude(undated, 'Remove due date')
+
+  const dated = titles(taskMenuSpec(task({due: '2026-09-05'}), CONFIG))
+  assert.include(dated, 'Due 2026-09-05…')
+  assert.include(dated, 'Remove due date')
+
+  // In a project note the refile group follows; the due items stay ahead of it.
+  const inProject = titles(taskMenuSpec(task({filePath: 'Projects/Active/Taxes.md'}), CONFIG))
+  assert.isBelow(inProject.indexOf('Set due date…'), inProject.indexOf('Move to project…'))
+  assert.equal(inProject[inProject.indexOf('Set due date…') + 1], '—')
+})
+
+test('bulk schedule menus never carry due items — one row, its own deadline (#18)', () => {
+  const bulk = titles(scheduleMenuSpec([task(), task({due: '2026-09-05'})], CONFIG))
+  assert.notInclude(bulk, 'Set due date…')
+  assert.notInclude(bulk, 'Remove due date')
 })

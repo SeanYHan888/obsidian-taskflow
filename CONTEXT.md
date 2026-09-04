@@ -14,7 +14,7 @@ _Avoid_: todo, item, card
 The day the user plans to work on a task. Slideable without guilt; the only date most tasks ever get.
 
 **Due (📅)**:
-A real external deadline. Rare; mostly arrives via Apple Reminders sync.
+A real external deadline. Rare; mostly arrives via Apple Reminders sync or is typed into a daily note. Edited only by its own chip's **due menu** (pick / remove — no quick dates, a deadline is picked, never guessed) and the row menu's "Set due date…"; scheduling never touches it, and a task holding both fields shows both chips (#18).
 _Avoid_: deadline (in code/UI — the emoji vocabulary is Tasks-plugin canon)
 
 **Undated**:
@@ -86,7 +86,7 @@ The rules every menu and affordance obeys (#14), so the next one has a rule to f
 Every context menu reads navigate → capture/commit → pacing → refile → destructive, separators only between non-empty sections. The first item is always the jump ("Open note", file-text); destructive acts are always last. An item naming a state the thing is already in is marked "✓" and disabled — project statuses and quick dates alike.
 
 **Chip rule**:
-A chip opens what edits it: task date chips open the schedule menu, the project deadline chip opens the deadline picker. Chips are the only date-shaped buttons on any row or header.
+A chip opens what edits it: the ⏳ chip (and the add-date button) opens the schedule menu, the 📅 chip opens the due menu, the project deadline chip opens the deadline picker. Chips are the only date-shaped buttons on any row or header.
 
 **Quick-button rule**:
 At most one quick button per header, shown only when the panel is pressing for a decision — today: `→ now` on a pressing project header — in the one shared quick-action style, always mirrored by a menu item. (The repair queue's `All → to-do` was retired to its section menu's "Reschedule all to today": one visible accelerator vocabulary, not two.)

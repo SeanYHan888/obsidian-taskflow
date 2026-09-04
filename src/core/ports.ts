@@ -53,6 +53,9 @@ export type FocusSessionRecord = {
 export type LineEditor = {
   reschedule(tasks: TaskflowTask[], date: string): Promise<JournalEntry | null>
   unschedule(tasks: TaskflowTask[]): Promise<JournalEntry | null>
+  /** The 📅 field's own writers (#18) — scheduling never touches it. */
+  setDue(tasks: TaskflowTask[], date: string): Promise<JournalEntry | null>
+  clearDue(tasks: TaskflowTask[]): Promise<JournalEntry | null>
   cancel(task: TaskflowTask): Promise<JournalEntry | null>
   moveToProject(tasks: TaskflowTask[], projectPath: string): Promise<MoveOutcome>
   sendBackToInbox(tasks: TaskflowTask[], today: string): Promise<MoveOutcome>

@@ -1,6 +1,14 @@
 import {assert, test} from 'vitest'
 
-import {cancelLine, chipLabel, clearScheduled, resolveQuickDate, setScheduled} from '../src/core/schedule'
+import {
+  cancelLine,
+  chipLabel,
+  clearDue,
+  clearScheduled,
+  resolveQuickDate,
+  setDue,
+  setScheduled,
+} from '../src/core/schedule'
 
 test('setScheduled appends ⏳ to an undated line, touching nothing else', () => {
   assert.equal(
@@ -73,4 +81,28 @@ test('chipLabel says today for today and MM-DD for any other date', () => {
   assert.equal(chipLabel('2026-08-21', '2026-08-21'), 'today')
   assert.equal(chipLabel('2026-08-25', '2026-08-21'), '08-25')
   assert.equal(chipLabel('2026-08-19', '2026-08-21'), '08-19')
+})
+
+test('setDue appends 📅 to a line without one, leaving the ⏳ plan alone (#18)', () => {
+  assert.equal(
+    setDue('- [ ] file taxes ⏳ 2026-09-01', '2026-09-05'),
+    '- [ ] file taxes ⏳ 2026-09-01 📅 2026-09-05',
+  )
+})
+
+test('setDue replaces an existing 📅 in place — even one typed flush against the text', () => {
+  assert.equal(
+    setDue('- [ ] 搞一个ai meeting recorder📅 2026-09-05 ⏳ 2026-09-05', '2026-09-08'),
+    '- [ ] 搞一个ai meeting recorder📅 2026-09-08 ⏳ 2026-09-05',
+  )
+})
+
+test('setDue inserts before a trailing block reference', () => {
+  assert.equal(setDue('- [ ] call bank ^abc12', '2026-09-05'), '- [ ] call bank 📅 2026-09-05 ^abc12')
+})
+
+test('clearDue is the inverse of setDue and keeps ⏳ and block refs', () => {
+  const line = '- [ ] call bank ⏳ 2026-09-01 ^abc12'
+  assert.equal(clearDue(setDue(line, '2026-09-05')), line)
+  assert.equal(clearDue(line), line)
 })

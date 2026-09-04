@@ -2,7 +2,7 @@ import {Notice, TFile} from 'obsidian'
 
 import {toJournalEntry} from '../core/journal'
 import {plural} from '../core/labels'
-import {cancelLine, clearScheduled, setScheduled} from '../core/schedule'
+import {cancelLine, clearDue, clearScheduled, setDue, setScheduled} from '../core/schedule'
 
 import type {App} from 'obsidian'
 import type {JournalEntry, LineRecord} from '../core/journal'
@@ -79,4 +79,21 @@ export const unscheduleTasks = async (
 ): Promise<JournalEntry | null> => {
   const records = await editTaskLines(app, tasks, clearScheduled)
   return toJournalEntry(`removed the date from ${plural(records.length)}`, records)
+}
+
+export const setDueTasks = async (
+  app: App,
+  tasks: TaskflowTask[],
+  date: string,
+): Promise<JournalEntry | null> => {
+  const records = await editTaskLines(app, tasks, line => setDue(line, date))
+  return toJournalEntry(`due date on ${plural(records.length)} → ${date}`, records)
+}
+
+export const clearDueTasks = async (
+  app: App,
+  tasks: TaskflowTask[],
+): Promise<JournalEntry | null> => {
+  const records = await editTaskLines(app, tasks, clearDue)
+  return toJournalEntry(`removed the due date from ${plural(records.length)}`, records)
 }
