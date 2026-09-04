@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-    "deploy:prod": "npm run build && node scripts/deploy-prod.mjs",
+    "deploy:prod": "node scripts/deploy-prod.mjs",
     "test": "vitest run",
     "version": "node version-bump.mjs && git add manifest.json versions.json",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "rollback:prod": "node scripts/rollback-prod.mjs",
+    "release:patch": "npm version patch && npm run deploy:prod",
+    "release:minor": "npm version minor && npm run deploy:prod"
   },
   "keywords": [
     "obsidian",
