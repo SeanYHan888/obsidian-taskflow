@@ -1,6 +1,6 @@
 {
   "name": "taskflow",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Obsidian sidebar panel: daily-note capture to project execution over the Tasks plugin.",
   "main": "main.js",
   "scripts": {
