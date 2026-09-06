@@ -5,13 +5,22 @@ const OPEN_CHECKBOX = /^(\s*[-*+]\s+\[) (\])/
 
 export type QuickDate = 'today' | 'tomorrow' | 'weekend'
 
+/** The ISO date of the line's 📅 field, or null when it has none. */
+const dueDateOf = (line: string): string | null =>
+  line.match(/📅\s*(\d{4}-\d{2}-\d{2})/)?.[1] ?? null
+
 /**
  * Stamps ⏳ (the day the user plans to work on it) onto a task line.
  * Replaces an existing ⏳ date in place; otherwise appends, staying ahead of a
  * trailing block reference. Everything else on the line — indentation, tags,
  * 📅 due dates — is untouched: due dates are never auto-edited.
+ *
+ * A plan that lands on the deadline itself is not written (#18): the 📅 date
+ * already puts the task in To-do that day, so a matching ⏳ would only show
+ * the same date twice. Any ⏳ the line held is withdrawn instead.
  */
 export const setScheduled = (line: string, date: string): string => {
+  if (dueDateOf(line) === date) return clearScheduled(line)
   if (SCHEDULED.test(line)) return line.replace(SCHEDULED, `⏳ ${date}`)
   const blockRef = line.match(TRAILING_BLOCK_REF)
   if (blockRef) {

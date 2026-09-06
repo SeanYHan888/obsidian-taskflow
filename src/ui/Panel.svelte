@@ -23,7 +23,6 @@ import {canPlace} from '../core/order'
     collapsed: {},
     collapsedProjects: {},
     draggable: false,
-    focusLocation: null,
     machineNotePath: '',
     projectsFolder: '',
     dailyNotesFolder: '',
@@ -122,7 +121,6 @@ import {canPlace} from '../core/order'
 
   const ctx: RowContext = $derived({
     today: data.today,
-    focusLocation: data.focusLocation,
     machineNotePath: data.machineNotePath,
     draggable: data.draggable,
     onDragStart: (task: TaskflowTask) => (dragTask = task),

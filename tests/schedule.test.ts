@@ -31,6 +31,23 @@ test('setScheduled never touches a 📅 due date', () => {
   )
 })
 
+test('setScheduled onto the due day writes no ⏳ — one date, not the same date twice (#18)', () => {
+  assert.equal(
+    setScheduled('- [ ] submit form 📅 2026-08-25', '2026-08-25'),
+    '- [ ] submit form 📅 2026-08-25',
+  )
+  // A plan moved onto the deadline is withdrawn, not duplicated.
+  assert.equal(
+    setScheduled('- [ ] 搞一个ai meeting recorder📅 2026-09-05 ⏳ 2026-09-01', '2026-09-05'),
+    '- [ ] 搞一个ai meeting recorder📅 2026-09-05',
+  )
+  // A line already doubled collapses to its deadline.
+  assert.equal(
+    setScheduled('- [ ] 搞一个ai meeting recorder📅 2026-09-05 ⏳ 2026-09-05', '2026-09-05'),
+    '- [ ] 搞一个ai meeting recorder📅 2026-09-05',
+  )
+})
+
 test('setScheduled inserts before a trailing block reference', () => {
   assert.equal(
     setScheduled('- [ ] linked task ^abc123', '2026-08-22'),

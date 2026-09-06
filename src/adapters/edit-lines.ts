@@ -14,7 +14,7 @@ import type {TaskflowTask} from '../core/types'
  * are skipped and reported, never guessed at. Lines actually changed come back
  * as journal records so the action can be undone.
  */
-export const editTaskLines = async (
+const editTaskLines = async (
   app: App,
   tasks: TaskflowTask[],
   transform: (line: string) => string,

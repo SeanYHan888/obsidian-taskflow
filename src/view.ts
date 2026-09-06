@@ -7,7 +7,7 @@ import {createPorts, effectiveDailyNotesFolder, gatherSetupFacts} from './adapte
 import {classifySections} from './core/classify'
 import {setupState} from './core/setup'
 import {dropIntent} from './core/drop'
-import {flattenTaskTree, locationKey} from './core/hierarchy'
+import {flattenTaskTree} from './core/hierarchy'
 import {editableTasks} from './core/machine-note'
 import {
   dueMenuSpec,
@@ -51,10 +51,6 @@ export type TaskflowServices = {
   updateSettings(updates: Partial<TaskflowSettings>): Promise<void>
   pushJournal(entry: JournalEntry): void
   undo(entry?: JournalEntry): Promise<void>
-  /** The focus timer (#16) lives on the plugin so it outlives the panel. */
-  startFocus(task: TaskflowTask): void
-  cancelFocus(): void
-  focusLocation(): string | null
 }
 
 const localToday = (): string => {
@@ -115,7 +111,6 @@ export class TaskflowView extends ItemView {
           onScheduleMenu: (task: TaskflowTask, ev: MouseEvent) =>
             this.showScheduleMenu([task], ev),
           onDueMenu: (task: TaskflowTask, ev: MouseEvent) => this.showDueMenu(task, ev),
-          onStartFocus: (task: TaskflowTask) => this.plugin.startFocus(task),
           onRowMenu: (task: TaskflowTask, ev: MouseEvent, row: RowMenuState) =>
             this.showRowMenu(task, ev, row),
           onSchedule: (task: TaskflowTask, kind: QuickDate) =>
@@ -181,7 +176,6 @@ export class TaskflowView extends ItemView {
       collapsed: settings.collapsed,
       collapsedProjects: settings.collapsedProjects,
       draggable: Platform.isDesktop,
-      focusLocation: this.plugin.focusLocation(),
       machineNotePath: settings.machineNotePath,
       projectsFolder: settings.projectsFolder,
       dailyNotesFolder: effectiveDailyNotesFolder(this.app, settings),
@@ -238,7 +232,6 @@ export class TaskflowView extends ItemView {
     else if (action.type === 'move-to-project') void this.bulkMove(tasks)
     else if (action.type === 'send-back') void this.sendBack(tasks)
     else if (action.type === 'cancel' && tasks[0]) void this.cancel(tasks[0])
-    else if (action.type === 'start-focus' && tasks[0]) this.plugin.startFocus(tasks[0])
     else if (action.type === 'select' && tasks[0]) this.panel?.selectTask(tasks[0])
     else if (action.type === 'open-note' && tasks[0])
       void this.openFile(tasks[0].filePath, tasks[0].line, ev)
@@ -249,7 +242,6 @@ export class TaskflowView extends ItemView {
     return {
       ...this.plugin.settings,
       today: localToday(),
-      focusedLocation: this.plugin.focusLocation(),
     }
   }
 
@@ -549,11 +541,6 @@ export class TaskflowView extends ItemView {
   }
 
   private async toggle(task: TaskflowTask): Promise<void> {
-    // Checking off the focused task ends its session unlogged: the interval
-    // didn't elapse, and the record only ever holds full intervals.
-    if (this.plugin.focusLocation() === locationKey(task.filePath, task.line)) {
-      this.plugin.cancelFocus()
-    }
     await this.ports.tasks.toggle(task)
     this.refresh()
   }

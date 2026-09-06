@@ -1,5 +1,4 @@
 import {inFolder} from './classify'
-import {locationKey} from './hierarchy'
 import {isMachineManaged} from './machine-note'
 import {resolveQuickDate} from './schedule'
 
@@ -31,7 +30,6 @@ export type MenuAction =
   | {type: 'send-back'}
   | {type: 'cancel'}
   | {type: 'open-note'}
-  | {type: 'start-focus'}
   | {type: 'add-task'}
   | {type: 'promote'}
   | {type: 'set-status'; status: ProjectStatus}
@@ -150,11 +148,6 @@ const dueItems = (task: TaskflowTask): MenuItemSpec[] => {
   return spec
 }
 
-export type FocusMenuConfig = {
-  /** locationKey of the task in focus, or null — marks its row's item ✓. */
-  focusedLocation: string | null
-}
-
 export type SelectMenuConfig = {
   /** Whether the row's section has a select mode (To-do, Backlogs). */
   selectable: boolean
@@ -165,33 +158,26 @@ export type SelectMenuConfig = {
 /**
  * A task row's context menu: every hover affordance again, plus the jump —
  * hover doesn't exist on mobile, so the menu is the touch-parity surface.
- * Grammar: jump · focus and (in a selectable section) Select · plan and due
- * · refile · destructive. A machine-managed row keeps the jump and the
- * focus session (which only appends to the log — the line increment is the
- * adapter's rule to skip); its line itself stays read-only.
+ * Grammar: jump · (in a selectable section) Select · plan and due · refile ·
+ * destructive. A machine-managed row keeps only the jump; its line stays
+ * read-only.
  */
 export const taskMenuSpec = (
   task: TaskflowTask,
-  config: ScheduleMenuConfig & MachineNoteConfig & FocusMenuConfig & SelectMenuConfig,
+  config: ScheduleMenuConfig & MachineNoteConfig & SelectMenuConfig,
 ): MenuItemSpec[] => {
   const open = item('Open note', 'file-text', {type: 'open-note'})
-  const focused = config.focusedLocation === locationKey(task.filePath, task.line)
-  const focus = item(
-    focused ? 'Start focus ✓' : 'Start focus',
-    'timer',
-    {type: 'start-focus'},
-    focused,
-  )
-  if (isMachineManaged(task.filePath, config)) return [open, separator, focus]
+  if (isMachineManaged(task.filePath, config)) return [open]
   const select = config.selectable
-    ? [item(config.selected ? 'Select ✓' : 'Select', 'copy-check', {type: 'select'}, config.selected)]
+    ? [
+        item(config.selected ? 'Select ✓' : 'Select', 'copy-check', {type: 'select'}, config.selected),
+        separator,
+      ]
     : []
   return [
     open,
     separator,
-    focus,
     ...select,
-    separator,
     ...planItems([task], config),
     ...dueItems(task),
     separator,
