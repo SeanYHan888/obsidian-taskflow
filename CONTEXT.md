@@ -14,7 +14,7 @@ _Avoid_: todo, item, card
 The day the user plans to work on a task. Slideable without guilt; the only date most tasks ever get.
 
 **Due (📅)**:
-A real external deadline. Rare; mostly arrives via Apple Reminders sync or is typed into a daily note. Edited only by its own chip's **due menu** (pick / remove — no quick dates, a deadline is picked, never guessed) and the row menu's "Set due date…"; scheduling never touches it, and a task holding both fields shows both chips (#18) — unless the two dates coincide: a plan set onto the due day is not written (the deadline already puts the task in To-do), and a line that holds both for the same day renders one chip, the 📅 one.
+A real external deadline. Rare; mostly arrives via Apple Reminders sync or is typed into a daily note. Edited only by its own chip's **due menu** (pick / remove — no quick dates, a deadline is picked, never guessed) and the row menu's "Set due date…"; scheduling never touches a live one, and a task holding both fields shows both chips (#18) — unless the two dates coincide: a plan set onto the due day is not written (the deadline already puts the task in To-do), and a line that holds both for the same day renders one chip, the 📅 one. A deadline already behind today is **spent**: re-dating an overdue task (quick date, picker, drop on To-do, Reschedule all) moves its 📅 to the new date and withdraws any ⏳ — one date, never a fresh plan stacked beside a stale deadline that would pin the task in Overdue & slipped.
 _Avoid_: deadline (in code/UI — the emoji vocabulary is Tasks-plugin canon)
 
 **Undated**:

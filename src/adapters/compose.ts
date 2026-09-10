@@ -71,7 +71,7 @@ export const createPorts = (app: App, settings: () => TaskflowSettings): Ports =
     },
   },
   editor: {
-    reschedule: (tasks, date) => rescheduleTasks(app, tasks, date),
+    reschedule: (tasks, date, today) => rescheduleTasks(app, tasks, date, today),
     unschedule: tasks => unscheduleTasks(app, tasks),
     setDue: (tasks, date) => setDueTasks(app, tasks, date),
     clearDue: tasks => clearDueTasks(app, tasks),

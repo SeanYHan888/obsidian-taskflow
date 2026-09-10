@@ -63,9 +63,10 @@ export const rescheduleTasks = async (
   app: App,
   tasks: TaskflowTask[],
   date: string,
+  today: string,
 ): Promise<JournalEntry | null> => {
-  const records = await editTaskLines(app, tasks, line => setScheduled(line, date))
-  return toJournalEntry(`scheduled ${plural(records.length)} → ${date}`, records)
+  const records = await editTaskLines(app, tasks, line => setScheduled(line, date, today))
+  return toJournalEntry(`rescheduled ${plural(records.length)} → ${date}`, records)
 }
 
 export const cancelTask = async (app: App, task: TaskflowTask): Promise<JournalEntry | null> => {

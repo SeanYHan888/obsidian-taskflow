@@ -13,14 +13,23 @@ const dueDateOf = (line: string): string | null =>
  * Stamps ⏳ (the day the user plans to work on it) onto a task line.
  * Replaces an existing ⏳ date in place; otherwise appends, staying ahead of a
  * trailing block reference. Everything else on the line — indentation, tags,
- * 📅 due dates — is untouched: due dates are never auto-edited.
+ * a live 📅 due date — is untouched: a deadline still ahead is never
+ * auto-edited, and a plan set before it stands beside it.
  *
  * A plan that lands on the deadline itself is not written (#18): the 📅 date
  * already puts the task in To-do that day, so a matching ⏳ would only show
  * the same date twice. Any ⏳ the line held is withdrawn instead.
+ *
+ * A deadline already behind `today` is spent. Re-dating such a task moves
+ * its one date — the 📅 takes the new date and any ⏳ is withdrawn — rather
+ * than stacking a plan beside a stale deadline, which would show two dates
+ * and keep the task in Overdue & slipped for good. `today` is injected:
+ * core never reads the clock.
  */
-export const setScheduled = (line: string, date: string): string => {
-  if (dueDateOf(line) === date) return clearScheduled(line)
+export const setScheduled = (line: string, date: string, today: string): string => {
+  const due = dueDateOf(line)
+  if (due != null && due < today) return clearScheduled(setDue(line, date))
+  if (due === date) return clearScheduled(line)
   if (SCHEDULED.test(line)) return line.replace(SCHEDULED, `⏳ ${date}`)
   const blockRef = line.match(TRAILING_BLOCK_REF)
   if (blockRef) {

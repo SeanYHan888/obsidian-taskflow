@@ -43,9 +43,10 @@ export type MoveOutcome = {moved: number; entry: JournalEntry | null}
  * journal entry so the action can be undone.
  */
 export type LineEditor = {
-  reschedule(tasks: TaskflowTask[], date: string): Promise<JournalEntry | null>
+  /** Stamps the plan; `today` decides whether a 📅 is live or spent (see setScheduled). */
+  reschedule(tasks: TaskflowTask[], date: string, today: string): Promise<JournalEntry | null>
   unschedule(tasks: TaskflowTask[]): Promise<JournalEntry | null>
-  /** The 📅 field's own writers (#18) — scheduling never touches it. */
+  /** The 📅 field's own writers (#18) — scheduling never touches a live deadline. */
   setDue(tasks: TaskflowTask[], date: string): Promise<JournalEntry | null>
   clearDue(tasks: TaskflowTask[]): Promise<JournalEntry | null>
   cancel(task: TaskflowTask): Promise<JournalEntry | null>

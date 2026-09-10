@@ -51,6 +51,12 @@ test('remove date appears once anything has a plan to withdraw', () => {
   assert.include(titles(spec), 'Remove date')
 })
 
+test('a quick date that is already the deadline is ✓ and disabled — a plan there writes nothing (#18)', () => {
+  const spec = scheduleMenuSpec([task({due: '2026-08-24'})], CONFIG)
+  const today = spec.find(e => e.kind === 'item' && e.title.startsWith('To-do'))
+  assert.ok(today && today.kind === 'item' && today.title === 'To-do (today) ✓' && today.disabled)
+})
+
 test('a quick date every selected task already holds is ✓ and disabled', () => {
   const spec = scheduleMenuSpec([task({scheduled: '2026-08-24'})], CONFIG)
   const items = spec.filter(e => e.kind === 'item')

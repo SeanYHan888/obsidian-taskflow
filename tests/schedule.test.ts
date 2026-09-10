@@ -10,47 +10,80 @@ import {
   setScheduled,
 } from '../src/core/schedule'
 
+// The injected clock: every 📅 in these lines is still ahead of it unless a
+// test says otherwise.
+const TODAY = '2026-08-21'
+
 test('setScheduled appends ⏳ to an undated line, touching nothing else', () => {
   assert.equal(
-    setScheduled('  - [ ] read mem-agent paper #research', '2026-08-22'),
+    setScheduled('  - [ ] read mem-agent paper #research', '2026-08-22', TODAY),
     '  - [ ] read mem-agent paper #research ⏳ 2026-08-22',
   )
 })
 
 test('setScheduled replaces an existing ⏳ date in place', () => {
   assert.equal(
-    setScheduled('- [ ] follow up with advisor ⏳ 2026-08-19', '2026-08-21'),
+    setScheduled('- [ ] follow up with advisor ⏳ 2026-08-19', '2026-08-21', TODAY),
     '- [ ] follow up with advisor ⏳ 2026-08-21',
   )
 })
 
-test('setScheduled never touches a 📅 due date', () => {
+test('setScheduled never touches a live 📅 due date', () => {
   assert.equal(
-    setScheduled('- [ ] submit form 📅 2026-08-25', '2026-08-21'),
+    setScheduled('- [ ] submit form 📅 2026-08-25', '2026-08-21', TODAY),
     '- [ ] submit form 📅 2026-08-25 ⏳ 2026-08-21',
+  )
+  // Due today is live, not spent: a plan for tomorrow stands beside it.
+  assert.equal(
+    setScheduled('- [ ] submit form 📅 2026-08-21', '2026-08-22', TODAY),
+    '- [ ] submit form 📅 2026-08-21 ⏳ 2026-08-22',
+  )
+})
+
+test('setScheduled on a spent 📅 moves the deadline — one date, not a plan beside a stale one', () => {
+  // The bug: re-dating an overdue task stacked ⏳ next to the past 📅, so the
+  // row showed two chips and stayed in Overdue & slipped.
+  assert.equal(
+    setScheduled('- [ ] submit form 📅 2026-08-15', '2026-08-22', TODAY),
+    '- [ ] submit form 📅 2026-08-22',
+  )
+  // Quick "today" on an overdue task: same move, onto today.
+  assert.equal(
+    setScheduled('- [ ] submit form 📅 2026-08-15', TODAY, TODAY),
+    '- [ ] submit form 📅 2026-08-21',
+  )
+  // A line the bug already doubled collapses to the new date.
+  assert.equal(
+    setScheduled('- [ ] submit form 📅 2026-08-15 ⏳ 2026-08-20', '2026-08-22', TODAY),
+    '- [ ] submit form 📅 2026-08-22',
+  )
+  // Block refs and flush-typed emoji survive the move.
+  assert.equal(
+    setScheduled('- [ ] 搞一个ai meeting recorder📅 2026-08-15 ⏳ 2026-08-16 ^abc12', '2026-08-22', TODAY),
+    '- [ ] 搞一个ai meeting recorder📅 2026-08-22 ^abc12',
   )
 })
 
 test('setScheduled onto the due day writes no ⏳ — one date, not the same date twice (#18)', () => {
   assert.equal(
-    setScheduled('- [ ] submit form 📅 2026-08-25', '2026-08-25'),
+    setScheduled('- [ ] submit form 📅 2026-08-25', '2026-08-25', TODAY),
     '- [ ] submit form 📅 2026-08-25',
   )
   // A plan moved onto the deadline is withdrawn, not duplicated.
   assert.equal(
-    setScheduled('- [ ] 搞一个ai meeting recorder📅 2026-09-05 ⏳ 2026-09-01', '2026-09-05'),
+    setScheduled('- [ ] 搞一个ai meeting recorder📅 2026-09-05 ⏳ 2026-09-01', '2026-09-05', TODAY),
     '- [ ] 搞一个ai meeting recorder📅 2026-09-05',
   )
   // A line already doubled collapses to its deadline.
   assert.equal(
-    setScheduled('- [ ] 搞一个ai meeting recorder📅 2026-09-05 ⏳ 2026-09-05', '2026-09-05'),
+    setScheduled('- [ ] 搞一个ai meeting recorder📅 2026-09-05 ⏳ 2026-09-05', '2026-09-05', TODAY),
     '- [ ] 搞一个ai meeting recorder📅 2026-09-05',
   )
 })
 
 test('setScheduled inserts before a trailing block reference', () => {
   assert.equal(
-    setScheduled('- [ ] linked task ^abc123', '2026-08-22'),
+    setScheduled('- [ ] linked task ^abc123', '2026-08-22', TODAY),
     '- [ ] linked task ⏳ 2026-08-22 ^abc123',
   )
 })
@@ -68,7 +101,7 @@ test('cancelLine leaves non-open lines alone', () => {
 
 test('clearScheduled is the inverse of setScheduled', () => {
   const line = '  - [ ] read mem-agent paper #research'
-  assert.equal(clearScheduled(setScheduled(line, '2026-08-22')), line)
+  assert.equal(clearScheduled(setScheduled(line, '2026-08-22', TODAY)), line)
 })
 
 test('clearScheduled keeps 📅 due dates and block refs intact', () => {

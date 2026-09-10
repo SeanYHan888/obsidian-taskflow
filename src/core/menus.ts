@@ -65,7 +65,8 @@ export type ScheduleMenuConfig = {projectsFolder: string; today: string}
 
 /**
  * The quick-date menu, for one task or a bulk selection: the pacing section
- * (a quick date every selected task already holds is marked ✓ and disabled,
+ * (a quick date every selected task already holds — as its plan, or as a
+ * deadline a plan would only duplicate (#18) — is marked ✓ and disabled,
  * the same state-marking the status items use; Remove date appears once
  * anything has a plan to withdraw), then the refile section — only when
  * every task lives in a project note, since a mixed selection has no one
@@ -84,9 +85,8 @@ export const scheduleMenuSpec = (
 /** The pacing group's plan items: quick dates, the picker, and Remove date. */
 const planItems = (tasks: readonly TaskflowTask[], config: ScheduleMenuConfig): MenuItemSpec[] => {
   const spec: MenuItemSpec[] = QUICK_DATES.map(({kind, title, icon}) => {
-    const held =
-      tasks.length > 0 &&
-      tasks.every(t => t.scheduled === resolveQuickDate(kind, config.today))
+    const date = resolveQuickDate(kind, config.today)
+    const held = tasks.length > 0 && tasks.every(t => t.scheduled === date || t.due === date)
     return item(held ? `${title} ✓` : title, icon, {type: 'schedule', kind}, held)
   })
   spec.push(item('Pick a date…', 'calendar', {type: 'pick-date'}))

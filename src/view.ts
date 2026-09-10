@@ -487,7 +487,7 @@ export class TaskflowView extends ItemView {
   }
 
   private reschedule(tasks: TaskflowTask[], date: string): Promise<void> {
-    return this.act(() => this.ports.editor.reschedule(tasks, date))
+    return this.act(() => this.ports.editor.reschedule(tasks, date, localToday()))
   }
 
   private unschedule(tasks: TaskflowTask[]): Promise<void> {
