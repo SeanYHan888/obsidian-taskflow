@@ -1,0 +1,9 @@
+# A project's start is a date, not a dependency
+
+Long-horizon work split into a run of project notes (a self-designed course: week 1 → part 1, week 2 → part 2) needs each part to become the thing being worked at the right time. Two models fit: an absolute `start` date per note beside `deadline`, or a sequence (`follows:` a prior part, activated when that part is marked done).
+
+**Decision: an ISO `start` key in the project note's frontmatter**, read and written like `status`, `deadline`, and `order` (ADR-0005), not journaled. A start that has arrived is what makes a project press for `→ now` in hybrid mode; a project with a start ignores the deadline attention window entirely, so a start is the answer to "when should this press" and the window is the fallback for notes that don't have one. Status wins over the date: setting `now` on a project whose start is still ahead makes it started by declaration — the panel never buries the thing being worked. Nothing flips on its own: the start day offers the tap, per the pressing loop's law.
+
+**Rejected: a sequence / dependency chain.** It shifts every later part when one slips, which sounds kind and removes the one signal a scheduled course exists to give — that you are behind. It also introduces a second kind of link between notes with its own semantics (what happens when the predecessor is dropped, or archived, or renamed) that no other Taskflow concept has. Dates keep "one note, its own frontmatter, the panel a projection" intact and stay legible to Bases and to a plain-text reader. A sequence model, if ever wanted, is a separate feature layered on top, not a substitute.
+
+Consequence: `start` joins the frontmatter keys Taskflow owns writes to (ADR-0004's interop list), and the Backlogs gain a third band — arrived deadlines lead, the resting order follows, unstarted projects tail regardless of rank — each edge governed by one rule.

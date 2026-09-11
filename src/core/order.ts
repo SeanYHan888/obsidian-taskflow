@@ -1,4 +1,4 @@
-import type {PacingMode, ProjectMeta, ProjectStatus} from './types'
+import type {PacingMode, ProjectGroup, ProjectMeta, ProjectStatus} from './types'
 
 /**
  * Manual project order (#20): an integer `order` in the project note's
@@ -7,8 +7,9 @@ import type {PacingMode, ProjectMeta, ProjectStatus} from './types'
  *
  * Sort contract (shared with classify): ranked projects lead, by `order`
  * ascending; unranked ones follow under the pacing rules (deadline soonest
- * first outside capacity mode, then now → next → later, then name). Arrived
- * deadlines override everything and are handled by classify, not here.
+ * first outside capacity mode, then now → next → later, then name). The
+ * bands at either edge — arrived deadlines leading, unstarted projects
+ * tailing (#22) — are classify's; this module orders within a band.
  */
 
 export type OrderWrite = {path: string; order: number}
@@ -31,6 +32,39 @@ export const comparePacing = (a: ProjectMeta, b: ProjectMeta, pacingMode: Pacing
     statusRank(a.status) - statusRank(b.status) ||
     a.name.localeCompare(b.name)
   )
+}
+
+/**
+ * The unstarted tail's order (#22): start soonest first, then the pacing
+ * rules. A manual rank does not reach into this band — the tail is where
+ * the calendar has put a project, not the hand.
+ */
+export const compareUnstarted = (a: ProjectMeta, b: ProjectMeta, pacingMode: PacingMode): number =>
+  (a.start ?? '').localeCompare(b.start ?? '') || comparePacing(a, b, pacingMode)
+
+/**
+ * The movable band (#22): which projects the four Move items and a header
+ * drag may touch — the Backlogs as displayed minus the two edge bands. An
+ * arrived deadline leads by rule, an unstarted project tails by rule, so
+ * neither lifts, lands, nor moves. Menu gating and the drag list both read
+ * this one definition.
+ */
+export const movableProjects = (groups: readonly ProjectGroup[]): ProjectMeta[] =>
+  groups.filter(g => g.urgency !== 'arrived' && !g.unstarted).map(g => g.project)
+
+/**
+ * Which moves can change anything for one project (#20): up/top need a
+ * project above it in the movable band, down/bottom one below. Outside the
+ * band (arrived, unstarted) both are false and the four Move items render
+ * disabled.
+ */
+export const canMove = (
+  groups: readonly ProjectGroup[],
+  path: string,
+): {up: boolean; down: boolean} => {
+  const band = movableProjects(groups)
+  const at = band.findIndex(p => p.path === path)
+  return {up: at > 0, down: at !== -1 && at < band.length - 1}
 }
 
 /** Ranked first by `order`, then the pacing rules — the Backlogs' resting order. */
@@ -80,11 +114,10 @@ const settle = (sequence: readonly ProjectMeta[], through: number): OrderWrite[]
 }
 
 /**
- * Moves one project within the movable list — the Backlogs as displayed,
- * minus any arrived-deadline projects (those lead by deadline and the view
- * disables their move items). Returns the frontmatter writes, none when the
- * move changes nothing. Top is one write (min − 1); the rest re-stamp only
- * what the new sequence needs, so unranked neighbours get a rank on demand.
+ * Moves one project within the movable band (movableProjects). Returns the
+ * frontmatter writes, none when the move changes nothing. Top is one write
+ * (min − 1); the rest re-stamp only what the new sequence needs, so
+ * unranked neighbours get a rank on demand.
  */
 export const moveWrites = (
   displayed: readonly ProjectMeta[],
@@ -130,8 +163,7 @@ export const organizeByStatus = (
 
 /**
  * Whether dropping `path` on `target` can change anything (#21): both must
- * be in the movable list (arrived-deadline projects are neither lifted nor
- * landed on) and differ.
+ * be in the movable band (movableProjects) and differ.
  */
 export const canPlace = (displayed: readonly ProjectMeta[], path: string, target: string): boolean =>
   path !== target &&

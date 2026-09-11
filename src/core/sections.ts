@@ -1,6 +1,6 @@
 import {countTaskTree, flattenTaskTree, locationKey} from './hierarchy'
 
-import type {PacingMode, Sections, TaskflowTask} from './types'
+import type {PacingMode, ProjectGroup, ProjectMeta, Sections, TaskflowTask} from './types'
 
 /**
  * Queries over a classified Sections projection — the questions the panel
@@ -61,6 +61,17 @@ export const sectionCounts = (sections: Sections | null): SectionCounts => ({
     ? sections.projects.reduce((sum, g) => sum + countTaskTree(g.tasks), 0)
     : 0,
 })
+
+/**
+ * Whether a project group renders folded (#24): a stored toggle wins, and
+ * with none stored an unstarted project folds — a 12-part course is not 12
+ * open task lists — while a started one opens. On the start day, then, a
+ * project nobody has touched opens by itself.
+ */
+export const projectFolded = (
+  collapsedProjects: Record<string, boolean>,
+  group: Pick<ProjectGroup, 'unstarted'> & {project: Pick<ProjectMeta, 'path'>},
+): boolean => collapsedProjects[group.project.path] ?? group.unstarted
 
 export type WipBadge = {
   label: string

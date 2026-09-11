@@ -26,6 +26,8 @@ export type ProjectStore = {
   read(): ProjectMeta[]
   setStatus(path: string, status: ProjectStatus): Promise<boolean>
   setDeadline(path: string, deadline: string | null): Promise<boolean>
+  /** Project start (#23); null clears it. */
+  setStart(path: string, start: string | null): Promise<boolean>
   /** Manual rank (#20); null clears it. */
   setOrder(path: string, order: number | null): Promise<boolean>
   /** Terminal statuses move the note to the archive; task lines are never touched. */

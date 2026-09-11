@@ -3,6 +3,7 @@ import {assert, test} from 'vitest'
 import {classifySections} from '../src/core/classify'
 import {locationKey} from '../src/core/hierarchy'
 import {
+  projectFolded,
   pruneSelection,
   retirePlan,
   sectionCounts,
@@ -43,6 +44,7 @@ const project = (overrides: Partial<ProjectMeta> = {}): ProjectMeta => ({
   status: 'now',
   deadline: null,
   order: null,
+  start: null,
   ...overrides,
 })
 
@@ -144,4 +146,12 @@ test('retiring confirms only while open tasks would leave the panel', () => {
     openCount: 0,
     needsConfirm: false,
   })
+})
+
+test('an unstarted project folds by default; a stored toggle wins either way (#24)', () => {
+  const path = 'Projects/Active/part-2.md'
+  assert.isTrue(projectFolded({}, {project: {path}, unstarted: true}))
+  assert.isFalse(projectFolded({}, {project: {path}, unstarted: false}))
+  assert.isFalse(projectFolded({[path]: false}, {project: {path}, unstarted: true}), 'unfolded to peek stays open')
+  assert.isTrue(projectFolded({[path]: true}, {project: {path}, unstarted: false}))
 })

@@ -154,7 +154,7 @@ export class TaskflowSettingTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName('Deadline attention window')
       .setDesc(
-        'Hybrid pacing only: days before a project deadline that its header offers "→ now". Set it to zero to wait until the deadline arrives.',
+        'Hybrid pacing only: days before a project deadline that its header offers "→ now". Set it to zero to wait until the deadline arrives. The fallback for projects without a start date — a project with one presses from its start day instead.',
       )
       .addText(input =>
         input.setValue(String(this.plugin.settings.pressWindow)).onChange(async value => {
