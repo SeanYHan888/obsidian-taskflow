@@ -66,11 +66,19 @@ How many projects `now` may hold (configurable, default 3). Exceeding it warns (
 **Project deadline**:
 Optional `deadline` frontmatter (ISO date) on a project note — a project-level commitment date, distinct from a task's due (📅) field. Among unranked projects, dated ones lead soonest-first and undated ones follow in status order; a manual order sits above that, and an *arrived* deadline sits above everything (#20). The header chip is amber while ahead, red once arrived — the same urgency grammar as task due chips. Rendered in the deadline and hybrid pacing modes; capacity mode ignores it (the frontmatter stays).
 
+**Project start**:
+Optional `start` frontmatter (ISO date) on a project note — the project-level twin of a task's ⏳, the way the project deadline twins 📅. From its start day (arrival included) a project presses in hybrid mode in place of the deadline attention window; before it, it never presses. Rendered in the deadline and hybrid pacing modes; capacity mode ignores it (the frontmatter stays). Edited only by the header menu's "Set start date… / Clear start" and, while unstarted, its own chip — picked, never guessed; a start past the deadline is written with a notice naming the contradiction, never refused.
+_Avoid_: begin, from, kickoff
+
+**Unstarted**:
+A project whose start is still ahead and whose status isn't `now`. Renders folded by default (a stored fold toggle wins) at the tail of the Backlogs regardless of manual order, sorted by start ascending then the pacing rules, showing a neutral start chip in place of its deadline chip; it never presses, its Move items render disabled, and it neither lifts nor lands in a header drag. A `now` status makes a project started by declaration, and an arrived deadline still leads the list (a debt beats a plan). A project without a start key is simply undated, not unstarted.
+_Avoid_: pending, queued, upcoming, dormant
+
 **Pacing mode (capacity / deadlines / hybrid)**:
 Which pacing signals the Backlogs render and act on. Capacity (`wip`): the WIP badge only, status order. Deadlines (`deadline`): chips and deadline-first sort, no badge. Hybrid (default): both signals plus the pressing loop. A pure rendering filter — statuses and deadlines live in frontmatter regardless, so switching is instant and lossless.
 
 **Pressing**:
-Hybrid mode's reconciliation signal: a project whose deadline is inside the attention window (`pressWindow` days, default 7, arrival included) while its status isn't `now` — the calendar and the commitments disagree. A pressing header offers a hover-revealed `→ now` (and a "Move to now" menu item); one tap commits, ignoring it is a legitimate refusal. Promoting past the WIP limit goes through and the notice names the consequence — warn, never block, on both signals at once.
+Hybrid mode's reconciliation signal: a project whose deadline is inside the attention window (`pressWindow` days, default 7, arrival included) — or, when it carries a start, whose start has arrived, the window then ignored — while its status isn't `now`: the calendar and the commitments disagree. A pressing header offers a hover-revealed `→ now` (and a "Move to now" menu item); one tap commits, ignoring it is a legitimate refusal. Promoting past the WIP limit goes through and the notice names the consequence — warn, never block, on both signals at once.
 _Avoid_: urgent, overdue (pressing is about commitment, not the chip's color)
 
 **Triage**:
@@ -90,13 +98,13 @@ The rules every menu and affordance obeys (#14), so the next one has a rule to f
 Every context menu reads navigate → capture/commit → pacing → refile → destructive, separators only between non-empty sections. The first item is always the jump ("Open note", file-text); destructive acts are always last. An item naming a state the thing is already in is marked "✓" and disabled — project statuses and quick dates alike.
 
 **Chip rule**:
-A chip opens what edits it: the ⏳ chip (and the add-date button) opens the schedule menu, the 📅 chip opens the due menu, the project deadline chip opens the deadline picker. Chips are the only date-shaped buttons on any row or header.
+A chip opens what edits it: the ⏳ chip (and the add-date button) opens the schedule menu, the 📅 chip opens the due menu, the project deadline chip opens the deadline picker, the project start chip opens the start picker. Chips are the only date-shaped buttons on any row or header.
 
 **Quick-button rule**:
 At most one quick button per header, shown only when the panel is pressing for a decision — today: `→ now` on a pressing project header — in the one shared quick-action style, always mirrored by a menu item. (The repair queue's `All → to-do` was retired to its section menu's "Reschedule all to today": one visible accelerator vocabulary, not two.)
 
 **Header chrome**:
-Signals (the count, the WIP badge) sit with the title inside the fold toggle; the right edge of any header holds acts only — a `…` menu when the section has acts (#15). Mode toggles (select) are menu items, not buttons: a mode is not a pressing decision. A header with no acts (Upcoming) shows nothing, by rule. On project headers the deadline chip renders last, past the hover-revealed `…`, so at rest every date in the panel — task chips and project deadlines — sits flush against the same right edge.
+Signals (the count, the WIP badge) sit with the title inside the fold toggle; the right edge of any header holds acts only — a `…` menu when the section has acts (#15). Mode toggles (select) are menu items, not buttons: a mode is not a pressing decision. A header with no acts (Upcoming) shows nothing, by rule. On project headers the deadline chip — or, while unstarted, the start chip in its place — renders last, past the hover-revealed `…`, so at rest every date in the panel — task chips and the one project date that matters next — sits flush against the same right edge.
 
 **Primary-click rule**:
 Primary click does the surface's dominant act — task text jumps, project name folds. Because a header's click folds, headers carry a visible … entry point; rows carry none. The jump on a header is mod+click, middle-click, or the menu's Open note (the ↗ button was retired — three paths didn't need a fourth). The context menu (right-click, long-press) carries every act on both surfaces: visible buttons are accelerators, never the only path.

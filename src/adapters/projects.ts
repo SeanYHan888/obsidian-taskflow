@@ -11,8 +11,8 @@ const ACTIVE_STATUSES: ReadonlySet<string> = new Set(['now', 'next', 'later'])
 const readOrder = (raw: unknown): number | null =>
   typeof raw === 'number' && Number.isInteger(raw) ? raw : null
 
-/** Anything that isn't a plain ISO date string is treated as no deadline. */
-const readDeadline = (raw: unknown): string | null =>
+/** Anything that isn't a plain ISO date string is treated as no date — deadline and start alike. */
+const readIsoDate = (raw: unknown): string | null =>
   typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null
 
 /**
@@ -35,78 +35,78 @@ export const readProjects = (app: App, projectsFolder: string): ProjectMeta[] =>
       return {
         file,
         status,
-        deadline: readDeadline(frontmatter?.deadline),
+        deadline: readIsoDate(frontmatter?.deadline),
         order: readOrder(frontmatter?.order),
+        start: readIsoDate(frontmatter?.start),
       }
     })
     .filter(({status}) => status !== undefined)
-    .map(({file, status, deadline, order}) => ({
+    .map(({file, status, deadline, order, start}) => ({
       path: file.path,
       name: file.basename,
       status: status as ProjectStatus | null,
       deadline,
       order,
+      start,
     }))
 }
 
+/**
+ * Every frontmatter write goes through here: find the note (a missing one
+ * is a notice, not a throw), then edit its frontmatter in place. Never
+ * journaled — the frontmatter is its own text-editable record.
+ */
+const editFrontmatter = async (
+  app: App,
+  projectPath: string,
+  mutate: (frontmatter: Record<string, unknown>) => void,
+): Promise<boolean> => {
+  const file = app.vault.getAbstractFileByPath(projectPath)
+  if (!(file instanceof TFile)) {
+    new Notice(`Taskflow: project note not found: ${projectPath}`)
+    return false
+  }
+  await app.fileManager.processFrontMatter(file, mutate)
+  return true
+}
+
+/** Sets one frontmatter key, or removes it on null. */
+const setKey = (app: App, projectPath: string, key: string, value: unknown): Promise<boolean> =>
+  editFrontmatter(app, projectPath, frontmatter => {
+    if (value == null) delete frontmatter[key]
+    else frontmatter[key] = value
+  })
+
 /** Stamps an active status (now/next/later) into the project's frontmatter. */
-export const setProjectStatus = async (
+export const setProjectStatus = (
   app: App,
   projectPath: string,
   status: ProjectStatus,
-): Promise<boolean> => {
-  const file = app.vault.getAbstractFileByPath(projectPath)
-  if (!(file instanceof TFile)) {
-    new Notice(`Taskflow: project note not found: ${projectPath}`)
-    return false
-  }
-  await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-    frontmatter.status = status
-  })
-  return true
-}
+): Promise<boolean> => setKey(app, projectPath, 'status', status)
 
-/**
- * Stamps (or clears, on null) the project's deadline in frontmatter. Like
- * status flips, not journaled — the frontmatter is the text-editable record.
- */
-export const setProjectDeadline = async (
+/** Stamps (or clears, on null) the project's deadline. */
+export const setProjectDeadline = (
   app: App,
   projectPath: string,
   deadline: string | null,
-): Promise<boolean> => {
-  const file = app.vault.getAbstractFileByPath(projectPath)
-  if (!(file instanceof TFile)) {
-    new Notice(`Taskflow: project note not found: ${projectPath}`)
-    return false
-  }
-  await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-    if (deadline == null) delete frontmatter.deadline
-    else frontmatter.deadline = deadline
-  })
-  return true
-}
+): Promise<boolean> => setKey(app, projectPath, 'deadline', deadline)
 
 /**
- * Stamps (or clears, on null) the project's manual rank (#20). Frontmatter,
- * not journaled, like status and deadline.
+ * Stamps (or clears, on null) the project's start (#23). A start past the
+ * deadline is written as asked; naming the contradiction is the notice's job.
  */
-export const setProjectOrder = async (
+export const setProjectStart = (
+  app: App,
+  projectPath: string,
+  start: string | null,
+): Promise<boolean> => setKey(app, projectPath, 'start', start)
+
+/** Stamps (or clears, on null) the project's manual rank (#20). */
+export const setProjectOrder = (
   app: App,
   projectPath: string,
   order: number | null,
-): Promise<boolean> => {
-  const file = app.vault.getAbstractFileByPath(projectPath)
-  if (!(file instanceof TFile)) {
-    new Notice(`Taskflow: project note not found: ${projectPath}`)
-    return false
-  }
-  await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
-    if (order == null) delete frontmatter.order
-    else frontmatter.order = order
-  })
-  return true
-}
+): Promise<boolean> => setKey(app, projectPath, 'order', order)
 
 /**
  * Retires a project: stamps the terminal status into frontmatter and moves
@@ -134,7 +134,7 @@ export const archiveProject = async (
     return false
   }
 
-  await app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+  await editFrontmatter(app, projectPath, frontmatter => {
     frontmatter.status = status
   })
   if (!app.vault.getAbstractFileByPath(folder)) {

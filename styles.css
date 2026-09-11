@@ -235,6 +235,13 @@
   color: var(--color-red);
 }
 
+/* A project's start while unstarted (#24): neutral — neither the amber nor
+   the red urgency grammar, because a future start is not a debt. */
+.taskflow-panel .taskflow-chip-start {
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+}
+
 .taskflow-children {
   margin-left: 12px;
   border-left: 1px solid var(--background-modifier-border);

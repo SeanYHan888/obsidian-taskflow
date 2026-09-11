@@ -8,7 +8,14 @@ import {
   moveTasksToProject,
   sendTasksBackToInbox,
 } from './move-tasks'
-import {archiveProject, readProjects, setProjectDeadline, setProjectOrder, setProjectStatus} from './projects'
+import {
+  archiveProject,
+  readProjects,
+  setProjectDeadline,
+  setProjectOrder,
+  setProjectStart,
+  setProjectStatus,
+} from './projects'
 import {getTasksPlugin, onTasksChange, readTasks, toggleTask} from './tasks-plugin'
 
 import type {App} from 'obsidian'
@@ -55,6 +62,7 @@ export const createPorts = (app: App, settings: () => TaskflowSettings): Ports =
     read: () => readProjects(app, settings().projectsFolder),
     setStatus: (path, status) => setProjectStatus(app, path, status),
     setDeadline: (path, deadline) => setProjectDeadline(app, path, deadline),
+    setStart: (path, start) => setProjectStart(app, path, start),
     setOrder: (path, order) => setProjectOrder(app, path, order),
     archive: (path, status) => archiveProject(app, path, status, settings().archiveFolder),
     create: async (name, today) => {

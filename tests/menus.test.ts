@@ -102,6 +102,7 @@ const project = (overrides: Partial<ProjectMeta> = {}): ProjectMeta => ({
   status: 'now',
   deadline: null,
   order: null,
+  start: null,
   ...overrides,
 })
 
@@ -264,4 +265,36 @@ test('moves that cannot change anything are disabled: the ends, and arrived dead
   assert.deepEqual(disabledMoves({up: true, down: false}), ['Move down', 'Move to bottom'])
   // An arrived deadline leads regardless of rank: the view passes both false.
   assert.lengthOf(disabledMoves({up: false, down: false}), 4)
+})
+
+test('the project menu sets and clears the start just before the deadline items, chronologically (#23)', () => {
+  const unset = titles(projectMenuSpec(project(), HYBRID))
+  const at = unset.indexOf('Set start date…')
+  assert.isAbove(at, unset.indexOf('later'), 'pacing: after the statuses')
+  assert.equal(unset[at + 1], 'Set deadline…', 'start then deadline — the pair reads chronologically')
+  assert.notInclude(unset, 'Clear start')
+
+  const set = titles(
+    projectMenuSpec(project({start: '2026-09-21', deadline: '2026-09-27'}), HYBRID),
+  )
+  const from = set.indexOf('Start 2026-09-21…')
+  assert.deepEqual(set.slice(from, from + 4), [
+    'Start 2026-09-21…',
+    'Clear start',
+    'Deadline 2026-09-27…',
+    'Clear deadline',
+  ])
+  const spec = projectMenuSpec(project({start: '2026-09-21'}), HYBRID)
+  assert.deepEqual(
+    spec.filter(e => e.kind === 'item' && e.action.type.endsWith('-start')).map(e => e.kind === 'item' ? e.action.type : ''),
+    ['pick-start', 'clear-start'],
+  )
+})
+
+test('capacity mode hides the start items with the deadline items (#23)', () => {
+  const wip = titles(projectMenuSpec(project({start: '2026-09-21'}), {...HYBRID, pacingMode: 'wip'}))
+  assert.notInclude(wip, 'Start 2026-09-21…')
+  assert.notInclude(wip, 'Clear start')
+  const deadline = titles(projectMenuSpec(project({start: '2026-09-21'}), {...HYBRID, pacingMode: 'deadline'}))
+  assert.include(deadline, 'Start 2026-09-21…')
 })

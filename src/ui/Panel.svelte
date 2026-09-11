@@ -4,10 +4,10 @@
   import {stillInside} from './dnd'
   import {icon} from './icon'
   import {dropIntent} from '../core/drop'
-import {canPlace} from '../core/order'
+  import {canPlace, movableProjects as movableBand} from '../core/order'
   import {countTaskTree, locationKey} from '../core/hierarchy'
   import {chipLabel} from '../core/schedule'
-  import {pruneSelection, sectionCounts, selectionTasks, wipBadge} from '../core/sections'
+  import {projectFolded, pruneSelection, sectionCounts, selectionTasks, wipBadge} from '../core/sections'
 
   import type {DropTarget} from '../core/drop'
   import type {TaskflowTask} from '../core/types'
@@ -57,13 +57,9 @@ import {canPlace} from '../core/order'
       today: data.today,
     }).kind !== 'none'
 
-  // Drag-to-reorder (#21): the movable list is the Backlogs as displayed
-  // minus arrived-deadline projects, which lead regardless of rank.
-  const movableProjects = $derived(
-    (data.sections?.projects ?? [])
-      .filter(group => group.urgency !== 'arrived')
-      .map(group => group.project),
-  )
+  // Drag-to-reorder (#21): the movable band is core's one definition (#22) —
+  // the Backlogs as displayed minus arrived deadlines and unstarted projects.
+  const movableProjects = $derived(movableBand(data.sections?.projects ?? []))
   const reorderValid = (targetPath: string): boolean =>
     dragProject != null && canPlace(movableProjects, dragProject, targetPath)
   /** Where the dragged header would land relative to the target: a line above or below it. */
@@ -76,8 +72,8 @@ import {canPlace} from '../core/order'
   /** Either payload may land on a project group; the drop handler tells them apart. */
   const projectTargetValid = (path: string): boolean =>
     dropValid({kind: 'project', path}) || reorderValid(path)
-  const headerDraggable = (group: {urgency: 'ahead' | 'arrived' | null}): boolean =>
-    data.draggable && !selecting && group.urgency !== 'arrived'
+  const headerDraggable = (group: {project: {path: string}}): boolean =>
+    data.draggable && !selecting && movableProjects.some(p => p.path === group.project.path)
 
   export const update = (next: PanelData) => {
     data = next
@@ -230,7 +226,7 @@ import {canPlace} from '../core/order'
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.projects as group (group.project.path)}
-        {@const folded = data.collapsedProjects[group.project.path] ?? false}
+        {@const folded = projectFolded(data.collapsedProjects, group)}
         <div
           class="taskflow-project"
           class:taskflow-drop-ready={dropValid({kind: 'project', path: group.project.path})}
@@ -265,8 +261,8 @@ import {canPlace} from '../core/order'
           }}
         >
           <!-- The header lifts as a unit (#21, desktop, not in select mode,
-               never an arrived deadline); its buttons stay clicks. The drop
-               target is the whole group so rows can still land on it. -->
+               only inside the movable band); its buttons stay clicks. The
+               drop target is the whole group so rows can still land on it. -->
           <div
             class="taskflow-project-header"
             role="group"
@@ -332,10 +328,21 @@ import {canPlace} from '../core/order'
               onclick={ev => callbacks.onProjectMenu(group.project, ev)}
               use:icon={'more-horizontal'}
             ></button>
-            {#if group.project.deadline != null && data.pacingMode !== 'wip'}
-              <!-- Last, past the hover-revealed buttons, so at rest the chip
-                   sits flush right — one date column down the whole panel.
-                   A chip opens what edits it (panel grammar): the picker. -->
+            <!-- Last, past the hover-revealed buttons, so at rest the chip
+                 sits flush right — one date column down the whole panel:
+                 the next date that matters. While unstarted that is the
+                 start (#24), neutral — a future start is not a debt — and
+                 the deadline chip returns once the project is started. A
+                 chip opens what edits it (panel grammar): its picker. -->
+            {#if group.unstarted && group.project.start != null}
+              <button
+                class="taskflow-chip taskflow-chip-button taskflow-chip-start"
+                aria-label="Project start"
+                onclick={() => callbacks.onProjectStart(group.project)}
+              >
+                from {chipLabel(group.project.start, data.today)}
+              </button>
+            {:else if group.project.deadline != null && data.pacingMode !== 'wip'}
               <button
                 class="taskflow-chip taskflow-chip-button taskflow-chip-due"
                 class:taskflow-chip-past={group.urgency === 'arrived'}

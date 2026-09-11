@@ -1,9 +1,9 @@
 import {buildTaskTree} from './hierarchy'
 import {isCalendarBlock} from './machine-note'
-import {compareProjects} from './order'
+import {compareProjects, compareUnstarted} from './order'
 import {addDays} from './schedule'
 
-import type {ClassifyConfig, ProjectMeta, Sections, TaskflowTask} from './types'
+import type {ClassifyConfig, ProjectGroup, ProjectMeta, Sections, TaskflowTask} from './types'
 
 export const inFolder = (filePath: string, folder: string): boolean =>
   filePath.startsWith(folder.replace(/\/$/, '') + '/')
@@ -35,6 +35,12 @@ const isEventsHeading = (heading: string) =>
  */
 const toTree = (tasks: TaskflowTask[]): TaskflowTask[] =>
   buildTaskTree(tasks.map(t => ({...t, children: []})))
+
+const ARRIVED = 0
+const RESTING = 1
+const UNSTARTED = 2
+const band = (group: Pick<ProjectGroup, 'urgency' | 'unstarted'>): number =>
+  group.urgency === 'arrived' ? ARRIVED : group.unstarted ? UNSTARTED : RESTING
 
 export const classifySections = (
   tasks: TaskflowTask[],
@@ -108,30 +114,48 @@ export const classifySections = (
           : project.deadline <= config.today
             ? ('arrived' as const)
             : ('ahead' as const),
-      // Pressing (hybrid only): the deadline is inside the attention window
-      // while the project isn't `now` — the two signals disagree, and the
-      // header offers → now until the user answers or refuses.
+      // Pressing (hybrid only): the project isn't `now` while the calendar
+      // says it should be — its start has arrived (#22), or, for a project
+      // without one, its deadline is inside the attention window. A start
+      // is the answer to "when should this press"; the window is the
+      // fallback for notes that don't have one. The header offers → now
+      // until the user answers or refuses.
       pressing:
         config.pacingMode === 'hybrid' &&
-        project.deadline != null &&
-        project.deadline <= pressEdge &&
-        project.status !== 'now',
+        project.status !== 'now' &&
+        (project.start != null
+          ? project.start <= config.today
+          : project.deadline != null && project.deadline <= pressEdge),
+      // Unstarted (#22): the start is ahead and nothing declares otherwise.
+      // Status wins over the date (`now` is started by declaration) and an
+      // arrived deadline wins over both — a debt beats a plan. Capacity
+      // mode ignores the key the way it ignores deadlines.
+      unstarted:
+        deadlinesOn &&
+        project.start != null &&
+        project.start > config.today &&
+        project.status !== 'now' &&
+        !(project.deadline != null && project.deadline <= config.today),
     }))
     .filter(group => group.tasks.length > 0)
-    // Arrived deadlines lead, soonest first — a commitment that has come due
-    // is never buried by a hand-arranged order (#20). Then the resting order:
-    // ranked projects by `order`, then unranked ones under the pacing rules
-    // (deadline soonest first outside wip mode, then status, then name).
+    // Three bands, each edge governed by one rule (ADR-0006): arrived
+    // deadlines lead, soonest first — a commitment that has come due is
+    // never buried by a hand-arranged order (#20); unstarted projects tail,
+    // start soonest first, regardless of rank (#22); between them the
+    // resting order — ranked projects by `order`, then unranked ones under
+    // the pacing rules (deadline soonest first outside wip mode, then
+    // status, then name).
     .sort((a, b) => {
-      const aArrived = a.urgency === 'arrived'
-      const bArrived = b.urgency === 'arrived'
-      if (aArrived !== bArrived) return aArrived ? -1 : 1
-      if (aArrived && bArrived) {
+      const aBand = band(a)
+      const bBand = band(b)
+      if (aBand !== bBand) return aBand - bBand
+      if (aBand === ARRIVED) {
         return (
           a.project.deadline!.localeCompare(b.project.deadline!) ||
           compareProjects(a.project, b.project, config.pacingMode)
         )
       }
+      if (aBand === UNSTARTED) return compareUnstarted(a.project, b.project, config.pacingMode)
       return compareProjects(a.project, b.project, config.pacingMode)
     })
 

@@ -82,6 +82,8 @@ export type PanelCallbacks = {
   onProjectMenu: (project: ProjectMeta, ev: MouseEvent) => void
   /** The deadline chip's act — a chip opens what edits it (panel grammar). */
   onProjectDeadline: (project: ProjectMeta) => void
+  /** The start chip's act (#24): the start picker, by the same rule. */
+  onProjectStart: (project: ProjectMeta) => void
   /** The pressing loop's one tap: commit a pressing project to `now`. */
   onPromoteProject: (project: ProjectMeta) => void
 }

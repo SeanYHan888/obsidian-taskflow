@@ -31,6 +31,12 @@ export type ProjectMeta = {
   deadline: string | null
   /** Manual rank from frontmatter (#20): ranked projects lead the Backlogs, ascending. Null = unranked. */
   order: number | null
+  /**
+   * Project-level start date from frontmatter (ISO), or null (#22) — the
+   * twin of a task's ⏳, the way deadline twins 📅. Ahead of today it makes
+   * the project unstarted; arrived, it is what makes hybrid mode press.
+   */
+  start: string | null
 }
 
 export type ProjectGroup = {
@@ -44,6 +50,13 @@ export type ProjectGroup = {
    * disagree, so the header offers → now. Always false outside hybrid.
    */
   pressing: boolean
+  /**
+   * The start is still ahead and the status isn't `now` (#22): the project
+   * tails the Backlogs regardless of rank, never presses, and can't be
+   * moved. An arrived deadline outranks the start (a debt beats a plan), and
+   * capacity mode ignores the key, so both leave this false.
+   */
+  unstarted: boolean
 }
 
 /**

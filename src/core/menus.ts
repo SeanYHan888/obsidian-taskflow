@@ -33,6 +33,8 @@ export type MenuAction =
   | {type: 'add-task'}
   | {type: 'promote'}
   | {type: 'set-status'; status: ProjectStatus}
+  | {type: 'pick-start'}
+  | {type: 'clear-start'}
   | {type: 'pick-deadline'}
   | {type: 'clear-deadline'}
   | {type: 'retire'; status: 'done' | 'dropped'}
@@ -271,8 +273,9 @@ const MOVES: {direction: MoveDirection; title: string; icon: string; needs: 'up'
  * then capture/commit (a pressing project puts "Move to now" first — the
  * touch-parity twin of the header's hover → now — and "Add task…" is capture
  * straight into the backlog), then pacing (status and, outside wip mode,
- * deadline — wip has no deadline concept to edit), then the four moves that
- * arrange the list by hand (#20), then retirement.
+ * start then deadline — the pair reads chronologically (#23), and wip has
+ * no date concept to edit), then the four moves that arrange the list by
+ * hand (#20), then retirement.
  */
 export const projectMenuSpec = (
   project: ProjectMeta,
@@ -296,6 +299,16 @@ export const projectMenuSpec = (
     )
   }
   if (config.pacingMode !== 'wip') {
+    spec.push(
+      item(
+        project.start == null ? 'Set start date…' : `Start ${project.start}…`,
+        'calendar-days',
+        {type: 'pick-start'},
+      ),
+    )
+    if (project.start != null) {
+      spec.push(item('Clear start', 'eraser', {type: 'clear-start'}))
+    }
     spec.push(
       item(
         project.deadline == null ? 'Set deadline…' : `Deadline ${project.deadline}…`,

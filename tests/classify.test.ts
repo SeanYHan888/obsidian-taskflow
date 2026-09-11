@@ -258,6 +258,7 @@ test('projects group by note ordered now, next, later, then alphabetically', () 
     status: 'now',
     deadline: null,
     order: null,
+    start: null,
   }
   const devSetup: ProjectMeta = {
     path: 'Projects/Active/dev-setup.md',
@@ -265,6 +266,7 @@ test('projects group by note ordered now, next, later, then alphabetically', () 
     status: 'next',
     deadline: null,
     order: null,
+    start: null,
   }
   const llmStudy: ProjectMeta = {
     path: 'Projects/Active/llm-study.md',
@@ -272,6 +274,7 @@ test('projects group by note ordered now, next, later, then alphabetically', () 
     status: 'later',
     deadline: null,
     order: null,
+    start: null,
   }
   const knowledgeBase: ProjectMeta = {
     path: 'Projects/Active/build-knowledge-base.md',
@@ -279,6 +282,7 @@ test('projects group by note ordered now, next, later, then alphabetically', () 
     status: 'now',
     deadline: null,
     order: null,
+    start: null,
   }
   const emptyProject: ProjectMeta = {
     path: 'Projects/Active/obsidian-fix.md',
@@ -286,6 +290,7 @@ test('projects group by note ordered now, next, later, then alphabetically', () 
     status: 'now',
     deadline: null,
     order: null,
+    start: null,
   }
 
   const sections = classify(
@@ -316,6 +321,7 @@ test('projects with deadlines order soonest-first ahead of undated ones', () => 
     status: 'now',
     deadline: null,
     order: null,
+    start: null,
   }
   const dueSoon: ProjectMeta = {
     path: 'Projects/Active/llm-study.md',
@@ -323,6 +329,7 @@ test('projects with deadlines order soonest-first ahead of undated ones', () => 
     status: 'later',
     deadline: '2026-08-25',
     order: null,
+    start: null,
   }
   const dueLater: ProjectMeta = {
     path: 'Projects/Active/dev-setup.md',
@@ -330,6 +337,7 @@ test('projects with deadlines order soonest-first ahead of undated ones', () => 
     status: 'now',
     deadline: '2026-09-10',
     order: null,
+    start: null,
   }
 
   const sections = classify(
@@ -354,6 +362,7 @@ test('deadline urgency: ahead until today, arrived from today on, null when unda
     status: 'later',
     deadline: '2026-08-22',
     order: null,
+    start: null,
   }
   const dueToday: ProjectMeta = {
     path: 'Projects/Active/colm-paper.md',
@@ -361,6 +370,7 @@ test('deadline urgency: ahead until today, arrived from today on, null when unda
     status: 'now',
     deadline: '2026-08-21',
     order: null,
+    start: null,
   }
   const past: ProjectMeta = {
     path: 'Projects/Active/dev-setup.md',
@@ -368,6 +378,7 @@ test('deadline urgency: ahead until today, arrived from today on, null when unda
     status: 'now',
     deadline: '2026-08-19',
     order: null,
+    start: null,
   }
   const undated: ProjectMeta = {
     path: 'Projects/Active/build-knowledge-base.md',
@@ -375,6 +386,7 @@ test('deadline urgency: ahead until today, arrived from today on, null when unda
     status: 'now',
     deadline: null,
     order: null,
+    start: null,
   }
   const projects = [ahead, dueToday, past, undated]
 
@@ -401,6 +413,7 @@ test('equal deadlines tiebreak by status rank then name; WIP count is unaffected
     status: 'later',
     deadline: '2026-08-25',
     order: null,
+    start: null,
   }
   const nowProject: ProjectMeta = {
     path: 'Projects/Active/colm-paper.md',
@@ -408,6 +421,7 @@ test('equal deadlines tiebreak by status rank then name; WIP count is unaffected
     status: 'now',
     deadline: '2026-08-25',
     order: null,
+    start: null,
   }
 
   const sections = classify(
@@ -432,6 +446,7 @@ test('a project task dated today appears in both today and its project group', (
     status: 'now',
     deadline: null,
     order: null,
+    start: null,
   }
   const crossCutting = task({
     description: 'test model for lsc-dpo',
@@ -454,6 +469,7 @@ test('sections preserve subtask hierarchy and promote orphaned children', () => 
     status: 'now',
     deadline: null,
     order: null,
+    start: null,
   }
   const parent = task({
     description: 'camera ready paper',
@@ -542,6 +558,7 @@ test('ranked projects lead by order; unranked follow under the pacing rules (#20
     status: 'next',
     deadline: null,
     order: null,
+    start: null,
     ...overrides,
   })
   const projects = [
@@ -567,6 +584,7 @@ test('an arrived deadline leads regardless of rank — except in capacity mode (
     status: 'next',
     deadline: null,
     order: null,
+    start: null,
     ...overrides,
   })
   const projects = [
@@ -583,4 +601,87 @@ test('an arrived deadline leads regardless of rank — except in capacity mode (
     classify(tasks, projects, {pacingMode: 'wip'}).projects.map(g => g.project.name),
     ['hand-placed', 'due-today', 'came-due'],
   )
+})
+
+const projectMeta = (name: string, overrides: Partial<ProjectMeta>): ProjectMeta => ({
+  path: `Projects/Active/${name}.md`,
+  name,
+  status: 'next',
+  deadline: null,
+  order: null,
+  start: null,
+  ...overrides,
+})
+
+test('unstarted projects tail the Backlogs regardless of rank, by start then the pacing rules (#22)', () => {
+  const projects = [
+    projectMeta('starts-later', {start: '2026-10-01', order: 1}),
+    projectMeta('starts-soon-later', {start: '2026-09-01', status: 'later'}),
+    projectMeta('starts-soon-now-ish', {start: '2026-09-01', status: 'next'}),
+    projectMeta('unranked', {status: 'later'}),
+    projectMeta('ranked', {order: 9}),
+  ]
+  const tasks = projects.map(p => task({description: p.name, filePath: p.path}))
+  const groups = classify(tasks, projects).projects
+  assert.deepEqual(
+    groups.map(g => g.project.name),
+    ['ranked', 'unranked', 'starts-soon-now-ish', 'starts-soon-later', 'starts-later'],
+  )
+  assert.deepEqual(
+    groups.map(g => g.unstarted),
+    [false, false, true, true, true],
+  )
+})
+
+test('a start of today is started; a future start with status now is started by declaration (#22)', () => {
+  const projects = [
+    projectMeta('today', {start: '2026-08-21', status: 'later'}),
+    projectMeta('declared', {start: '2026-12-01', status: 'now'}),
+    projectMeta('plain', {status: 'next'}),
+  ]
+  const tasks = projects.map(p => task({description: p.name, filePath: p.path}))
+  const groups = classify(tasks, projects).projects
+  assert.deepEqual(groups.map(g => g.project.name), ['declared', 'plain', 'today'])
+  assert.isFalse(groups.some(g => g.unstarted))
+})
+
+test('an arrived deadline leads even when the start is ahead — a debt beats a plan (#22)', () => {
+  const projects = [
+    projectMeta('resting', {order: 1}),
+    projectMeta('contradiction', {start: '2026-09-28', deadline: '2026-08-20'}),
+    projectMeta('waiting', {start: '2026-09-28'}),
+  ]
+  const tasks = projects.map(p => task({description: p.name, filePath: p.path}))
+  const groups = classify(tasks, projects).projects
+  assert.deepEqual(groups.map(g => g.project.name), ['contradiction', 'resting', 'waiting'])
+  assert.equal(groups[0].urgency, 'arrived')
+  assert.isFalse(groups[0].unstarted)
+  assert.isTrue(groups[2].unstarted)
+})
+
+test('capacity mode ignores start entirely: no tail band, nothing unstarted (#22)', () => {
+  const projects = [
+    projectMeta('later-with-start', {status: 'later'}),
+    projectMeta('now-starting-later', {status: 'next', start: '2026-12-01', order: 1}),
+  ]
+  const tasks = projects.map(p => task({description: p.name, filePath: p.path}))
+  const groups = classify(tasks, projects, {pacingMode: 'wip'}).projects
+  assert.deepEqual(groups.map(g => g.project.name), ['now-starting-later', 'later-with-start'])
+  assert.isFalse(groups.some(g => g.unstarted))
+})
+
+test('task classification ignores project start: a dated task in an unstarted project keeps its section (#22)', () => {
+  const waiting = projectMeta('waiting', {start: '2026-12-01'})
+  const sections = classify(
+    [
+      task({description: 'due today', filePath: waiting.path, due: '2026-08-21'}),
+      task({description: 'slipped', filePath: waiting.path, scheduled: '2026-08-01'}),
+      task({description: 'ahead', filePath: waiting.path, scheduled: '2026-09-01'}),
+    ],
+    [waiting],
+  )
+  assert.deepEqual(descriptions(sections.today), ['due today'])
+  assert.deepEqual(descriptions(sections.slipped), ['slipped'])
+  assert.deepEqual(descriptions(sections.upcoming), [], 'project tasks never reach Upcoming')
+  assert.isTrue(sections.projects[0].unstarted)
 })

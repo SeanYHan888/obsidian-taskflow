@@ -67,11 +67,12 @@ A project is a note in your projects folder with frontmatter:
 ```yaml
 ---
 status: next        # now | next | later
+start: 2026-08-19     # optional, ISO date — the project waits until then
 deadline: 2026-08-26  # optional, ISO date
 ---
 ```
 
-Fold a project group by clicking its header; the hover `↗` (or `Cmd/Ctrl+click`) jumps to the note. Right-click the header (or the `…` button) for the lifecycle menu: set status, set or clear the deadline, and *Mark done / dropped & archive*, which stamps the terminal status and moves the note to your archive folder — task lines untouched, links intact.
+Fold a project group by clicking its header; `Cmd/Ctrl+click` (or middle-click) jumps to the note. Right-click the header (or the `…` button) for the lifecycle menu: set status, set or clear the start and the deadline, and *Mark done / dropped & archive*, which stamps the terminal status and moves the note to your archive folder — task lines untouched, links intact.
 
 <img src="images/panel-projects.png" alt="Projects: deadline-first ordering, the WIP badge, and a pressing project offering → now" width="420">
 
@@ -80,10 +81,13 @@ Fold a project group by clicking its header; the hover `↗` (or `Cmd/Ctrl+click
 - **Capacity** — a `now n/limit` badge counts projects in `now` against your work-in-progress limit. Red past the limit; warns, never blocks.
 - **Deadlines** — projects carry deadline chips and sort soonest-first; the badge stays out of the way.
 
-In every mode you can also arrange the list by hand: the project header's menu has Move to top / up / down / to bottom, or on desktop drag a header onto another (stored as an `order` number in the note's frontmatter), setting a project to `now` lifts it to the top, and the Backlogs menu's **Organize by status** regroups everything now → next → later. A deadline that has arrived always leads.
 - **Hybrid** (default) — both signals, plus the **pressing loop**: when a project's deadline is within the attention window (7 days by default) but the project isn't in `now`, its header offers a one-tap **→ now**. Your calendar and your commitments disagree — one tap answers, ignoring it is also an answer. Promoting past your limit goes through, and the notice names it: *"conference-talk → now — now is full (4/3)"*.
 
-Switching modes is lossless: statuses and deadlines live in your notes' frontmatter, not in the plugin.
+In every mode you can also arrange the list by hand: the project header's menu has Move to top / up / down / to bottom, or on desktop drag a header onto another (stored as an `order` number in the note's frontmatter), setting a project to `now` lifts it to the top, and the Backlogs menu's **Organize by status** regroups everything now → next → later. A deadline that has arrived always leads.
+
+**Starting later.** Give a project a `start` date (the header menu's *Set start date…*) and it waits: until that day it sits folded at the tail of the list — below every ranked and unranked project, soonest start first — with a neutral `from MM-DD` chip in place of its deadline chip, and it never presses, whatever its deadline. From the start day it opens, rejoins the list, and in hybrid mode presses for **→ now** — a project with a start presses from that day instead of from the attention window. Setting it to `now` starts it early by declaration. A start after the deadline is written as asked, with a notice naming the contradiction. This is how a long effort split into parts (week 1 → part 1, week 2 → part 2) shows one part at a time.
+
+Switching modes is lossless: statuses, starts, and deadlines live in your notes' frontmatter, not in the plugin.
 
 ## Settings
 
@@ -98,7 +102,7 @@ Switching modes is lossless: statuses and deadlines live in your notes' frontmat
 | Move-target heading | Where moved tasks land in a project note | `Tasks` |
 | Project pacing | Capacity / Deadlines / Hybrid | Hybrid |
 | Work-in-progress limit | Projects allowed in `now` before the badge warns | `3` |
-| Deadline attention window | Days before a deadline that hybrid offers `→ now` (0 = on arrival) | `7` |
+| Deadline attention window | Days before a deadline that hybrid offers `→ now` (0 = on arrival). The fallback for projects without a `start` — those press from their start day instead | `7` |
 
 **Machine-managed note:** if some tool rewrites a note in your vault on its own schedule (an Apple Reminders sync, for example), point this setting at it. Its dated reminders appear and nag like any task, its scheduled time-blocks stay hidden (they're calendar, not tasks), and its rows allow check-off only — so the next sync never clobbers a panel edit.
 

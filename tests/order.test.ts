@@ -1,8 +1,10 @@
 import {assert, test} from 'vitest'
 
-import {canPlace, compareProjects, moveWrites, organizeByStatus, placeWrites, topRank} from '../src/core/order'
+import {canMove, canPlace, compareProjects, movableProjects, moveWrites, organizeByStatus, placeWrites, topRank} from '../src/core/order'
 
-import type {ProjectMeta} from '../src/core/types'
+import {projectMenuSpec} from '../src/core/menus'
+
+import type {ProjectGroup, ProjectMeta} from '../src/core/types'
 
 const meta = (name: string, overrides: Partial<ProjectMeta> = {}): ProjectMeta => ({
   path: `Projects/Active/${name}.md`,
@@ -10,6 +12,7 @@ const meta = (name: string, overrides: Partial<ProjectMeta> = {}): ProjectMeta =
   status: 'next',
   deadline: null,
   order: null,
+  start: null,
   ...overrides,
 })
 
@@ -109,4 +112,52 @@ test('canPlace: both in the movable list and different; nothing else drops (#21)
   assert.isFalse(canPlace(list, 'Projects/Active/a.md', 'Projects/Active/a.md'))
   assert.isFalse(canPlace(list, 'Projects/Active/a.md', 'Projects/Active/arrived.md'))
   assert.deepEqual(placeWrites(list, 'Projects/Active/a.md', 'Projects/Active/a.md'), [])
+})
+
+test('the movable band is the Backlogs minus arrived deadlines and unstarted projects (#22)', () => {
+  const group = (
+    name: string,
+    urgency: 'ahead' | 'arrived' | null,
+    unstarted: boolean,
+  ): ProjectGroup => ({project: meta(name), tasks: [], urgency, pressing: false, unstarted})
+  const groups = [
+    group('came-due', 'arrived', false),
+    group('a', 'ahead', false),
+    group('b', null, false),
+    group('waiting', null, true),
+  ]
+  assert.deepEqual(
+    movableProjects(groups).map(p => p.name),
+    ['a', 'b'],
+  )
+})
+
+test('canMove: the ends of the movable band and anything outside it are pinned (#20, #22)', () => {
+  const group = (name: string, urgency: 'arrived' | null, unstarted: boolean): ProjectGroup => ({
+    project: meta(name),
+    tasks: [],
+    urgency,
+    pressing: false,
+    unstarted,
+  })
+  const groups = [
+    group('came-due', 'arrived', false),
+    group('first', null, false),
+    group('middle', null, false),
+    group('last', null, false),
+    group('waiting', null, true),
+  ]
+  const P = (n: string) => `Projects/Active/${n}.md`
+  assert.deepEqual(canMove(groups, P('first')), {up: false, down: true})
+  assert.deepEqual(canMove(groups, P('middle')), {up: true, down: true})
+  assert.deepEqual(canMove(groups, P('last')), {up: true, down: false})
+  assert.deepEqual(canMove(groups, P('came-due')), {up: false, down: false})
+  assert.deepEqual(canMove(groups, P('waiting')), {up: false, down: false})
+  // Which is what disables all four Move items for an unstarted project.
+  const disabled = projectMenuSpec(meta('waiting'), {
+    pacingMode: 'hybrid',
+    pressing: false,
+    canMove: canMove(groups, P('waiting')),
+  }).filter(e => e.kind === 'item' && e.action.type === 'move' && e.disabled)
+  assert.lengthOf(disabled, 4)
 })

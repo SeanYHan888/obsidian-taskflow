@@ -35,6 +35,7 @@ const project = (overrides: Partial<ProjectMeta> = {}): ProjectMeta => ({
   status: 'next',
   deadline: null,
   order: null,
+  start: null,
   ...overrides,
 })
 
@@ -84,6 +85,7 @@ test('wip mode switches the deadline signal off: no urgency, status order only',
     status: 'later',
     deadline: '2026-08-22',
     order: null,
+    start: null,
   })
   const undatedNow = project({path: 'Projects/Active/a.md', name: 'a', status: 'now'})
 
@@ -141,4 +143,22 @@ test('the menu paces by mode: pressing leads with Move to now, wip hides deadlin
   )
   assert.include(dated, 'Deadline 2026-09-01…')
   assert.include(dated, 'Clear deadline')
+})
+
+test('a project with a start presses from its start day, the window ignored (#22)', () => {
+  const at = (start: string, deadline: string | null = null) =>
+    classify([project({start, deadline})]).projects[0].pressing
+  assert.isTrue(at('2026-08-21'), 'the start day presses, no deadline needed')
+  assert.isTrue(at('2026-08-01'), 'a start already behind presses until answered')
+  assert.isFalse(at('2026-08-22'), 'tomorrow is still ahead')
+  assert.isFalse(at('2026-09-01', '2026-08-22'), 'a deadline inside the window does not press before the start')
+  assert.isTrue(at('2026-08-21', '2026-12-01'), 'an arrived start presses even with the deadline far off')
+})
+
+test('without a start the window rule is unchanged; now never presses; capacity never presses (#22)', () => {
+  assert.isTrue(classify([project({deadline: '2026-08-28'})]).projects[0].pressing)
+  assert.isFalse(classify([project({deadline: '2026-08-29'})]).projects[0].pressing)
+  assert.isFalse(classify([project({start: '2026-08-01', status: 'now'})]).projects[0].pressing)
+  assert.isFalse(classify([project({start: '2026-08-01'})], {pacingMode: 'wip'}).projects[0].pressing)
+  assert.isFalse(classify([project({start: '2026-08-01'})], {pacingMode: 'deadline'}).projects[0].pressing)
 })

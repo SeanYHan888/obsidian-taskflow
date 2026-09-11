@@ -8,6 +8,7 @@ import {classifySections} from './core/classify'
 import {setupState} from './core/setup'
 import {dropIntent} from './core/drop'
 import {flattenTaskTree} from './core/hierarchy'
+import {projectDateNotice} from './core/labels'
 import {editableTasks} from './core/machine-note'
 import {
   dueMenuSpec,
@@ -17,13 +18,14 @@ import {
   selectBarMenuSpec,
   taskMenuSpec,
 } from './core/menus'
-import {moveWrites, organizeByStatus, placeWrites, topRank} from './core/order'
+import {canMove, movableProjects, moveWrites, organizeByStatus, placeWrites, topRank} from './core/order'
 import {resolveQuickDate} from './core/schedule'
 import {promotionOutcome, retirePlan} from './core/sections'
 
 import type {WorkspaceLeaf} from 'obsidian'
 import type {DropTarget} from './core/drop'
 import type {JournalEntry} from './core/journal'
+import type {ProjectDateEdit} from './core/labels'
 import type {MenuAction, MenuItemSpec} from './core/menus'
 import type {MoveDirection} from './core/order'
 
@@ -134,7 +136,9 @@ export class TaskflowView extends ItemView {
             void this.placeProject(path, targetPath),
           onProjectMenu: (project: ProjectMeta, ev: MouseEvent) =>
             this.showProjectMenu(project, ev),
-          onProjectDeadline: (project: ProjectMeta) => void this.pickProjectDeadline(project),
+          onProjectDeadline: (project: ProjectMeta) =>
+            void this.pickProjectDate(project, 'deadline'),
+          onProjectStart: (project: ProjectMeta) => void this.pickProjectDate(project, 'start'),
           onPromoteProject: (project: ProjectMeta) => void this.promote(project),
         },
       },
@@ -298,24 +302,13 @@ export class TaskflowView extends ItemView {
     else if (intent.kind === 'ask-date') this.showScheduleMenu([task], ev)
   }
 
-  /**
-   * The list a move works within (#20): the Backlogs as displayed, minus the
-   * arrived-deadline projects that lead regardless of rank.
-   */
-  private movableProjects(): ProjectMeta[] {
-    return (this.lastSections?.projects ?? [])
-      .filter(group => group.urgency !== 'arrived')
-      .map(group => group.project)
-  }
-
   private showProjectMenu(project: ProjectMeta, ev: MouseEvent): void {
-    const group = this.lastSections?.projects.find(g => g.project.path === project.path)
-    const movable = this.movableProjects()
-    const at = movable.findIndex(p => p.path === project.path)
+    const groups = this.lastSections?.projects ?? []
+    const group = groups.find(g => g.project.path === project.path)
     const spec = projectMenuSpec(project, {
       pacingMode: this.plugin.settings.pacingMode,
       pressing: group?.pressing ?? false,
-      canMove: {up: at > 0, down: at !== -1 && at < movable.length - 1},
+      canMove: canMove(groups, project.path),
     })
     this.runMenu(spec, ev, action => {
       if (action.type === 'open-note') void this.openFile(project.path)
@@ -323,8 +316,12 @@ export class TaskflowView extends ItemView {
       else if (action.type === 'add-task') void this.addTaskPrompt(project)
       else if (action.type === 'promote') void this.promote(project)
       else if (action.type === 'set-status') void this.changeStatus(project, action.status)
-      else if (action.type === 'pick-deadline') void this.pickProjectDeadline(project)
-      else if (action.type === 'clear-deadline') void this.changeDeadline(project, null)
+      else if (action.type === 'pick-start') void this.pickProjectDate(project, 'start')
+      else if (action.type === 'clear-start')
+        void this.changeProjectDate(project, {field: 'start', date: null})
+      else if (action.type === 'pick-deadline') void this.pickProjectDate(project, 'deadline')
+      else if (action.type === 'clear-deadline')
+        void this.changeProjectDate(project, {field: 'deadline', date: null})
       else if (action.type === 'retire') void this.retireProject(project, action.status)
     })
   }
@@ -374,16 +371,21 @@ export class TaskflowView extends ItemView {
     await this.ports.projects.setOrder(project.path, topRank(this.ports.projects.read()))
   }
 
+  /** The band a move works within (#20, #22): core's one definition, over the last projection. */
+  private movableBand(): ProjectMeta[] {
+    return movableProjects(this.lastSections?.projects ?? [])
+  }
+
   /** Move to top/up/down/bottom (#20): core names the writes, this runs them. */
   private async moveProject(project: ProjectMeta, direction: MoveDirection): Promise<void> {
-    const writes = moveWrites(this.movableProjects(), project.path, direction)
+    const writes = moveWrites(this.movableBand(), project.path, direction)
     for (const write of writes) await this.ports.projects.setOrder(write.path, write.order)
     if (writes.length > 0) this.refresh()
   }
 
   /** Drag-to-reorder (#21): the same writer as the menu moves, one drop at a time. */
   private async placeProject(path: string, targetPath: string): Promise<void> {
-    const writes = placeWrites(this.movableProjects(), path, targetPath)
+    const writes = placeWrites(this.movableBand(), path, targetPath)
     for (const write of writes) await this.ports.projects.setOrder(write.path, write.order)
     if (writes.length > 0) this.refresh()
   }
@@ -404,24 +406,34 @@ export class TaskflowView extends ItemView {
     this.refresh()
   }
 
-  private async pickProjectDeadline(project: ProjectMeta): Promise<void> {
+  /**
+   * The project date picker — one pattern for the deadline and the start
+   * that twins it (#23): opens on the date already held, else today. No
+   * quick dates: a project date is picked, never guessed.
+   */
+  private async pickProjectDate(
+    project: ProjectMeta,
+    field: ProjectDateEdit['field'],
+  ): Promise<void> {
     const date = await askDate(this.app, {
-      defaultDate: project.deadline ?? localToday(),
-      title: 'Project deadline…',
-      submitLabel: 'Set deadline',
+      defaultDate: project[field] ?? localToday(),
+      title: field === 'start' ? 'Project start…' : 'Project deadline…',
+      submitLabel: field === 'start' ? 'Set start' : 'Set deadline',
     })
-    if (date) await this.changeDeadline(project, date)
+    if (date) await this.changeProjectDate(project, {field, date})
   }
 
-  /** Like status flips, deadline edits are frontmatter — not journaled. */
-  private async changeDeadline(project: ProjectMeta, deadline: string | null): Promise<void> {
-    if (await this.ports.projects.setDeadline(project.path, deadline)) {
-      new Notice(
-        deadline == null
-          ? `Taskflow: ${project.name} deadline cleared`
-          : `Taskflow: ${project.name} deadline → ${deadline}`,
-      )
-    }
+  /**
+   * Like status flips, project date edits are frontmatter — not journaled.
+   * A start past the deadline (or a deadline before the start) is written
+   * as asked — warn, never block — and the notice names both dates (#23).
+   */
+  private async changeProjectDate(project: ProjectMeta, edit: ProjectDateEdit): Promise<void> {
+    const written =
+      edit.field === 'start'
+        ? await this.ports.projects.setStart(project.path, edit.date)
+        : await this.ports.projects.setDeadline(project.path, edit.date)
+    if (written) new Notice(projectDateNotice(project, edit))
     this.refresh()
   }
 
@@ -563,10 +575,14 @@ export class TaskflowView extends ItemView {
     })
   }
 
+  /**
+   * Stored as an explicit toggle either way (#24): the default depends on
+   * the project (unstarted folds, started opens — core/sections
+   * projectFolded), so an unfold has to be remembered, not just a fold.
+   */
   private async setProjectCollapsed(path: string, collapsed: boolean): Promise<void> {
-    const next = {...this.plugin.settings.collapsedProjects}
-    if (collapsed) next[path] = true
-    else delete next[path]
-    await this.plugin.updateSettings({collapsedProjects: next})
+    await this.plugin.updateSettings({
+      collapsedProjects: {...this.plugin.settings.collapsedProjects, [path]: collapsed},
+    })
   }
 }
