@@ -331,16 +331,17 @@
             <!-- Last, past the hover-revealed buttons, so at rest the chip
                  sits flush right — one date column down the whole panel:
                  the next date that matters. While unstarted that is the
-                 start (#24), neutral — a future start is not a debt — and
-                 the deadline chip returns once the project is started. A
-                 chip opens what edits it (panel grammar): its picker. -->
+                 start (#24), neutral — a future start is not a debt — in
+                 the glossary's own word (never "from"), and the deadline
+                 chip returns once the project is started. A chip opens
+                 what edits it (panel grammar): its picker. -->
             {#if group.unstarted && group.project.start != null}
               <button
                 class="taskflow-chip taskflow-chip-button taskflow-chip-start"
                 aria-label="Project start"
                 onclick={() => callbacks.onProjectStart(group.project)}
               >
-                from {chipLabel(group.project.start, data.today)}
+                starts {group.project.start.slice(5)}
               </button>
             {:else if group.project.deadline != null && data.pacingMode !== 'wip'}
               <button
