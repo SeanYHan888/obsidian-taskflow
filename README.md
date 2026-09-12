@@ -44,19 +44,19 @@ Sections are disjoint views of one thing — the date on the line. Tasks never "
 
 ## Working the panel
 
-**Rows.** The circle completes a task (through the Tasks API, so ✅ done-dates are written). Clicking the text jumps to the task's line in its note — `Cmd/Ctrl+click` opens in a new tab, middle-click too. **Right-click any row** for everything at once: open in note, the quick dates, and cancel.
+**Rows.** The circle completes a task (through the Tasks API, so ✅ done-dates are written). Clicking the text jumps to the task's line in its note — `Cmd/Ctrl+click` opens in a new tab, middle-click too. **Right-click any row** for everything at once: open in note, edit the text, complete, the Start and Due groups, move or select, and cancel.
 
-**Date chips.** Click a task's chip (or the small calendar button on an undated row) for the quick-date menu: *To-do (today) · Tomorrow · Weekend · Pick a date…*, plus *Remove date* when there's a plan to withdraw. Chips are amber while a date is ahead and red once it has arrived.
+**Two dates, one chip.** A task has a **start** (⏳, the day it enters To-do, slideable without guilt) and, rarely, a **due** (📅, a real deadline). A row shows one chip, the date that matters next: the start while it is ahead, then the due once started, else the start. Click the chip (or the small calendar button on an undated row) to edit that field. The start menu reads *Today · Tomorrow · Weekend · Next week*, then *+1 day · +1 week* when there is a start to nudge, *Pick a date…*, and *Clear start*; the due menu reads *Set due date…* and *Clear due*, no quick dates, since a deadline is picked, never guessed. Chips are amber while a date is ahead and red once it has arrived; the row menu edits whichever field the chip isn't showing.
 
-**Repairing slipped tasks.** Rows in Overdue & slipped carry one-tap actions: *to-do*, *tomorrow*, pick a date, or cancel. The section header's *All → to-do* sweeps everything slipped onto today's list — the morning zero ritual.
+**Repairing slipped tasks.** Rows in Overdue & slipped carry one-tap actions: *today*, *tomorrow*, pick a date, or cancel. The section header's *Start all today* sweeps everything slipped onto today's list — the morning zero ritual.
 
 **Drag and drop** (desktop). Drag any row onto the **To-do** header to schedule it today, onto **Upcoming** to pick a future date, or onto a **project** to move the line (with its subtasks) into that note. Only targets whose drop would actually do something light up.
 
-**Bulk triage.** Hit *select* on the To-do or Projects header (or just start selecting) — checkboxes appear across the working list and the backlogs. A bar at the panel's foot shows the count with *move to project* and bulk scheduling. `Esc` exits.
+**Bulk triage.** Choose *Select tasks…* on the To-do or Projects header, or *Select to move…* on any row's menu to start with that task in hand — checkboxes appear across the working list and the backlogs. A bar at the panel's foot shows the count with *move to project* and bulk scheduling. `Esc` exits.
 
 <img src="images/panel-select.png" alt="Select mode: two inbox captures selected, with the bulk move-to-project bar" width="420">
 
-**Move to project** physically cuts the task lines — subtask children included — out of their source and appends them under your project note's `## Tasks` heading (configurable). Choose *+ New project…* in the picker and Taskflow creates the note for you, from your template if you set one, from a minimal built-in scaffold if not. **Send back to inbox** (on a backlog task's menu) is the inverse: the line returns to today's daily note under your inbox heading.
+**Move to project** physically cuts the task lines — subtask children included — out of their source and appends them under your project note's `## Tasks` heading (configurable). Choose *+ New project…* in the picker and Taskflow creates the note for you, from your template if you set one, from a minimal built-in scaffold if not. **Send back to To-do** (on a backlog task's menu) is the inverse: the line returns to today's daily note under your inbox heading. The row menu also carries *Edit text…* (the words change, dates and tags stay) and *Complete task*.
 
 **Undo.** Every line edit — reschedules, cancels, moves, bulk sweeps — shows a notice with an *Undo* link, and the *Undo last panel action* command replays the journal backwards. Undo verifies each line still reads what the action left before restoring it; anything you've edited since is skipped, never guessed at.
 
@@ -72,7 +72,7 @@ deadline: 2026-08-26  # optional, ISO date
 ---
 ```
 
-Fold a project group by clicking its header; `Cmd/Ctrl+click` (or middle-click) jumps to the note. Right-click the header (or the `…` button) for the lifecycle menu: set status, set or clear the start and the deadline, and *Mark done / dropped & archive*, which stamps the terminal status and moves the note to your archive folder — task lines untouched, links intact.
+Fold a project group by clicking its header; `Cmd/Ctrl+click` (or middle-click) jumps to the note. Right-click the header (or the `…` button) for the lifecycle menu: rename, set status, set or clear the start and the deadline, and *Mark done / dropped & archive*, which stamps the terminal status and moves the note to your archive folder — task lines untouched, links intact.
 
 <img src="images/panel-projects.png" alt="Projects: deadline-first ordering, the WIP badge, and a pressing project offering → now" width="420">
 
@@ -83,7 +83,7 @@ Fold a project group by clicking its header; `Cmd/Ctrl+click` (or middle-click) 
 
 - **Hybrid** (default) — both signals, plus the **pressing loop**: when a project's deadline is within the attention window (7 days by default) but the project isn't in `now`, its header offers a one-tap **→ now**. Your calendar and your commitments disagree — one tap answers, ignoring it is also an answer. Promoting past your limit goes through, and the notice names it: *"conference-talk → now — now is full (4/3)"*.
 
-In every mode you can also arrange the list by hand: the project header's menu has Move to top / up / down / to bottom, or on desktop drag a header onto another (stored as an `order` number in the note's frontmatter), setting a project to `now` lifts it to the top, and the Backlogs menu's **Organize by status** regroups everything now → next → later. A deadline that has arrived always leads.
+In every mode you can also arrange the list by hand: the project header's menu has Move to top / up / down / to bottom, or on desktop drag a header onto another (stored as an `order` number in the note's frontmatter), setting a project to `now` lifts it to the top, and the Backlogs menu's **Organize by status** regroups everything now → next → later. The same menu creates a project (*New project…*) and folds or unfolds every group at once. A deadline that has arrived always leads.
 
 **Starting later.** Give a project a `start` date (the header menu's *Set start date…*) and it waits: until that day it sits folded at the tail of the list — below every ranked and unranked project, soonest start first — with a neutral `starts MM-DD` chip in place of its deadline chip, and it never presses, whatever its deadline. From the start day it opens, rejoins the list, and in hybrid mode presses for **→ now** — a project with a start presses from that day instead of from the attention window. Setting it to `now` starts it early by declaration. A start after the deadline is written as asked, with a notice naming the contradiction. This is how a long effort split into parts (week 1 → part 1, week 2 → part 2) shows one part at a time.
 

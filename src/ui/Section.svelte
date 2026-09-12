@@ -14,6 +14,7 @@
     badge = null,
     badgeDanger = false,
     onMenu = null,
+    menuWhenEmpty = false,
     emptyText = 'Nothing here',
     onCollapse,
     dragActive = false,
@@ -29,6 +30,8 @@
     badgeDanger?: boolean
     /** The header's "…" menu; absent when the section has no acts. */
     onMenu?: ((ev: MouseEvent) => void) | null
+    /** The menu carries a capture act (New project…), so it shows with nothing listed too. */
+    menuWhenEmpty?: boolean
     emptyText?: string
     onCollapse: (key: SectionKey, collapsed: boolean) => void
     /** True while a row is lifted somewhere in the panel. */
@@ -96,7 +99,7 @@
         <span class="taskflow-badge" class:taskflow-badge-danger={badgeDanger}>{badge}</span>
       {/if}
     </button>
-    {#if onMenu && count > 0 && !collapsed}
+    {#if onMenu && (count > 0 || menuWhenEmpty) && !collapsed}
       <button
         class="taskflow-section-menu"
         aria-label="Section actions"

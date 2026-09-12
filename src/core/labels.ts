@@ -34,3 +34,15 @@ export const projectDateNotice = (
     ? `${base} — start ${day(start)} is after deadline ${day(deadline)}`
     : `${base} — deadline ${day(deadline)} is before start ${day(start)}`
 }
+
+/**
+ * The journal label for a task date edit — the same word the menu item
+ * used (CONTEXT.md: Menu order), so notice and undo link speak as the menu
+ * did: "start → 2026-09-15 on 3 tasks", "due cleared on 1 task".
+ */
+export const dateEditLabel = (
+  field: 'start' | 'due',
+  count: number,
+  date: string | null,
+): string =>
+  date == null ? `${field} cleared on ${plural(count)}` : `${field} → ${date} on ${plural(count)}`

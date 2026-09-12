@@ -19,7 +19,7 @@ import {
   taskMenuSpec,
 } from './core/menus'
 import {canMove, movableProjects, moveWrites, organizeByStatus, placeWrites, topRank} from './core/order'
-import {resolveQuickDate} from './core/schedule'
+import {postponeAnchor, resolveQuickDate, resolveRelativeDate} from './core/schedule'
 import {promotionOutcome, retirePlan} from './core/sections'
 
 import type {WorkspaceLeaf} from 'obsidian'
@@ -36,7 +36,7 @@ type PanelHandle = {
   selectTask: (task: TaskflowTask) => void
 }
 import type {Ports} from './core/ports'
-import type {QuickDate} from './core/schedule'
+import type {QuickDate, RelativeDate} from './core/schedule'
 import type {ProjectMeta, ProjectStatus, Sections, TaskflowTask} from './core/types'
 import type {PanelData, RowMenuState} from './ui/panel-types'
 import type {SectionKey, TaskflowSettings} from './settings'
@@ -213,6 +213,7 @@ export class TaskflowView extends ItemView {
     const menu = new Menu()
     for (const entry of spec) {
       if (entry.kind === 'separator') menu.addSeparator()
+      else if (entry.kind === 'label') menu.addItem(item => item.setTitle(entry.title).setIsLabel(true))
       else {
         menu.addItem(item =>
           item
@@ -229,6 +230,9 @@ export class TaskflowView extends ItemView {
   private dispatchTaskAction(tasks: TaskflowTask[], action: MenuAction, ev: MouseEvent): void {
     if (action.type === 'schedule')
       void this.reschedule(tasks, resolveQuickDate(action.kind, localToday()))
+    else if (action.type === 'postpone' && tasks[0]) void this.postpone(tasks[0], action.kind)
+    else if (action.type === 'complete' && tasks[0]) void this.toggle(tasks[0])
+    else if (action.type === 'edit-text' && tasks[0]) void this.editTextPrompt(tasks[0])
     else if (action.type === 'pick-date') void this.pickDate(tasks)
     else if (action.type === 'remove-date') void this.unschedule(tasks)
     else if (action.type === 'pick-due-date' && tasks[0]) void this.pickDueDate(tasks[0])
@@ -277,7 +281,68 @@ export class TaskflowView extends ItemView {
       if (action.type === 'toggle-select') this.panel?.toggleSelectMode()
       else if (action.type === 'reschedule-all') void this.rescheduleAllSlipped()
       else if (action.type === 'organize') void this.organizeProjects()
+      else if (action.type === 'new-project') void this.newProjectPrompt()
+      else if (action.type === 'fold-all') void this.foldAllProjects(action.folded)
     })
+  }
+
+  /** New project… from the Backlogs header: the create flow the move picker hid. */
+  private async newProjectPrompt(): Promise<void> {
+    const name = await askText(this.app, {
+      title: 'New project',
+      placeholder: 'Project name',
+      submitLabel: 'Create',
+    })
+    if (!name) return
+    const path = await this.ports.projects.create(name, localToday())
+    if (path) new Notice(`Taskflow: project ${name} created`)
+    this.refresh()
+  }
+
+  /** Fold all / Unfold all: one stored toggle per rendered project (#24's explicit-toggle rule). */
+  private async foldAllProjects(folded: boolean): Promise<void> {
+    const groups = this.lastSections?.projects ?? []
+    const toggles = Object.fromEntries(groups.map(g => [g.project.path, folded]))
+    await this.plugin.updateSettings({
+      collapsedProjects: {...this.plugin.settings.collapsedProjects, ...toggles},
+    })
+    this.refresh()
+  }
+
+  /** Rename project…: the note moves under its new name; links follow. */
+  private async renameProjectPrompt(project: ProjectMeta): Promise<void> {
+    const name = await askText(this.app, {
+      title: 'Rename project',
+      placeholder: 'Project name',
+      value: project.name,
+      submitLabel: 'Rename',
+    })
+    if (!name || name === project.name) return
+    const path = await this.ports.projects.rename(project.path, name)
+    if (path) {
+      // The fold toggle follows the note, keyed by path.
+      const {[project.path]: folded, ...rest} = this.plugin.settings.collapsedProjects
+      if (folded != null) await this.plugin.updateSettings({collapsedProjects: {...rest, [path]: folded}})
+      new Notice(`Taskflow: ${project.name} → ${name}`)
+    }
+    this.refresh()
+  }
+
+  /** Edit text…: the words, in a prompt, without leaving the panel. */
+  private async editTextPrompt(task: TaskflowTask): Promise<void> {
+    const text = await askText(this.app, {
+      title: 'Edit task',
+      placeholder: 'Task',
+      value: task.description,
+      submitLabel: 'Save',
+    })
+    if (text && text !== task.description) await this.act(() => this.ports.editor.editText(task, text))
+  }
+
+  /** The relative pair: a quick date counted from the task's own anchor. */
+  private async postpone(task: TaskflowTask, kind: RelativeDate): Promise<void> {
+    const anchor = postponeAnchor(task, localToday())
+    if (anchor != null) await this.reschedule([task], resolveRelativeDate(kind, anchor))
   }
 
   /**
@@ -312,6 +377,7 @@ export class TaskflowView extends ItemView {
     })
     this.runMenu(spec, ev, action => {
       if (action.type === 'open-note') void this.openFile(project.path)
+      else if (action.type === 'rename-project') void this.renameProjectPrompt(project)
       else if (action.type === 'move') void this.moveProject(project, action.direction)
       else if (action.type === 'add-task') void this.addTaskPrompt(project)
       else if (action.type === 'promote') void this.promote(project)

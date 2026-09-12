@@ -34,6 +34,8 @@ export type ProjectStore = {
   archive(path: string, status: 'done' | 'dropped'): Promise<boolean>
   /** Returns the created (or existing same-name) note's path, or null. */
   create(name: string, today: string): Promise<string | null>
+  /** Renames the note in place (links follow); returns the new path, or null. */
+  rename(path: string, name: string): Promise<string | null>
 }
 
 export type MoveOutcome = {moved: number; entry: JournalEntry | null}
@@ -52,6 +54,8 @@ export type LineEditor = {
   setDue(tasks: TaskflowTask[], date: string): Promise<JournalEntry | null>
   clearDue(tasks: TaskflowTask[]): Promise<JournalEntry | null>
   cancel(task: TaskflowTask): Promise<JournalEntry | null>
+  /** Swaps the task's words; checkbox, dates and block reference stay. */
+  editText(task: TaskflowTask, text: string): Promise<JournalEntry | null>
   moveToProject(tasks: TaskflowTask[], projectPath: string): Promise<MoveOutcome>
   sendBackToInbox(tasks: TaskflowTask[], today: string): Promise<MoveOutcome>
   /** Appends one new task line under the project's move-target heading. */

@@ -1,6 +1,13 @@
 import {TFolder, normalizePath} from 'obsidian'
 
-import {cancelTask, clearDueTasks, rescheduleTasks, setDueTasks, unscheduleTasks} from './edit-lines'
+import {
+  cancelTask,
+  clearDueTasks,
+  editTaskText,
+  rescheduleTasks,
+  setDueTasks,
+  unscheduleTasks,
+} from './edit-lines'
 import {
   addTaskToProject,
   createProjectFromTemplate,
@@ -11,6 +18,7 @@ import {
 import {
   archiveProject,
   readProjects,
+  renameProject,
   setProjectDeadline,
   setProjectOrder,
   setProjectStart,
@@ -77,6 +85,7 @@ export const createPorts = (app: App, settings: () => TaskflowSettings): Ports =
       )
       return file?.path ?? null
     },
+    rename: (path, name) => renameProject(app, path, name),
   },
   editor: {
     reschedule: (tasks, date, today) => rescheduleTasks(app, tasks, date, today),
@@ -84,6 +93,7 @@ export const createPorts = (app: App, settings: () => TaskflowSettings): Ports =
     setDue: (tasks, date) => setDueTasks(app, tasks, date),
     clearDue: tasks => clearDueTasks(app, tasks),
     cancel: task => cancelTask(app, task),
+    editText: (task, text) => editTaskText(app, task, text),
     moveToProject: (tasks, projectPath) =>
       moveTasksToProject(app, tasks, projectPath, settings().moveTargetHeading),
     sendBackToInbox: (tasks, today) =>

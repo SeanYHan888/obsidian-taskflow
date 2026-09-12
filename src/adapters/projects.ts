@@ -143,3 +143,28 @@ export const archiveProject = async (
   await app.fileManager.renameFile(file, target)
   return true
 }
+
+/**
+ * Renames a project note in its own folder (renameFile, so links keep
+ * working). A name already taken is a notice, not an overwrite. Not
+ * journaled: the note's name is its own text record.
+ */
+export const renameProject = async (
+  app: App,
+  projectPath: string,
+  name: string,
+): Promise<string | null> => {
+  const file = app.vault.getAbstractFileByPath(projectPath)
+  if (!(file instanceof TFile)) {
+    new Notice(`Taskflow: project note not found: ${projectPath}`)
+    return null
+  }
+  const target = normalizePath(`${file.parent?.path ?? ''}/${name}.${file.extension}`)
+  if (target === file.path) return null
+  if (app.vault.getAbstractFileByPath(target)) {
+    new Notice(`Taskflow: "${name}" already exists — pick another name`)
+    return null
+  }
+  await app.fileManager.renameFile(file, target)
+  return target
+}

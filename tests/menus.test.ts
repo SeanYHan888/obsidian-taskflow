@@ -35,33 +35,49 @@ const task = (overrides: Partial<TaskflowTask> = {}): TaskflowTask => ({
 })
 
 const titles = (spec: MenuItemSpec[]) =>
-  spec.map(entry => (entry.kind === 'item' ? entry.title : '—'))
+  spec.map(entry =>
+    entry.kind === 'item' ? entry.title : entry.kind === 'label' ? `[${entry.title}]` : '—',
+  )
 
-test('an undated daily task gets the four quick dates and nothing else', () => {
+test('an undated daily task gets the four quick dates and the picker, nothing else', () => {
   assert.deepEqual(titles(scheduleMenuSpec([task()], CONFIG)), [
-    'To-do (today)',
+    'Today',
     'Tomorrow',
     'Weekend',
+    'Next week',
     'Pick a date…',
   ])
 })
 
-test('remove date appears once anything has a plan to withdraw', () => {
+test('Clear start appears once anything has a start to withdraw', () => {
   const spec = scheduleMenuSpec([task(), task({scheduled: '2026-08-25'})], CONFIG)
-  assert.include(titles(spec), 'Remove date')
+  assert.include(titles(spec), 'Clear start')
+  assert.notInclude(titles(scheduleMenuSpec([task()], CONFIG)), 'Clear start')
+})
+
+test('the relative pair follows the quick dates for one task with something to postpone', () => {
+  const ahead = titles(scheduleMenuSpec([task({scheduled: '2026-09-01'})], CONFIG))
+  assert.deepEqual(ahead.slice(0, 7), ['Today', 'Tomorrow', 'Weekend', 'Next week', '+1 day', '+1 week', 'Pick a date…'])
+  const spec = scheduleMenuSpec([task({scheduled: '2026-09-01'})], CONFIG)
+  const plusWeek = spec.find(e => e.kind === 'item' && e.title === '+1 week')
+  assert.ok(plusWeek && plusWeek.kind === 'item' && plusWeek.action.type === 'postpone' && plusWeek.action.kind === 'plus-week')
+  // A spent deadline can be postponed; a live one alone cannot; a bulk selection never.
+  assert.include(titles(scheduleMenuSpec([task({due: '2026-08-01'})], CONFIG)), '+1 day')
+  assert.notInclude(titles(scheduleMenuSpec([task({due: '2026-09-01'})], CONFIG)), '+1 day')
+  assert.notInclude(titles(scheduleMenuSpec([task({scheduled: '2026-09-01'}), task({scheduled: '2026-09-02'})], CONFIG)), '+1 day')
 })
 
 test('a quick date that is already the deadline is ✓ and disabled — a plan there writes nothing (#18)', () => {
   const spec = scheduleMenuSpec([task({due: '2026-08-24'})], CONFIG)
-  const today = spec.find(e => e.kind === 'item' && e.title.startsWith('To-do'))
-  assert.ok(today && today.kind === 'item' && today.title === 'To-do (today) ✓' && today.disabled)
+  const today = spec.find(e => e.kind === 'item' && e.title.startsWith('Today'))
+  assert.ok(today && today.kind === 'item' && today.title === 'Today ✓' && today.disabled)
 })
 
 test('a quick date every selected task already holds is ✓ and disabled', () => {
   const spec = scheduleMenuSpec([task({scheduled: '2026-08-24'})], CONFIG)
   const items = spec.filter(e => e.kind === 'item')
-  const today = items.find(e => e.title.startsWith('To-do'))
-  assert.equal(today?.title, 'To-do (today) ✓')
+  const today = items.find(e => e.title.startsWith('Today'))
+  assert.equal(today?.title, 'Today ✓')
   assert.isTrue(today?.disabled)
   const tomorrow = items.find(e => e.title.startsWith('Tomorrow'))
   assert.equal(tomorrow?.title, 'Tomorrow')
@@ -70,7 +86,7 @@ test('a quick date every selected task already holds is ✓ and disabled', () =>
 
 test('a mixed selection marks no quick date', () => {
   const spec = scheduleMenuSpec([task({scheduled: '2026-08-24'}), task()], CONFIG)
-  assert.notInclude(titles(spec), 'To-do (today) ✓')
+  assert.notInclude(titles(spec), 'Today ✓')
 })
 
 test('refiling acts appear only when every task lives in a project note', () => {
@@ -126,6 +142,7 @@ test('clear deadline exists only once a deadline is set', () => {
 test('both menus open with the same jump and close with the destructive acts', () => {
   const projectTitles = titles(projectMenuSpec(project(), HYBRID))
   assert.equal(projectTitles[0], 'Open note')
+  assert.equal(projectTitles[1], 'Rename project…')
   assert.deepEqual(projectTitles.slice(-2), ['Mark done & archive', 'Mark dropped & archive'])
 
   const taskTitles = titles(taskMenuSpec(task(), CONFIG))
@@ -142,11 +159,11 @@ test('the project menu carries the capture act, pressing puts the commit first',
   assert.isBelow(pressing.indexOf('Move to now'), pressing.indexOf('Add task…'))
 })
 
-test('a machine-managed row offers only the jump', () => {
+test('a machine-managed row offers the jump and check-off — the one edit its note survives', () => {
   const managed = task({filePath: 'Sync/Reminders.md'})
   assert.deepEqual(
     titles(taskMenuSpec(managed, {...CONFIG, machineNotePath: 'Sync/Reminders.md'})),
-    ['Open note'],
+    ['Open note', '—', 'Complete task'],
   )
 })
 
@@ -158,7 +175,7 @@ test('the section menu carries the acts: select for selectable, repair for slipp
   assert.deepEqual(selecting, ['Done selecting'])
 
   const repair = titles(sectionMenuSpec({selecting: false, selectable: false, repairable: true, organizable: false}))
-  assert.deepEqual(repair, ['Reschedule all to today'])
+  assert.deepEqual(repair, ['Start all today'])
 })
 
 test('a section with no acts gets an empty spec — no menu at all', () => {
@@ -168,7 +185,7 @@ test('a section with no acts gets an empty spec — no menu at all', () => {
 test('the select bar overflow prepends move-to-project for triage selections only', () => {
   const triage = titles(selectBarMenuSpec([task()], CONFIG))
   assert.equal(triage[0], 'Move to project…')
-  assert.include(triage, 'To-do (today)')
+  assert.include(triage, 'Today')
 
   const refile = selectBarMenuSpec([task({filePath: 'Projects/Active/colm-paper.md'})], CONFIG)
   const moves = refile.filter(e => e.kind === 'item' && e.action.type === 'move-to-project')
@@ -176,21 +193,31 @@ test('the select bar overflow prepends move-to-project for triage selections onl
 })
 
 test('the due chip opens a menu that edits the due field only — no quick dates (#18)', () => {
-  assert.deepEqual(titles(dueMenuSpec(task({due: '2026-09-05'}))), ['Pick a date…', 'Remove due date'])
-  assert.deepEqual(titles(dueMenuSpec(task())), ['Pick a date…'])
+  assert.deepEqual(titles(dueMenuSpec(task({due: '2026-09-05'}))), ['Due 2026-09-05…', 'Clear due'])
+  assert.deepEqual(titles(dueMenuSpec(task())), ['Set due date…'])
   for (const entry of dueMenuSpec(task({due: '2026-09-05'}))) {
     if (entry.kind === 'item') assert.match(entry.action.type, /due/)
   }
 })
 
-test('the row menu offers the due date after the plan items, in the pacing group (#18)', () => {
+test('the row menu reads as two labelled date groups, Start then Due (#18, CONTEXT.md Menu order)', () => {
   const undated = titles(taskMenuSpec(task(), CONFIG))
-  assert.isAbove(undated.indexOf('Set due date…'), undated.indexOf('Pick a date…'))
-  assert.notInclude(undated, 'Remove due date')
+  const start = undated.indexOf('[Start]')
+  assert.deepEqual(undated.slice(start, start + 8), [
+    '[Start]',
+    'Today',
+    'Tomorrow',
+    'Weekend',
+    'Next week',
+    'Pick a date…',
+    '[Due]',
+    'Set due date…',
+  ])
+  assert.notInclude(undated, 'Clear due')
 
   const dated = titles(taskMenuSpec(task({due: '2026-09-05'}), CONFIG))
   assert.include(dated, 'Due 2026-09-05…')
-  assert.include(dated, 'Remove due date')
+  assert.include(dated, 'Clear due')
 
   // In a project note the refile group follows; the due items stay ahead of it.
   const inProject = titles(taskMenuSpec(task({filePath: 'Projects/Active/Taxes.md'}), CONFIG))
@@ -201,7 +228,8 @@ test('the row menu offers the due date after the plan items, in the pacing group
 test('bulk schedule menus never carry due items — one row, its own deadline (#18)', () => {
   const bulk = titles(scheduleMenuSpec([task(), task({due: '2026-09-05'})], CONFIG))
   assert.notInclude(bulk, 'Set due date…')
-  assert.notInclude(bulk, 'Remove due date')
+  assert.notInclude(bulk, 'Clear due')
+  assert.notInclude(bulk, '[Start]')
 })
 
 test('every row can be moved to a project; only project rows can be sent back (#19)', () => {
@@ -218,18 +246,33 @@ test('every row can be moved to a project; only project rows can be sent back (#
   assert.deepEqual(daily.slice(daily.indexOf('Move to project…') + 1), ['—', 'Cancel task'])
 })
 
-test('Select sits right after the jump in selectable sections only, ✓ once selected (#19)', () => {
+test('Select to move… is a refile act beside Move to project…, in selectable sections only, ✓ once selected', () => {
   const plain = titles(taskMenuSpec(task(), CONFIG))
-  assert.notInclude(plain, 'Select')
+  assert.notInclude(plain, 'Select to move…')
 
-  const selectable = taskMenuSpec(task(), {...CONFIG, selectable: true})
-  const t = titles(selectable)
-  assert.deepEqual(t.slice(0, 3), ['Open note', '—', 'Select'])
-  assert.equal(t[3], '—')
+  const t = titles(taskMenuSpec(task(), {...CONFIG, selectable: true}))
+  assert.equal(t[t.indexOf('Move to project…') + 1], 'Select to move…')
+
+  const inProject = titles(taskMenuSpec(task({filePath: 'Projects/Active/Taxes.md'}), {...CONFIG, selectable: true}))
+  const from = inProject.indexOf('Move to project…')
+  assert.deepEqual(inProject.slice(from, from + 3), ['Move to project…', 'Select to move…', 'Send back to To-do'])
 
   const selected = taskMenuSpec(task(), {...CONFIG, selectable: true, selected: true})
   const entry = selected.find(e => e.kind === 'item' && e.action.type === 'select')
-  assert.ok(entry && entry.kind === 'item' && entry.title === 'Select ✓' && entry.disabled)
+  assert.ok(entry && entry.kind === 'item' && entry.title === 'Select to move… ✓' && entry.disabled)
+})
+
+test('the row menu opens with the jump and the words, then check-off, before the dates', () => {
+  const t = titles(taskMenuSpec(task(), CONFIG))
+  assert.deepEqual(t.slice(0, 5), ['Open note', 'Edit text…', '—', 'Complete task', '—'])
+  assert.equal(t[5], '[Start]')
+})
+
+test('the row menu carries the relative pair inside the Start group for a task with a start', () => {
+  const t = titles(taskMenuSpec(task({scheduled: '2026-09-01'}), CONFIG))
+  assert.isAbove(t.indexOf('+1 week'), t.indexOf('[Start]'))
+  assert.isBelow(t.indexOf('+1 week'), t.indexOf('[Due]'))
+  assert.include(t, 'Clear start')
 })
 
 test('the ⏳ chip menu is unchanged by #19: refile still only for all-project selections', () => {
@@ -240,7 +283,7 @@ test('the Backlogs menu carries Organize by status after the select toggle (#20)
   const backlogs = titles(
     sectionMenuSpec({selecting: false, selectable: true, repairable: false, organizable: true}),
   )
-  assert.deepEqual(backlogs, ['Select tasks…', 'Organize by status'])
+  assert.deepEqual(backlogs, ['New project…', 'Select tasks…', 'Organize by status', 'Fold all', 'Unfold all'])
 })
 
 test('the project menu carries the four moves between pacing and retirement (#20)', () => {

@@ -1,9 +1,9 @@
 import {inFolder} from './classify'
 import {isMachineManaged} from './machine-note'
-import {resolveQuickDate} from './schedule'
+import {postponeAnchor, resolveQuickDate} from './schedule'
 
 import type {MachineNoteConfig} from './machine-note'
-import type {QuickDate} from './schedule'
+import type {QuickDate, RelativeDate} from './schedule'
 import type {MoveDirection} from './order'
 import type {PacingMode, ProjectMeta, ProjectStatus, TaskflowTask} from './types'
 
@@ -17,20 +17,28 @@ import type {PacingMode, ProjectMeta, ProjectStatus, TaskflowTask} from './types
  * then capture/commit, then pacing, then refile, then destructive — separators
  * only between non-empty sections, first item always the jump ("Open note"),
  * destructive acts always last, and any item naming a state the thing is
- * already in marked "✓" and disabled.
+ * already in marked "✓" and disabled. A row's pacing section is the two
+ * labelled groups, Start and Due — the one place structure beyond separators
+ * is shown, because "date" alone once named both fields.
  */
 
 export type MenuAction =
   | {type: 'schedule'; kind: QuickDate}
+  | {type: 'postpone'; kind: RelativeDate}
   | {type: 'pick-date'}
   | {type: 'remove-date'}
   | {type: 'pick-due-date'}
   | {type: 'remove-due-date'}
+  | {type: 'complete'}
+  | {type: 'edit-text'}
   | {type: 'move-to-project'}
   | {type: 'send-back'}
   | {type: 'cancel'}
   | {type: 'open-note'}
   | {type: 'add-task'}
+  | {type: 'new-project'}
+  | {type: 'rename-project'}
+  | {type: 'fold-all'; folded: boolean}
   | {type: 'promote'}
   | {type: 'set-status'; status: ProjectStatus}
   | {type: 'pick-start'}
@@ -47,6 +55,8 @@ export type MenuAction =
 export type MenuItemSpec =
   | {kind: 'item'; title: string; icon: string; action: MenuAction; disabled?: boolean}
   | {kind: 'separator'}
+  /** A non-clickable group header — the row menu's Start and Due. */
+  | {kind: 'label'; title: string}
 
 const item = (
   title: string,
@@ -56,23 +66,31 @@ const item = (
 ): MenuItemSpec => ({kind: 'item', title, icon, action, disabled})
 
 const separator: MenuItemSpec = {kind: 'separator'}
+const label = (title: string): MenuItemSpec => ({kind: 'label', title})
 
 const QUICK_DATES: {kind: QuickDate; title: string; icon: string}[] = [
-  {kind: 'today', title: 'To-do (today)', icon: 'sun'},
+  {kind: 'today', title: 'Today', icon: 'sun'},
   {kind: 'tomorrow', title: 'Tomorrow', icon: 'sunrise'},
   {kind: 'weekend', title: 'Weekend', icon: 'armchair'},
+  {kind: 'next-week', title: 'Next week', icon: 'calendar-arrow-down'},
+]
+
+/** The relative pair reads as dates, not verbs (CONTEXT.md: Quick date). */
+const RELATIVE_DATES: {kind: RelativeDate; title: string; icon: string}[] = [
+  {kind: 'plus-day', title: '+1 day', icon: 'chevron-right'},
+  {kind: 'plus-week', title: '+1 week', icon: 'chevrons-right'},
 ]
 
 export type ScheduleMenuConfig = {projectsFolder: string; today: string}
 
 /**
- * The quick-date menu, for one task or a bulk selection: the pacing section
- * (a quick date every selected task already holds — as its plan, or as a
- * deadline a plan would only duplicate (#18) — is marked ✓ and disabled,
- * the same state-marking the status items use; Remove date appears once
- * anything has a plan to withdraw), then the refile section — only when
+ * The start chip's menu, for one task or a bulk selection: the Start group
+ * (a quick date every selected task already holds — as its start, or as a
+ * deadline a start would only duplicate (#18) — is marked ✓ and disabled,
+ * the same state-marking the status items use; Clear start appears once
+ * anything has a start to withdraw), then the refile section — only when
  * every task lives in a project note, since a mixed selection has no one
- * source to send back from.
+ * source to send back from. No label: the chip already says which field.
  */
 export const scheduleMenuSpec = (
   tasks: readonly TaskflowTask[],
@@ -84,22 +102,33 @@ export const scheduleMenuSpec = (
     : [...planItems(tasks, config), separator, ...refile]
 }
 
-/** The pacing group's plan items: quick dates, the picker, and Remove date. */
+/**
+ * The Start group's items: quick dates, then — for one task with something
+ * to postpone (core/schedule postponeAnchor; a selection has no one anchor)
+ * — the relative pair, then the picker and Clear start.
+ */
 const planItems = (tasks: readonly TaskflowTask[], config: ScheduleMenuConfig): MenuItemSpec[] => {
   const spec: MenuItemSpec[] = QUICK_DATES.map(({kind, title, icon}) => {
     const date = resolveQuickDate(kind, config.today)
     const held = tasks.length > 0 && tasks.every(t => t.scheduled === date || t.due === date)
     return item(held ? `${title} ✓` : title, icon, {type: 'schedule', kind}, held)
   })
+  const only = tasks.length === 1 ? tasks[0] : undefined
+  if (only && postponeAnchor(only, config.today) != null) {
+    for (const {kind, title, icon} of RELATIVE_DATES) {
+      spec.push(item(title, icon, {type: 'postpone', kind}))
+    }
+  }
   spec.push(item('Pick a date…', 'calendar', {type: 'pick-date'}))
   if (tasks.some(t => t.scheduled != null)) {
-    spec.push(item('Remove date', 'eraser', {type: 'remove-date'}))
+    spec.push(item('Clear start', 'eraser', {type: 'remove-date'}))
   }
   return spec
 }
 
 const MOVE_TO_PROJECT = item('Move to project…', 'folder-input', {type: 'move-to-project'})
 const SEND_BACK = item('Send back to To-do', 'inbox', {type: 'send-back'})
+const COMPLETE = item('Complete task', 'circle-check', {type: 'complete'})
 
 /**
  * A selection's refile group: only when every task lives in a project note,
@@ -117,26 +146,34 @@ const bulkRefileItems = (
 
 /**
  * One row's refile group (#19): any row can be moved to a project — triage
- * from the daily note is one right-click away — and a row already in a
- * project can also be sent back.
+ * from the daily note is one right-click away — then, in a selectable
+ * section, "Select to move…": select more and move them together, a refile
+ * act rather than a mode switch (CONTEXT.md). A row already in a project
+ * can also be sent back.
  */
-const rowRefileItems = (task: TaskflowTask, config: ScheduleMenuConfig): MenuItemSpec[] =>
-  inFolder(task.filePath, config.projectsFolder) ? [MOVE_TO_PROJECT, SEND_BACK] : [MOVE_TO_PROJECT]
-
-/**
- * The 📅 chip's menu (#18): a chip opens what edits it, and this one edits
- * the due field only. No quick dates — a deadline is an external fact, not a
- * plan, so it is picked, never guessed at from "weekend".
- */
-export const dueMenuSpec = (task: TaskflowTask): MenuItemSpec[] => {
-  const spec: MenuItemSpec[] = [item('Pick a date…', 'calendar-clock', {type: 'pick-due-date'})]
-  if (task.due != null) spec.push(item('Remove due date', 'eraser', {type: 'remove-due-date'}))
+const rowRefileItems = (
+  task: TaskflowTask,
+  config: ScheduleMenuConfig & SelectMenuConfig,
+): MenuItemSpec[] => {
+  const spec: MenuItemSpec[] = [MOVE_TO_PROJECT]
+  if (config.selectable) {
+    spec.push(
+      item(
+        config.selected ? 'Select to move… ✓' : 'Select to move…',
+        'copy-check',
+        {type: 'select'},
+        config.selected,
+      ),
+    )
+  }
+  if (inFolder(task.filePath, config.projectsFolder)) spec.push(SEND_BACK)
   return spec
 }
 
 /**
- * The row menu's due items: one row, its own deadline. Sits after the plan
- * items in the pacing group, in the project menu's deadline vocabulary.
+ * The Due group's items (#18): one row, its own deadline, in the project
+ * menu's words (Set / Clear). No quick dates — a deadline is an external
+ * fact, not a plan, so it is picked, never guessed at from "weekend".
  */
 const dueItems = (task: TaskflowTask): MenuItemSpec[] => {
   const spec: MenuItemSpec[] = [
@@ -146,9 +183,12 @@ const dueItems = (task: TaskflowTask): MenuItemSpec[] => {
       {type: 'pick-due-date'},
     ),
   ]
-  if (task.due != null) spec.push(item('Remove due date', 'eraser', {type: 'remove-due-date'}))
+  if (task.due != null) spec.push(item('Clear due', 'eraser', {type: 'remove-due-date'}))
   return spec
 }
+
+/** The 📅 chip's menu: a chip opens what edits it, and this one edits the due field only. */
+export const dueMenuSpec = (task: TaskflowTask): MenuItemSpec[] => dueItems(task)
 
 export type SelectMenuConfig = {
   /** Whether the row's section has a select mode (To-do, Backlogs). */
@@ -160,27 +200,25 @@ export type SelectMenuConfig = {
 /**
  * A task row's context menu: every hover affordance again, plus the jump —
  * hover doesn't exist on mobile, so the menu is the touch-parity surface.
- * Grammar: jump · (in a selectable section) Select · plan and due · refile ·
- * destructive. A machine-managed row keeps only the jump; its line stays
- * read-only.
+ * Grammar: jump and the words · check-off · [Start] and [Due] · refile ·
+ * destructive. A machine-managed row keeps the jump and check-off — the
+ * one edit its note survives; every other line edit would be clobbered.
  */
 export const taskMenuSpec = (
   task: TaskflowTask,
   config: ScheduleMenuConfig & MachineNoteConfig & SelectMenuConfig,
 ): MenuItemSpec[] => {
   const open = item('Open note', 'file-text', {type: 'open-note'})
-  if (isMachineManaged(task.filePath, config)) return [open]
-  const select = config.selectable
-    ? [
-        item(config.selected ? 'Select ✓' : 'Select', 'copy-check', {type: 'select'}, config.selected),
-        separator,
-      ]
-    : []
+  if (isMachineManaged(task.filePath, config)) return [open, separator, COMPLETE]
   return [
     open,
+    item('Edit text…', 'pencil', {type: 'edit-text'}),
     separator,
-    ...select,
+    COMPLETE,
+    separator,
+    label('Start'),
     ...planItems([task], config),
+    label('Due'),
     ...dueItems(task),
     separator,
     ...rowRefileItems(task, config),
@@ -196,19 +234,19 @@ export type SectionMenuConfig = {
   selectable: boolean
   /** The repair queue: Overdue & slipped. */
   repairable: boolean
-  /** The Backlogs: carries Organize by status (#20). */
+  /** The Backlogs: New project…, Organize by status (#20), and the fold pair. */
   organizable: boolean
 }
 
 /**
  * A section header's "…" menu (#15): the header-chrome half of the panel
- * grammar. Acts live here — the only visible exception is the pressing
- * accelerator ("All → to-do" on the repair queue), which this menu mirrors
- * so the button stays a shortcut, never the only path. A section with no
- * acts (Upcoming) gets an empty spec and renders no menu at all.
+ * grammar — capture first (New project…), then the mode toggle, then the
+ * section's own acts. A section with no acts (Upcoming) gets an empty spec
+ * and renders no menu at all.
  */
 export const sectionMenuSpec = (config: SectionMenuConfig): MenuItemSpec[] => {
   const spec: MenuItemSpec[] = []
+  if (config.organizable) spec.push(item('New project…', 'folder-plus', {type: 'new-project'}))
   if (config.selectable) {
     spec.push(
       item(config.selecting ? 'Done selecting' : 'Select tasks…', 'copy-check', {
@@ -217,10 +255,12 @@ export const sectionMenuSpec = (config: SectionMenuConfig): MenuItemSpec[] => {
     )
   }
   if (config.repairable) {
-    spec.push(item('Reschedule all to today', 'sun', {type: 'reschedule-all'}))
+    spec.push(item('Start all today', 'sun', {type: 'reschedule-all'}))
   }
   if (config.organizable) {
     spec.push(item('Organize by status', 'arrow-down-narrow-wide', {type: 'organize'}))
+    spec.push(item('Fold all', 'chevrons-down-up', {type: 'fold-all', folded: true}))
+    spec.push(item('Unfold all', 'chevrons-up-down', {type: 'fold-all', folded: false}))
   }
   return spec
 }
@@ -269,8 +309,8 @@ const MOVES: {direction: MoveDirection; title: string; icon: string; needs: 'up'
 ]
 
 /**
- * The project lifecycle menu, in the same grammar as the task menu: the jump,
- * then capture/commit (a pressing project puts "Move to now" first — the
+ * The project lifecycle menu, in the same grammar as the task menu: the jump
+ * and the name, then capture/commit (a pressing project puts "Move to now" first — the
  * touch-parity twin of the header's hover → now — and "Add task…" is capture
  * straight into the backlog), then pacing (status and, outside wip mode,
  * start then deadline — the pair reads chronologically (#23), and wip has
@@ -281,7 +321,10 @@ export const projectMenuSpec = (
   project: ProjectMeta,
   config: ProjectMenuConfig,
 ): MenuItemSpec[] => {
-  const spec: MenuItemSpec[] = [item('Open note', 'file-text', {type: 'open-note'})]
+  const spec: MenuItemSpec[] = [
+    item('Open note', 'file-text', {type: 'open-note'}),
+    item('Rename project…', 'pencil', {type: 'rename-project'}),
+  ]
   spec.push(separator)
   if (config.pressing) {
     spec.push(item('Move to now', 'play', {type: 'promote'}))

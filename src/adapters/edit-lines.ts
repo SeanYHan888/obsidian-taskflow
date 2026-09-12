@@ -1,8 +1,15 @@
 import {Notice, TFile} from 'obsidian'
 
 import {toJournalEntry} from '../core/journal'
-import {plural} from '../core/labels'
-import {cancelLine, clearDue, clearScheduled, setDue, setScheduled} from '../core/schedule'
+import {dateEditLabel} from '../core/labels'
+import {
+  cancelLine,
+  clearDue,
+  clearScheduled,
+  replaceDescription,
+  setDue,
+  setScheduled,
+} from '../core/schedule'
 
 import type {App} from 'obsidian'
 import type {JournalEntry, LineRecord} from '../core/journal'
@@ -66,7 +73,7 @@ export const rescheduleTasks = async (
   today: string,
 ): Promise<JournalEntry | null> => {
   const records = await editTaskLines(app, tasks, line => setScheduled(line, date, today))
-  return toJournalEntry(`rescheduled ${plural(records.length)} → ${date}`, records)
+  return toJournalEntry(dateEditLabel('start', records.length, date), records)
 }
 
 export const cancelTask = async (app: App, task: TaskflowTask): Promise<JournalEntry | null> => {
@@ -79,7 +86,7 @@ export const unscheduleTasks = async (
   tasks: TaskflowTask[],
 ): Promise<JournalEntry | null> => {
   const records = await editTaskLines(app, tasks, clearScheduled)
-  return toJournalEntry(`removed the date from ${plural(records.length)}`, records)
+  return toJournalEntry(dateEditLabel('start', records.length, null), records)
 }
 
 export const setDueTasks = async (
@@ -88,7 +95,7 @@ export const setDueTasks = async (
   date: string,
 ): Promise<JournalEntry | null> => {
   const records = await editTaskLines(app, tasks, line => setDue(line, date))
-  return toJournalEntry(`due date on ${plural(records.length)} → ${date}`, records)
+  return toJournalEntry(dateEditLabel('due', records.length, date), records)
 }
 
 export const clearDueTasks = async (
@@ -96,5 +103,20 @@ export const clearDueTasks = async (
   tasks: TaskflowTask[],
 ): Promise<JournalEntry | null> => {
   const records = await editTaskLines(app, tasks, clearDue)
-  return toJournalEntry(`removed the due date from ${plural(records.length)}`, records)
+  return toJournalEntry(dateEditLabel('due', records.length, null), records)
+}
+
+/**
+ * Edit text: the words change, nothing else on the line does (see
+ * replaceDescription). Journaled like any line edit.
+ */
+export const editTaskText = async (
+  app: App,
+  task: TaskflowTask,
+  text: string,
+): Promise<JournalEntry | null> => {
+  const records = await editTaskLines(app, [task], line =>
+    replaceDescription(line, task.description, text),
+  )
+  return toJournalEntry('edited 1 task', records)
 }

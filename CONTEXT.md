@@ -11,10 +11,11 @@ One markdown checkbox line in the vault. Its file is its home; it has no identit
 _Avoid_: todo, item, card
 
 **Scheduled (⏳)**:
-The day the user plans to work on a task. Slideable without guilt; the only date most tasks ever get.
+The day the user plans to work on a task — the day it enters To-do. Slideable without guilt; the only date most tasks ever get. In every menu, chip and notice this field is the task's **start** (2026-09-12), the twin of the project start the way due twins the project deadline; "scheduled" stays the field's Tasks-canon name in code and in the glossary only.
+_Avoid_: schedule, scheduled, plan, date (in UI copy — "date" alone named both fields and nobody could tell which)
 
 **Due (📅)**:
-A real external deadline. Rare; mostly arrives via Apple Reminders sync or is typed into a daily note. Edited only by its own chip's **due menu** (pick / remove — no quick dates, a deadline is picked, never guessed) and the row menu's "Set due date…"; scheduling never touches a live one, and a task holding both fields shows both chips (#18) — unless the two dates coincide: a plan set onto the due day is not written (the deadline already puts the task in To-do), and a line that holds both for the same day renders one chip, the 📅 one. A deadline already behind today is **spent**: re-dating an overdue task (quick date, picker, drop on To-do, Reschedule all) moves its 📅 to the new date and withdraws any ⏳ — one date, never a fresh plan stacked beside a stale deadline that would pin the task in Overdue & slipped.
+A real external deadline. Rare; mostly arrives via Apple Reminders sync or is typed into a daily note. Edited only by its own chip's **due menu** and the row menu's Due group ("Set due date…" / "Clear due" — no quick dates, no postpone: a deadline is picked, never guessed); scheduling never touches a live one. A task holding both fields shows one chip, the one that matters next (see Chip rule, 2026-09-12); a plan set onto the due day is not written (the deadline already puts the task in To-do). A deadline already behind today is **spent**: re-dating an overdue task (quick date, picker, drop on To-do, Start all today) moves its 📅 to the new date and withdraws any ⏳ — one date, never a fresh plan stacked beside a stale deadline that would pin the task in Overdue & slipped.
 _Avoid_: deadline (in code/UI — the emoji vocabulary is Tasks-plugin canon)
 
 **Undated**:
@@ -85,7 +86,7 @@ _Avoid_: urgent, overdue (pressing is about commitment, not the chip's color)
 The act of emptying the Inbox: moving a task to a project, stamping a date, or cancelling it.
 
 **Move to project**:
-Physically cutting a task line (with its subtask children) out of its source note into a project note's `## Tasks`. Not a copy, not a link. The source may be a daily note (triage) or another project note (refiling) — the cut defines the move, not the source. Reachable from every row's context menu (#19), the select bar, and a drop on a project header; "Send back to To-do" is the project-row-only inverse. The row menu's "Select" (selectable sections only) enters select mode with that row in hand.
+Physically cutting a task line (with its subtask children) out of its source note into a project note's `## Tasks`. Not a copy, not a link. The source may be a daily note (triage) or another project note (refiling) — the cut defines the move, not the source. Reachable from every row's context menu (#19), the select bar, and a drop on a project header; "Send back to To-do" is the project-row-only inverse. The row menu's "Select to move…" (selectable sections only) sits beside "Move to project…" in the refile group and enters select mode with that row in hand — a refile act, not a mode switch (2026-09-12). The header's "Select tasks…" keeps the general name: from a header there is no "this one", and bulk scheduling is a legitimate reason to select.
 
 **Events (`# Events:`)**:
 Day Planner's section of the daily note — time blocks, not tasks. Taskflow never reads or writes it.
@@ -95,13 +96,17 @@ Day Planner's section of the daily note — time blocks, not tasks. Taskflow nev
 The rules every menu and affordance obeys (#14), so the next one has a rule to follow instead of a precedent to drift from:
 
 **Menu order**:
-Every context menu reads navigate → capture/commit → pacing → refile → destructive, separators only between non-empty sections. The first item is always the jump ("Open note", file-text); destructive acts are always last. An item naming a state the thing is already in is marked "✓" and disabled — project statuses and quick dates alike.
+Every context menu reads navigate → capture/commit → pacing → refile → destructive, separators only between non-empty sections. The first item is always the jump ("Open note", file-text); destructive acts are always last. An item naming a state the thing is already in is marked "✓" and disabled — project statuses and quick dates alike. A row's pacing section is two labelled groups, **Start** and **Due**, the only place a menu shows structure beyond separators (2026-09-12); "Clear start" / "Clear due" are the withdrawals, the project menu's words. Notices and undo labels speak the same words as the menu.
 
 **Chip rule**:
-A chip opens what edits it: the ⏳ chip (and the add-date button) opens the schedule menu, the 📅 chip opens the due menu, the project deadline chip opens the deadline picker, the project start chip opens the start picker. Chips are the only date-shaped buttons on any row or header.
+A chip opens what edits it: the start (⏳) chip and the add-date button open the start menu, the due (📅) chip opens the due menu, the project deadline chip opens the deadline picker, the project start chip opens the start picker. Chips are the only date-shaped buttons on any row or header. A row shows **one chip**, the date that matters next, the way a project header does (2026-09-12): the start chip while the start is ahead (neutral); once the start has arrived, the due chip if there is one, else the start chip (red when slipped). The other field is edited from the row menu.
+
+**Quick date**:
+The Start group's one-tap targets: Today, Tomorrow, Weekend, Next week (Monday), and the relative pair +1 day / +1 week, anchored on the current start while it is ahead and on today once it has arrived or slipped (2026-09-12). Every quick date is a re-dating and obeys the spent-deadline rule; none ever touches a live due.
+_Avoid_: postpone, snooze, defer (as UI words — the items read as dates, not verbs)
 
 **Quick-button rule**:
-At most one quick button per header, shown only when the panel is pressing for a decision — today: `→ now` on a pressing project header — in the one shared quick-action style, always mirrored by a menu item. (The repair queue's `All → to-do` was retired to its section menu's "Reschedule all to today": one visible accelerator vocabulary, not two.)
+At most one quick button per header, shown only when the panel is pressing for a decision — today: `→ now` on a pressing project header — in the one shared quick-action style, always mirrored by a menu item. (The repair queue's `All → to-do` was retired to its section menu's "Start all today": one visible accelerator vocabulary, not two.)
 
 **Header chrome**:
 Signals (the count, the WIP badge) sit with the title inside the fold toggle; the right edge of any header holds acts only — a `…` menu when the section has acts (#15). Mode toggles (select) are menu items, not buttons: a mode is not a pressing decision. A header with no acts (Upcoming) shows nothing, by rule. On project headers the deadline chip — or, while unstarted, the start chip in its place — renders last, past the hover-revealed `…`, so at rest every date in the panel — task chips and the one project date that matters next — sits flush against the same right edge.

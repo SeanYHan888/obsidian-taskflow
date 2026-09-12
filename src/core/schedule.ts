@@ -3,7 +3,10 @@ const DUE = /📅\s*\d{4}-\d{2}-\d{2}/
 const TRAILING_BLOCK_REF = /\s+\^[A-Za-z0-9-]+$/
 const OPEN_CHECKBOX = /^(\s*[-*+]\s+\[) (\])/
 
-export type QuickDate = 'today' | 'tomorrow' | 'weekend'
+/** The Start group's one-tap targets, resolved from today (CONTEXT.md: Quick date). */
+export type QuickDate = 'today' | 'tomorrow' | 'weekend' | 'next-week'
+/** The relative pair: a quick date whose target moves with the task's own start. */
+export type RelativeDate = 'plus-day' | 'plus-week'
 
 /** The ISO date of the line's 📅 field, or null when it has none. */
 const dueDateOf = (line: string): string | null =>
@@ -89,6 +92,61 @@ export const resolveQuickDate = (kind: QuickDate, today: string): string => {
   if (kind === 'today') return today
   if (kind === 'tomorrow') return addDays(today, 1)
   const dayOfWeek = new Date(`${today}T00:00:00`).getDay()
+  // Next week is the coming Monday — on a Monday, a full week away.
+  if (kind === 'next-week') return addDays(today, (8 - dayOfWeek) % 7 || 7)
   if (dayOfWeek === 6 || dayOfWeek === 0) return today
   return addDays(today, 6 - dayOfWeek)
+}
+
+/**
+ * Where a relative quick date counts from (CONTEXT.md: Quick date): the
+ * task's start while it is still ahead, today once it has arrived or
+ * slipped. A spent deadline re-dates by the same rules as a start (see
+ * setScheduled), so it can be postponed too; a live deadline alone is a
+ * fact, never nudged, and an undated task has nothing to move — null.
+ */
+export const postponeAnchor = (
+  task: {scheduled: string | null; due: string | null},
+  today: string,
+): string | null => {
+  if (task.scheduled != null) return task.scheduled > today ? task.scheduled : today
+  if (task.due != null && task.due < today) return today
+  return null
+}
+
+export const resolveRelativeDate = (kind: RelativeDate, anchor: string): string =>
+  addDays(anchor, kind === 'plus-day' ? 1 : 7)
+
+export type RowChip = {field: 'start' | 'due'; date: string; past: boolean}
+
+/**
+ * The chip rule's one chip (CONTEXT.md): the date that matters next, the
+ * way a project header shows its start while unstarted and its deadline
+ * after. The start while it is ahead (a start on the due day is the due);
+ * once started, the due if there is one — a debt on arrival (`<=`) — else
+ * the start, slipped only once its day is over (`<`).
+ */
+export const rowChip = (
+  task: {scheduled: string | null; due: string | null},
+  today: string,
+): RowChip | null => {
+  const {scheduled, due} = task
+  if (scheduled != null && scheduled > today && scheduled !== due) {
+    return {field: 'start', date: scheduled, past: false}
+  }
+  if (due != null) return {field: 'due', date: due, past: due <= today}
+  if (scheduled != null) return {field: 'start', date: scheduled, past: scheduled < today}
+  return null
+}
+
+/**
+ * Edit text: swaps the task's words for new ones and touches nothing else
+ * on the line — checkbox, dates, block reference all stay. The old words
+ * must occur exactly once; an unmatched or ambiguous line is left alone,
+ * so the write is skipped rather than guessed at.
+ */
+export const replaceDescription = (line: string, from: string, to: string): string => {
+  const first = line.indexOf(from)
+  if (first < 0 || line.indexOf(from, first + 1) >= 0) return line
+  return line.slice(0, first) + to + line.slice(first + from.length)
 }

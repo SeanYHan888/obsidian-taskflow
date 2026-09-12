@@ -5,7 +5,11 @@ import {
   chipLabel,
   clearDue,
   clearScheduled,
+  postponeAnchor,
+  replaceDescription,
   resolveQuickDate,
+  resolveRelativeDate,
+  rowChip,
   setDue,
   setScheduled,
 } from '../src/core/schedule'
@@ -155,4 +159,60 @@ test('clearDue is the inverse of setDue and keeps ⏳ and block refs', () => {
   const line = '- [ ] call bank ⏳ 2026-09-01 ^abc12'
   assert.equal(clearDue(setDue(line, '2026-09-05')), line)
   assert.equal(clearDue(line), line)
+})
+
+test('resolveQuickDate next-week means the coming Monday — a full week away on a Monday', () => {
+  assert.equal(resolveQuickDate('next-week', '2026-09-12'), '2026-09-14') // Sat → Mon
+  assert.equal(resolveQuickDate('next-week', '2026-09-13'), '2026-09-14') // Sun → Mon
+  assert.equal(resolveQuickDate('next-week', '2026-09-14'), '2026-09-21') // Mon → next Mon
+  assert.equal(resolveQuickDate('next-week', '2026-09-16'), '2026-09-21') // Wed → Mon
+})
+
+test('postponeAnchor: the start while it is ahead, today once it has arrived or slipped, null with nothing to postpone', () => {
+  const today = '2026-09-12'
+  assert.equal(postponeAnchor({scheduled: '2026-09-20', due: null}, today), '2026-09-20')
+  assert.equal(postponeAnchor({scheduled: '2026-09-12', due: null}, today), today)
+  assert.equal(postponeAnchor({scheduled: '2026-09-01', due: null}, today), today)
+  // A spent deadline re-dates by the same quick-date rules, so it can be postponed too.
+  assert.equal(postponeAnchor({scheduled: null, due: '2026-09-01'}, today), today)
+  // A live deadline alone is a fact, never nudged; an undated task has nothing to move.
+  assert.isNull(postponeAnchor({scheduled: null, due: '2026-09-20'}, today))
+  assert.isNull(postponeAnchor({scheduled: null, due: null}, today))
+})
+
+test('resolveRelativeDate adds a day or a week to the anchor', () => {
+  assert.equal(resolveRelativeDate('plus-day', '2026-09-30'), '2026-10-01')
+  assert.equal(resolveRelativeDate('plus-week', '2026-09-28'), '2026-10-05')
+})
+
+test('rowChip shows the date that matters next: the start while ahead, then the due, else the start', () => {
+  const today = '2026-09-12'
+  assert.deepEqual(rowChip({scheduled: '2026-09-20', due: '2026-09-30'}, today), {
+    field: 'start',
+    date: '2026-09-20',
+    past: false,
+  })
+  // Started: the deadline is the date still ahead.
+  assert.deepEqual(rowChip({scheduled: '2026-09-12', due: '2026-09-30'}, today), {
+    field: 'due',
+    date: '2026-09-30',
+    past: false,
+  })
+  // Due is a debt on arrival (<=); a start slips only once the day is over (<).
+  assert.deepEqual(rowChip({scheduled: null, due: '2026-09-12'}, today), {field: 'due', date: '2026-09-12', past: true})
+  assert.deepEqual(rowChip({scheduled: '2026-09-12', due: null}, today), {field: 'start', date: '2026-09-12', past: false})
+  assert.deepEqual(rowChip({scheduled: '2026-09-10', due: null}, today), {field: 'start', date: '2026-09-10', past: true})
+  // A start on the due day is the due: one chip, the 📅 one.
+  assert.deepEqual(rowChip({scheduled: '2026-09-20', due: '2026-09-20'}, today), {field: 'due', date: '2026-09-20', past: false})
+  assert.isNull(rowChip({scheduled: null, due: null}, today))
+})
+
+test('replaceDescription rewrites the words and nothing else; an unmatched line is left alone', () => {
+  assert.equal(
+    replaceDescription('  - [ ] read the paper #research ⏳ 2026-09-20 📅 2026-09-30 ^ref1', 'read the paper #research', 'skim the paper #research'),
+    '  - [ ] skim the paper #research ⏳ 2026-09-20 📅 2026-09-30 ^ref1',
+  )
+  assert.equal(replaceDescription('- [ ] something else', 'read the paper', 'skim'), '- [ ] something else')
+  // Ambiguity is skipped, never guessed at.
+  assert.equal(replaceDescription('- [ ] go go', 'go', 'stop'), '- [ ] go go')
 })

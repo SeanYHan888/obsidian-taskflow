@@ -4,7 +4,7 @@
   import {locationKey} from '../core/hierarchy'
   import {sourceLabel as labelFor} from '../core/labels'
   import {rowAffordances} from '../core/machine-note'
-  import {chipLabel} from '../core/schedule'
+  import {chipLabel, rowChip} from '../core/schedule'
 
   import type {TaskflowTask} from '../core/types'
   import type {RowContext} from './panel-types'
@@ -48,6 +48,8 @@
 
   const chipText = (date: string) => chipLabel(date, ctx.today)
   const sourceLabel = $derived(labelFor(task.filePath))
+  // The chip rule (CONTEXT.md): one chip, the date that matters next; core decides which.
+  const chip = $derived(rowChip(task, ctx.today))
 </script>
 
 <div class="taskflow-item" class:taskflow-item-nested={nested}>
@@ -96,50 +98,38 @@
       <span class="taskflow-source">{sourceLabel}</span>
     {/if}
   </button>
-  {#if task.due != null}
-    {#if canSchedule}
-      <button
-        class="taskflow-chip taskflow-chip-button taskflow-chip-due"
-        class:taskflow-chip-past={aff.duePast}
-        aria-label="Edit due date"
-        onclick={ev => ctx.callbacks.onDueMenu(task, ev)}
-      >
-        {chipText(task.due)}
-      </button>
-    {:else}
-      <span
-        class="taskflow-chip taskflow-chip-due"
-        class:taskflow-chip-past={aff.duePast}
-      >
-        {chipText(task.due)}
-      </span>
-    {/if}
-  {/if}
-  <!-- A plan that lands on the deadline is the deadline: one date, one chip.
-       The 📅 chip (above) stays, since the due menu is what edits it. -->
-  {#if task.scheduled != null && task.scheduled !== task.due}
+  <!-- One chip, the date that matters next (chip rule): the start while it
+       is ahead, then the due, else the start. A chip opens what edits it —
+       the start menu or the due menu — and the other field is edited from
+       the row menu. -->
+  {#if chip}
     {#if canSchedule}
       <button
         class="taskflow-chip taskflow-chip-button"
-        class:taskflow-chip-past={aff.scheduledPast}
-        aria-label="Reschedule"
-        onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
+        class:taskflow-chip-due={chip.field === 'due'}
+        class:taskflow-chip-past={chip.past}
+        aria-label={chip.field === 'due' ? 'Edit due date' : 'Edit start'}
+        onclick={ev =>
+          chip.field === 'due'
+            ? ctx.callbacks.onDueMenu(task, ev)
+            : ctx.callbacks.onScheduleMenu(task, ev)}
       >
-        {chipText(task.scheduled)}
+        {chipText(chip.date)}
       </button>
     {:else}
       <span
         class="taskflow-chip"
-        class:taskflow-chip-past={aff.scheduledPast}
+        class:taskflow-chip-due={chip.field === 'due'}
+        class:taskflow-chip-past={chip.past}
       >
-        {chipText(task.scheduled)}
+        {chipText(chip.date)}
       </span>
     {/if}
-  {:else if canSchedule && task.due == null}
+  {:else if canSchedule}
     <!-- A press that wanders must stay a click, never lift the row. -->
     <button
       class="taskflow-add-date"
-      aria-label="Schedule task"
+      aria-label="Set start"
       onclick={ev => ctx.callbacks.onScheduleMenu(task, ev)}
       ondragstart={ev => {
         ev.preventDefault()
@@ -152,7 +142,7 @@
 {#if slippedActions && canSchedule}
   <div class="taskflow-actions">
     <button class="taskflow-action" onclick={() => ctx.callbacks.onSchedule(task, 'today')}>
-      to-do
+      today
     </button>
     <button class="taskflow-action" onclick={() => ctx.callbacks.onSchedule(task, 'tomorrow')}>
       tomorrow

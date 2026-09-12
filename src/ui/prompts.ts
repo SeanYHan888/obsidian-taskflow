@@ -63,14 +63,14 @@ export const askDate = (
   opts: {defaultDate: string; title?: string; submitLabel?: string},
 ): Promise<string | null> =>
   prompt(app, null, (modal, submit: (value: string | null) => void) => {
-    modal.titleEl.setText(opts.title ?? 'Schedule for…')
+    modal.titleEl.setText(opts.title ?? 'Start on…')
     const input = modal.contentEl.createEl('input', {type: 'date'})
     input.value = opts.defaultDate
     const go = () => submit(input.value || null)
     input.addEventListener('keydown', ev => {
       if (ev.key === 'Enter') go()
     })
-    submitButton(modal, opts.submitLabel ?? 'Schedule', go)
+    submitButton(modal, opts.submitLabel ?? 'Set start', go)
     input.focus()
   })
 

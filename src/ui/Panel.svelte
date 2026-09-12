@@ -223,6 +223,7 @@
       badge={wip?.label ?? null}
       badgeDanger={wip?.danger ?? false}
       onMenu={ev => callbacks.onSectionMenu('projects', selecting, ev)}
+      menuWhenEmpty
       onCollapse={callbacks.onCollapse}
     >
       {#each data.sections.projects as group (group.project.path)}
