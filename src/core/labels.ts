@@ -1,3 +1,5 @@
+import type {LineRecord} from './journal'
+
 /**
  * The one naming rule for a task's source: the note's basename, extension
  * dropped. Machine-managed notes get no special label — the note's own name
@@ -46,3 +48,17 @@ export const dateEditLabel = (
   date: string | null,
 ): string =>
   date == null ? `${field} cleared on ${plural(count)}` : `${field} → ${date} on ${plural(count)}`
+
+/**
+ * The label for a re-dating names the field that actually took the date:
+ * the start, or — on the spent-deadline path, where setScheduled moves the
+ * 📅 and writes no ⏳ — the due. A sweep that did both names only the date.
+ */
+export const rescheduleLabel = (records: readonly LineRecord[], date: string): string => {
+  const written = (r: LineRecord) => (r.kind === 'replace' ? r.after : r.text)
+  const holds = (emoji: string) => (r: LineRecord) => new RegExp(`${emoji}\\s*${date}`, 'u').test(written(r))
+  if (records.every(holds('⏳'))) return dateEditLabel('start', records.length, date)
+  if (records.every(r => holds('📅')(r) && !/⏳/u.test(written(r))))
+    return dateEditLabel('due', records.length, date)
+  return `${plural(records.length)} → ${date}`
+}

@@ -171,11 +171,12 @@ const rowRefileItems = (
 }
 
 /**
- * The Due group's items (#18): one row, its own deadline, in the project
- * menu's words (Set / Clear). No quick dates — a deadline is an external
- * fact, not a plan, so it is picked, never guessed at from "weekend".
+ * The Due group (#18), and the 📅 chip's whole menu — a chip opens what
+ * edits it: one row, its own deadline, in the project menu's words (Set /
+ * Clear). No quick dates — a deadline is an external fact, not a plan, so
+ * it is picked, never guessed at from "weekend".
  */
-const dueItems = (task: TaskflowTask): MenuItemSpec[] => {
+export const dueMenuSpec = (task: TaskflowTask): MenuItemSpec[] => {
   const spec: MenuItemSpec[] = [
     item(
       task.due == null ? 'Set due date…' : `Due ${task.due}…`,
@@ -187,8 +188,6 @@ const dueItems = (task: TaskflowTask): MenuItemSpec[] => {
   return spec
 }
 
-/** The 📅 chip's menu: a chip opens what edits it, and this one edits the due field only. */
-export const dueMenuSpec = (task: TaskflowTask): MenuItemSpec[] => dueItems(task)
 
 export type SelectMenuConfig = {
   /** Whether the row's section has a select mode (To-do, Backlogs). */
@@ -219,7 +218,7 @@ export const taskMenuSpec = (
     label('Start'),
     ...planItems([task], config),
     label('Due'),
-    ...dueItems(task),
+    ...dueMenuSpec(task),
     separator,
     ...rowRefileItems(task, config),
     separator,

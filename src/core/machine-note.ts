@@ -34,28 +34,21 @@ export type RowAffordances = {
   /** May join a selection — machine-managed rows never do. */
   selectable: boolean
   draggable: boolean
-  /** A due date is a debt the day it arrives (`<=`). */
-  duePast: boolean
-  /** A scheduled day slips only once it is over (`<`). */
-  scheduledPast: boolean
 }
 
 /**
- * What one row offers, regardless of which section rendered it. The single
- * home of the read-only guard and of the chip past-ness boundaries — the
- * asymmetry between due (`<=`) and scheduled (`<`) is the same urgency
- * grammar classify uses for sections.
+ * What one row offers, regardless of which section rendered it: the single
+ * home of the read-only guard. Which date the row shows, and whether it has
+ * arrived, is the chip rule's (core/schedule rowChip).
  */
 export const rowAffordances = (
-  task: {filePath: string; due: string | null; scheduled: string | null},
-  opts: MachineNoteConfig & {today: string; selectMode: boolean; dragEnabled: boolean},
+  task: {filePath: string},
+  opts: MachineNoteConfig & {selectMode: boolean; dragEnabled: boolean},
 ): RowAffordances => {
   const managed = isMachineManaged(task.filePath, opts)
   return {
     canSchedule: !managed && !opts.selectMode,
     selectable: opts.selectMode && !managed,
     draggable: opts.dragEnabled && !opts.selectMode && !managed,
-    duePast: task.due != null && task.due <= opts.today,
-    scheduledPast: task.scheduled != null && task.scheduled < opts.today,
   }
 }

@@ -122,15 +122,17 @@ export type RowChip = {field: 'start' | 'due'; date: string; past: boolean}
 /**
  * The chip rule's one chip (CONTEXT.md): the date that matters next, the
  * way a project header shows its start while unstarted and its deadline
- * after. The start while it is ahead (a start on the due day is the due);
- * once started, the due if there is one — a debt on arrival (`<=`) — else
- * the start, slipped only once its day is over (`<`).
+ * after. An arrived due first — a debt on arrival (`<=`) beats any plan —
+ * then the start while it is ahead (a start on the due day is the due),
+ * then the due still ahead, else the start, slipped once its day is over (`<`).
  */
 export const rowChip = (
   task: {scheduled: string | null; due: string | null},
   today: string,
 ): RowChip | null => {
   const {scheduled, due} = task
+  // A debt beats a plan: an arrived due shows whatever the start says.
+  if (due != null && due <= today) return {field: 'due', date: due, past: true}
   if (scheduled != null && scheduled > today && scheduled !== due) {
     return {field: 'start', date: scheduled, past: false}
   }
@@ -139,14 +141,36 @@ export const rowChip = (
   return null
 }
 
+/** Where a task line's words end: the first Tasks field emoji, or a trailing block reference. */
+const FIELD_TAIL = /\s*(?:[➕🛫⏳⌛📅✅❌🔁🔺⏫🔼🔽⏬🆔⛔]|\^[A-Za-z0-9-]+$)/u
+const CHECKBOX_PREFIX = /^(\s*[-*+]\s+\[.\]\s*)/
+
+/** Splits a checkbox line into its prefix, its words, and the field tail — null for a non-task line. */
+const splitTaskLine = (line: string): {prefix: string; words: string; tail: string} | null => {
+  const prefix = line.match(CHECKBOX_PREFIX)?.[1]
+  if (prefix == null) return null
+  const rest = line.slice(prefix.length)
+  const at = rest.search(FIELD_TAIL)
+  return at < 0
+    ? {prefix, words: rest.trimEnd(), tail: ''}
+    : {prefix, words: rest.slice(0, at).trimEnd(), tail: rest.slice(at).trimStart()}
+}
+
 /**
- * Edit text: swaps the task's words for new ones and touches nothing else
- * on the line — checkbox, dates, block reference all stay. The old words
- * must occur exactly once; an unmatched or ambiguous line is left alone,
- * so the write is skipped rather than guessed at.
+ * The words a task line holds, as written: everything between the checkbox
+ * and the first field (or block reference), tags included. This — not the
+ * task source's description, which strips fields from wherever they sit and
+ * may drop a global filter tag — is what Edit text shows and replaces, so
+ * what the user sees is exactly what is rewritten.
  */
-export const replaceDescription = (line: string, from: string, to: string): string => {
-  const first = line.indexOf(from)
-  if (first < 0 || line.indexOf(from, first + 1) >= 0) return line
-  return line.slice(0, first) + to + line.slice(first + from.length)
+export const taskWords = (line: string): string => splitTaskLine(line)?.words ?? ''
+
+/**
+ * Edit text: swaps the words and nothing else — checkbox, every field, and
+ * the block reference stay, one space apart. A non-task line is left alone.
+ */
+export const withTaskWords = (line: string, words: string): string => {
+  const parts = splitTaskLine(line)
+  if (parts == null) return line
+  return parts.prefix + words + (parts.tail ? ` ${parts.tail}` : '')
 }

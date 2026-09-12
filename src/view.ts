@@ -19,8 +19,8 @@ import {
   taskMenuSpec,
 } from './core/menus'
 import {canMove, movableProjects, moveWrites, organizeByStatus, placeWrites, topRank} from './core/order'
-import {postponeAnchor, resolveQuickDate, resolveRelativeDate} from './core/schedule'
-import {promotionOutcome, retirePlan} from './core/sections'
+import {postponeAnchor, resolveQuickDate, resolveRelativeDate, taskWords} from './core/schedule'
+import {carryFoldToggle, foldToggles, promotionOutcome, retirePlan} from './core/sections'
 
 import type {WorkspaceLeaf} from 'obsidian'
 import type {DropTarget} from './core/drop'
@@ -299,12 +299,14 @@ export class TaskflowView extends ItemView {
     this.refresh()
   }
 
-  /** Fold all / Unfold all: one stored toggle per rendered project (#24's explicit-toggle rule). */
+  /** Fold all / Unfold all: core names the toggles, this stores them. */
   private async foldAllProjects(folded: boolean): Promise<void> {
-    const groups = this.lastSections?.projects ?? []
-    const toggles = Object.fromEntries(groups.map(g => [g.project.path, folded]))
     await this.plugin.updateSettings({
-      collapsedProjects: {...this.plugin.settings.collapsedProjects, ...toggles},
+      collapsedProjects: foldToggles(
+        this.lastSections?.projects ?? [],
+        folded,
+        this.plugin.settings.collapsedProjects,
+      ),
     })
     this.refresh()
   }
@@ -320,23 +322,28 @@ export class TaskflowView extends ItemView {
     if (!name || name === project.name) return
     const path = await this.ports.projects.rename(project.path, name)
     if (path) {
-      // The fold toggle follows the note, keyed by path.
-      const {[project.path]: folded, ...rest} = this.plugin.settings.collapsedProjects
-      if (folded != null) await this.plugin.updateSettings({collapsedProjects: {...rest, [path]: folded}})
+      await this.plugin.updateSettings({
+        collapsedProjects: carryFoldToggle(this.plugin.settings.collapsedProjects, project.path, path),
+      })
       new Notice(`Taskflow: ${project.name} → ${name}`)
     }
     this.refresh()
   }
 
-  /** Edit text…: the words, in a prompt, without leaving the panel. */
+  /**
+   * Edit text…: the line's own words, in a prompt, without leaving the
+   * panel. Prefilled from the line, not the source's description, so what
+   * is shown is exactly what is replaced (tags and all).
+   */
   private async editTextPrompt(task: TaskflowTask): Promise<void> {
+    const words = taskWords(task.sourceLine)
     const text = await askText(this.app, {
       title: 'Edit task',
       placeholder: 'Task',
-      value: task.description,
+      value: words,
       submitLabel: 'Save',
     })
-    if (text && text !== task.description) await this.act(() => this.ports.editor.editText(task, text))
+    if (text && text !== words) await this.act(() => this.ports.editor.editText(task, text))
   }
 
   /** The relative pair: a quick date counted from the task's own anchor. */

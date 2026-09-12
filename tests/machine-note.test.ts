@@ -64,16 +64,6 @@ test('select mode trades scheduling and dragging for selectability', () => {
   assert.isFalse(rowAffordances(task({filePath: MANAGED}), {...CONFIG, ...base}).selectable)
 })
 
-test('due is a debt on arrival (<=); scheduled slips only once the day is over (<)', () => {
-  const opts = {...CONFIG, today: '2026-08-21', selectMode: false, dragEnabled: false}
-  const dueToday = rowAffordances(task({due: '2026-08-21'}), opts)
-  assert.isTrue(dueToday.duePast)
-  const scheduledToday = rowAffordances(task({scheduled: '2026-08-21'}), opts)
-  assert.isFalse(scheduledToday.scheduledPast)
-  const scheduledYesterday = rowAffordances(task({scheduled: '2026-08-20'}), opts)
-  assert.isTrue(scheduledYesterday.scheduledPast)
-})
-
 test('with no machine-managed note, classify excludes nothing as a calendar block', () => {
   const config: ClassifyConfig = {
     today: '2026-08-21',

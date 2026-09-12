@@ -6,10 +6,11 @@ import {
   clearDue,
   clearScheduled,
   postponeAnchor,
-  replaceDescription,
   resolveQuickDate,
   resolveRelativeDate,
   rowChip,
+  taskWords,
+  withTaskWords,
   setDue,
   setScheduled,
 } from '../src/core/schedule'
@@ -207,12 +208,30 @@ test('rowChip shows the date that matters next: the start while ahead, then the 
   assert.isNull(rowChip({scheduled: null, due: null}, today))
 })
 
-test('replaceDescription rewrites the words and nothing else; an unmatched line is left alone', () => {
+test('taskWords is the words the line holds — up to the first field or block ref — and withTaskWords swaps only them', () => {
+  const line = '  - [ ] read the paper #research ⏳ 2026-09-20 📅 2026-09-30 ^ref1'
+  assert.equal(taskWords(line), 'read the paper #research')
   assert.equal(
-    replaceDescription('  - [ ] read the paper #research ⏳ 2026-09-20 📅 2026-09-30 ^ref1', 'read the paper #research', 'skim the paper #research'),
+    withTaskWords(line, 'skim the paper #research'),
     '  - [ ] skim the paper #research ⏳ 2026-09-20 📅 2026-09-30 ^ref1',
   )
-  assert.equal(replaceDescription('- [ ] something else', 'read the paper', 'skim'), '- [ ] something else')
-  // Ambiguity is skipped, never guessed at.
-  assert.equal(replaceDescription('- [ ] go go', 'go', 'stop'), '- [ ] go go')
+  // A global-filter tag is part of the words the line holds, so it is shown and kept, never stripped.
+  assert.equal(taskWords('- [ ] Buy #task milk 📅 2026-09-30'), 'Buy #task milk')
+  // Flush-typed emoji still start the field tail; the rewrite normalizes the one space.
+  assert.equal(taskWords('- [ ] 搞一个ai meeting recorder📅 2026-08-15'), '搞一个ai meeting recorder')
+  assert.equal(withTaskWords('- [ ] 搞一个ai meeting recorder📅 2026-08-15', 'recorder'), '- [ ] recorder 📅 2026-08-15')
+  // No fields at all; and a block ref alone.
+  assert.equal(withTaskWords('- [ ] call bank', 'ring bank'), '- [ ] ring bank')
+  assert.equal(withTaskWords('- [ ] call bank ^abc12', 'ring bank'), '- [ ] ring bank ^abc12')
+  // Not a checkbox line: nothing to edit, nothing written.
+  assert.equal(taskWords('some prose'), '')
+  assert.equal(withTaskWords('some prose', 'x'), 'some prose')
+})
+
+test('rowChip: an arrived due shows even under a start still ahead — a debt beats a plan', () => {
+  assert.deepEqual(rowChip({scheduled: '2026-09-20', due: '2026-09-15'}, '2026-09-16'), {
+    field: 'due',
+    date: '2026-09-15',
+    past: true,
+  })
 })

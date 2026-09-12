@@ -119,3 +119,27 @@ export const retirePlan = (sections: Sections | null, projectPath: string): Reti
   const openCount = group ? flattenTaskTree(group.tasks).length : 0
   return {openCount, needsConfirm: openCount > 0}
 }
+
+/**
+ * Fold all / Unfold all: one explicit toggle per rendered project (#24's
+ * rule — the default depends on the project, so an unfold must be stored),
+ * over whatever toggles already exist.
+ */
+export const foldToggles = (
+  groups: readonly {project: Pick<ProjectMeta, 'path'>}[],
+  folded: boolean,
+  current: Record<string, boolean>,
+): Record<string, boolean> => ({
+  ...current,
+  ...Object.fromEntries(groups.map(g => [g.project.path, folded])),
+})
+
+/** A renamed project keeps its fold toggle: the key follows the note to its new path. */
+export const carryFoldToggle = (
+  current: Record<string, boolean>,
+  from: string,
+  to: string,
+): Record<string, boolean> => {
+  const {[from]: folded, ...rest} = current
+  return folded == null ? rest : {...rest, [to]: folded}
+}

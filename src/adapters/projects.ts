@@ -165,6 +165,11 @@ export const renameProject = async (
     new Notice(`Taskflow: "${name}" already exists — pick another name`)
     return null
   }
-  await app.fileManager.renameFile(file, target)
+  try {
+    await app.fileManager.renameFile(file, target)
+  } catch (error) {
+    new Notice(`Taskflow: could not rename to "${name}" — ${String(error)}`)
+    return null
+  }
   return target
 }

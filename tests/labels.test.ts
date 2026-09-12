@@ -1,6 +1,8 @@
 import {assert, test} from 'vitest'
 
-import {dateEditLabel, projectDateNotice, sourceLabel} from '../src/core/labels'
+import {dateEditLabel, projectDateNotice, rescheduleLabel, sourceLabel} from '../src/core/labels'
+
+import type {LineRecord} from '../src/core/journal'
 
 test('a source is labeled by its basename, extension dropped', () => {
   assert.equal(sourceLabel('Daily Notes/2026/08/08-21, Fri.md'), '08-21, Fri')
@@ -42,4 +44,15 @@ test('a task date edit is labelled with the field the menu named: start or due, 
   assert.equal(dateEditLabel('start', 1, null), 'start cleared on 1 task')
   assert.equal(dateEditLabel('due', 1, '2026-09-20'), 'due → 2026-09-20 on 1 task')
   assert.equal(dateEditLabel('due', 2, null), 'due cleared on 2 tasks')
+})
+
+test('a re-dating is labelled by the field it actually moved: start, or the due on the spent-deadline path', () => {
+  const date = '2026-09-13'
+  const rec = (after: string): LineRecord => ({kind: 'replace', file: 'f.md', line: 0, before: '', after})
+  const start = [rec('- [ ] a ⏳ 2026-09-13'), rec('- [ ] b 📅 2026-09-20 ⏳ 2026-09-13')]
+  assert.equal(rescheduleLabel(start, date), 'start → 2026-09-13 on 2 tasks')
+  // Overdue task re-dated: the 📅 took the date and no ⏳ was written.
+  assert.equal(rescheduleLabel([rec('- [ ] c 📅 2026-09-13')], date), 'due → 2026-09-13 on 1 task')
+  // A mixed sweep names the date without claiming one field.
+  assert.equal(rescheduleLabel([...start, rec('- [ ] c 📅 2026-09-13')], date), '3 tasks → 2026-09-13')
 })

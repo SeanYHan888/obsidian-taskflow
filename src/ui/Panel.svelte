@@ -396,7 +396,7 @@
             onclick={ev => callbacks.onBulkScheduleMenu(selectedTasks, ev)}
           >
             <span aria-hidden="true" use:icon={'clock'}></span>
-            schedule
+            set start
           </button>
         {:else}
           <!-- Narrow: both acts fold into one "…" — the ✕ stays the one

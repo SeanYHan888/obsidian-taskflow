@@ -30,11 +30,10 @@
   } = $props()
 
   // Core owns the read-only guard (machine-managed rows get check-off only,
-  // ADR-0003) and the chip past-ness boundaries — the row just renders them.
+  // ADR-0003); the row just renders it.
   const aff = $derived(
     rowAffordances(task, {
       machineNotePath: ctx.machineNotePath,
-      today: ctx.today,
       selectMode,
       dragEnabled: ctx.draggable,
     }),

@@ -1,14 +1,14 @@
 import {Notice, TFile} from 'obsidian'
 
 import {toJournalEntry} from '../core/journal'
-import {dateEditLabel} from '../core/labels'
+import {dateEditLabel, rescheduleLabel} from '../core/labels'
 import {
   cancelLine,
   clearDue,
   clearScheduled,
-  replaceDescription,
   setDue,
   setScheduled,
+  withTaskWords,
 } from '../core/schedule'
 
 import type {App} from 'obsidian'
@@ -73,7 +73,7 @@ export const rescheduleTasks = async (
   today: string,
 ): Promise<JournalEntry | null> => {
   const records = await editTaskLines(app, tasks, line => setScheduled(line, date, today))
-  return toJournalEntry(dateEditLabel('start', records.length, date), records)
+  return toJournalEntry(rescheduleLabel(records, date), records)
 }
 
 export const cancelTask = async (app: App, task: TaskflowTask): Promise<JournalEntry | null> => {
@@ -107,16 +107,14 @@ export const clearDueTasks = async (
 }
 
 /**
- * Edit text: the words change, nothing else on the line does (see
- * replaceDescription). Journaled like any line edit.
+ * Edit text: the line's words change, nothing else on it does (see
+ * withTaskWords). Journaled like any line edit.
  */
 export const editTaskText = async (
   app: App,
   task: TaskflowTask,
-  text: string,
+  words: string,
 ): Promise<JournalEntry | null> => {
-  const records = await editTaskLines(app, [task], line =>
-    replaceDescription(line, task.description, text),
-  )
-  return toJournalEntry('edited 1 task', records)
+  const records = await editTaskLines(app, [task], line => withTaskWords(line, words))
+  return toJournalEntry('edited the text of 1 task', records)
 }

@@ -155,3 +155,20 @@ test('an unstarted project folds by default; a stored toggle wins either way (#2
   assert.isFalse(projectFolded({[path]: false}, {project: {path}, unstarted: true}), 'unfolded to peek stays open')
   assert.isTrue(projectFolded({[path]: true}, {project: {path}, unstarted: false}))
 })
+
+import {carryFoldToggle, foldToggles} from '../src/core/sections'
+
+test('Fold all / Unfold all writes one explicit toggle per rendered project, keeping toggles for projects not shown', () => {
+  const groups = [{project: {path: 'Projects/Active/a.md'}}, {project: {path: 'Projects/Active/b.md'}}]
+  assert.deepEqual(foldToggles(groups, true, {'Projects/Archive/old.md': false}), {
+    'Projects/Archive/old.md': false,
+    'Projects/Active/a.md': true,
+    'Projects/Active/b.md': true,
+  })
+  assert.deepEqual(foldToggles(groups, false, {}), {'Projects/Active/a.md': false, 'Projects/Active/b.md': false})
+})
+
+test('a renamed project carries its fold toggle to the new path; a project without one carries nothing', () => {
+  assert.deepEqual(carryFoldToggle({'p/a.md': true, 'p/b.md': false}, 'p/a.md', 'p/c.md'), {'p/b.md': false, 'p/c.md': true})
+  assert.deepEqual(carryFoldToggle({'p/b.md': false}, 'p/a.md', 'p/c.md'), {'p/b.md': false})
+})
