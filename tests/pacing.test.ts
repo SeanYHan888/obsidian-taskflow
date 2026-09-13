@@ -130,18 +130,18 @@ test('the menu paces by mode: pressing leads with Move to now, wip hides deadlin
     spec.map(e => (e.kind === 'item' ? e.title : '—'))
 
   const pressing = titles(projectMenuSpec(project(), {pacingMode: 'hybrid', pressing: true, canMove: {up: true, down: true}}))
-  assert.deepEqual(pressing.slice(0, 4), ['Open note', 'Rename project…', '—', 'Move to now'])
+  assert.deepEqual(pressing.slice(0, 4), ['Open note', 'Rename project', '—', 'Move to now'])
 
   const calm = titles(projectMenuSpec(project(), {pacingMode: 'hybrid', pressing: false, canMove: {up: true, down: true}}))
   assert.notInclude(calm, 'Move to now')
 
   const wip = titles(projectMenuSpec(project(), {pacingMode: 'wip', pressing: false, canMove: {up: true, down: true}}))
-  assert.notInclude(wip, 'Set deadline…')
+  assert.notInclude(wip, 'Set deadline')
 
   const dated = titles(
     projectMenuSpec(project({deadline: '2026-09-01'}), {pacingMode: 'deadline', pressing: false, canMove: {up: true, down: true}}),
   )
-  assert.include(dated, 'Deadline 2026-09-01…')
+  assert.include(dated, 'Change deadline')
   assert.include(dated, 'Clear deadline')
 })
 

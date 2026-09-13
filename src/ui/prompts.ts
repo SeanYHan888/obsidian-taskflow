@@ -63,7 +63,7 @@ export const askDate = (
   opts: {defaultDate: string; title?: string; submitLabel?: string},
 ): Promise<string | null> =>
   prompt(app, null, (modal, submit: (value: string | null) => void) => {
-    modal.titleEl.setText(opts.title ?? 'Start on…')
+    modal.titleEl.setText(opts.title ?? 'Start on')
     const input = modal.contentEl.createEl('input', {type: 'date'})
     input.value = opts.defaultDate
     const go = () => submit(input.value || null)
@@ -113,12 +113,12 @@ export const pickProject = (
     new (class extends FuzzySuggestModal<ProjectChoice> {
       constructor() {
         super(app)
-        this.setPlaceholder('Move to project…')
+        this.setPlaceholder('Move to project')
       }
       getItems(): ProjectChoice[] {
         return projects.map(project => ({kind: 'project', project}))
       }
-      // "+ New project…" is pinned outside the fuzzy filter: typing a
+      // "+ New project" is pinned outside the fuzzy filter: typing a
       // fresh project's name must not filter away the only way to create
       // it. The typed query rides along as the suggested name.
       getSuggestions(query: string): FuzzyMatch<ProjectChoice>[] {
@@ -132,7 +132,7 @@ export const pickProject = (
         return item.kind === 'new'
           ? item.name
             ? `+ New project: ${item.name}`
-            : '+ New project…'
+            : '+ New project'
           : `${item.project.name}  (${item.project.status ?? 'no status'})`
       }
       onChooseItem(item: ProjectChoice): void {

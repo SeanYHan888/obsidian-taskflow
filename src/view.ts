@@ -286,7 +286,7 @@ export class TaskflowView extends ItemView {
     })
   }
 
-  /** New project… from the Backlogs header: the create flow the move picker hid. */
+  /** New project from the Backlogs header: the create flow the move picker hid. */
   private async newProjectPrompt(): Promise<void> {
     const name = await askText(this.app, {
       title: 'New project',
@@ -311,7 +311,7 @@ export class TaskflowView extends ItemView {
     this.refresh()
   }
 
-  /** Rename project…: the note moves under its new name; links follow. */
+  /** Rename project: the note moves under its new name; links follow. */
   private async renameProjectPrompt(project: ProjectMeta): Promise<void> {
     const name = await askText(this.app, {
       title: 'Rename project',
@@ -331,7 +331,7 @@ export class TaskflowView extends ItemView {
   }
 
   /**
-   * Edit text…: the line's own words, in a prompt, without leaving the
+   * Edit text: the line's own words, in a prompt, without leaving the
    * panel. Prefilled from the line, not the source's description, so what
    * is shown is exactly what is replaced (tags and all).
    */
@@ -490,7 +490,7 @@ export class TaskflowView extends ItemView {
   ): Promise<void> {
     const date = await askDate(this.app, {
       defaultDate: project[field] ?? localToday(),
-      title: field === 'start' ? 'Project start…' : 'Project deadline…',
+      title: field === 'start' ? 'Project start' : 'Project deadline',
       submitLabel: field === 'start' ? 'Set start' : 'Set deadline',
     })
     if (date) await this.changeProjectDate(project, {field, date})
@@ -559,7 +559,7 @@ export class TaskflowView extends ItemView {
   private async pickDueDate(task: TaskflowTask): Promise<void> {
     const date = await askDate(this.app, {
       defaultDate: task.due ?? localToday(),
-      title: 'Due on…',
+      title: 'Due on',
       submitLabel: 'Set due date',
     })
     if (date) await this.act(() => this.ports.editor.setDue([task], date))

@@ -119,14 +119,13 @@ const planItems = (tasks: readonly TaskflowTask[], config: ScheduleMenuConfig): 
       spec.push(item(title, icon, {type: 'postpone', kind}))
     }
   }
-  spec.push(item('Pick a date…', 'calendar', {type: 'pick-date'}))
-  if (tasks.some(t => t.scheduled != null)) {
-    spec.push(item('Clear start', 'eraser', {type: 'remove-date'}))
-  }
+  const hasStart = tasks.some(t => t.scheduled != null)
+  spec.push(item(hasStart ? 'Change start date' : 'Set start date', 'calendar', {type: 'pick-date'}))
+  if (hasStart) spec.push(item('Clear start', 'eraser', {type: 'remove-date'}))
   return spec
 }
 
-const MOVE_TO_PROJECT = item('Move to project…', 'folder-input', {type: 'move-to-project'})
+const MOVE_TO_PROJECT = item('Move to project', 'folder-input', {type: 'move-to-project'})
 const SEND_BACK = item('Send back to To-do', 'inbox', {type: 'send-back'})
 const COMPLETE = item('Complete task', 'circle-check', {type: 'complete'})
 
@@ -147,7 +146,7 @@ const bulkRefileItems = (
 /**
  * One row's refile group (#19): any row can be moved to a project — triage
  * from the daily note is one right-click away — then, in a selectable
- * section, "Select to move…": select more and move them together, a refile
+ * section, "Select multiple": select more and act on them together, a refile
  * act rather than a mode switch (CONTEXT.md). A row already in a project
  * can also be sent back.
  */
@@ -159,7 +158,7 @@ const rowRefileItems = (
   if (config.selectable) {
     spec.push(
       item(
-        config.selected ? 'Select to move… ✓' : 'Select to move…',
+        config.selected ? 'Select multiple ✓' : 'Select multiple',
         'copy-check',
         {type: 'select'},
         config.selected,
@@ -179,7 +178,7 @@ const rowRefileItems = (
 export const dueMenuSpec = (task: TaskflowTask): MenuItemSpec[] => {
   const spec: MenuItemSpec[] = [
     item(
-      task.due == null ? 'Set due date…' : `Due ${task.due}…`,
+      task.due == null ? 'Set due date' : 'Change due date',
       'calendar-clock',
       {type: 'pick-due-date'},
     ),
@@ -211,7 +210,7 @@ export const taskMenuSpec = (
   if (isMachineManaged(task.filePath, config)) return [open, separator, COMPLETE]
   return [
     open,
-    item('Edit text…', 'pencil', {type: 'edit-text'}),
+    item('Edit text', 'pencil', {type: 'edit-text'}),
     separator,
     COMPLETE,
     separator,
@@ -233,22 +232,22 @@ export type SectionMenuConfig = {
   selectable: boolean
   /** The repair queue: Overdue & slipped. */
   repairable: boolean
-  /** The Backlogs: New project…, Organize by status (#20), and the fold pair. */
+  /** The Backlogs: New project, Organize by status (#20), and the fold pair. */
   organizable: boolean
 }
 
 /**
  * A section header's "…" menu (#15): the header-chrome half of the panel
- * grammar — capture first (New project…), then the mode toggle, then the
+ * grammar — capture first (New project), then the mode toggle, then the
  * section's own acts. A section with no acts (Upcoming) gets an empty spec
  * and renders no menu at all.
  */
 export const sectionMenuSpec = (config: SectionMenuConfig): MenuItemSpec[] => {
   const spec: MenuItemSpec[] = []
-  if (config.organizable) spec.push(item('New project…', 'folder-plus', {type: 'new-project'}))
+  if (config.organizable) spec.push(item('New project', 'folder-plus', {type: 'new-project'}))
   if (config.selectable) {
     spec.push(
-      item(config.selecting ? 'Done selecting' : 'Select tasks…', 'copy-check', {
+      item(config.selecting ? 'Done selecting' : 'Select tasks', 'copy-check', {
         type: 'toggle-select',
       }),
     )
@@ -279,7 +278,7 @@ export const selectBarMenuSpec = (
   const hasMove = spec.some(e => e.kind === 'item' && e.action.type === 'move-to-project')
   return hasMove
     ? spec
-    : [item('Move to project…', 'folder-input', {type: 'move-to-project'}), separator, ...spec]
+    : [item('Move to project', 'folder-input', {type: 'move-to-project'}), separator, ...spec]
 }
 
 const STATUS_ICON: Record<ProjectStatus, string> = {
@@ -310,7 +309,7 @@ const MOVES: {direction: MoveDirection; title: string; icon: string; needs: 'up'
 /**
  * The project lifecycle menu, in the same grammar as the task menu: the jump
  * and the name, then capture/commit (a pressing project puts "Move to now" first — the
- * touch-parity twin of the header's hover → now — and "Add task…" is capture
+ * touch-parity twin of the header's hover → now — and "Add task" is capture
  * straight into the backlog), then pacing (status and, outside wip mode,
  * start then deadline — the pair reads chronologically (#23), and wip has
  * no date concept to edit), then the four moves that arrange the list by
@@ -322,13 +321,13 @@ export const projectMenuSpec = (
 ): MenuItemSpec[] => {
   const spec: MenuItemSpec[] = [
     item('Open note', 'file-text', {type: 'open-note'}),
-    item('Rename project…', 'pencil', {type: 'rename-project'}),
+    item('Rename project', 'pencil', {type: 'rename-project'}),
   ]
   spec.push(separator)
   if (config.pressing) {
     spec.push(item('Move to now', 'play', {type: 'promote'}))
   }
-  spec.push(item('Add task…', 'plus', {type: 'add-task'}))
+  spec.push(item('Add task', 'plus', {type: 'add-task'}))
   spec.push(separator)
   for (const status of ['now', 'next', 'later'] as ProjectStatus[]) {
     spec.push(
@@ -343,7 +342,7 @@ export const projectMenuSpec = (
   if (config.pacingMode !== 'wip') {
     spec.push(
       item(
-        project.start == null ? 'Set start date…' : `Start ${project.start}…`,
+        project.start == null ? 'Set start date' : 'Change start date',
         'calendar-days',
         {type: 'pick-start'},
       ),
@@ -353,7 +352,7 @@ export const projectMenuSpec = (
     }
     spec.push(
       item(
-        project.deadline == null ? 'Set deadline…' : `Deadline ${project.deadline}…`,
+        project.deadline == null ? 'Set deadline' : 'Change deadline',
         'calendar-clock',
         {type: 'pick-deadline'},
       ),

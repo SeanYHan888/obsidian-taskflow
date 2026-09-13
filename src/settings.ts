@@ -111,7 +111,7 @@ export class TaskflowSettingTab extends PluginSettingTab {
     )
     text(
       'Project template',
-      'Optional. Note used by "New project…"; {{title}} and {{date:YYYY-MM-DD}} are filled in. Leave blank to use a built-in scaffold.',
+      'Optional. Note used by "New project"; {{title}} and {{date:YYYY-MM-DD}} are filled in. Leave blank to use a built-in scaffold.',
       'projectTemplatePath',
       'Templates/project.md',
       true,

@@ -30,7 +30,7 @@
     badgeDanger?: boolean
     /** The header's "…" menu; absent when the section has no acts. */
     onMenu?: ((ev: MouseEvent) => void) | null
-    /** The menu carries a capture act (New project…), so it shows with nothing listed too. */
+    /** The menu carries a capture act (New project), so it shows with nothing listed too. */
     menuWhenEmpty?: boolean
     emptyText?: string
     onCollapse: (key: SectionKey, collapsed: boolean) => void

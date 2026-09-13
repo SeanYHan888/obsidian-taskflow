@@ -420,7 +420,7 @@
 
     {#if data.setup.includes('template-missing')}
       <div class="taskflow-setup-hint">
-        Project template not found at "{data.templatePath}" — "New project…"
+        Project template not found at "{data.templatePath}" — "New project"
         will use the built-in scaffold.
       </div>
     {/if}

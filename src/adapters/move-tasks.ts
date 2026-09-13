@@ -268,7 +268,7 @@ ${headingLine}
 
 /**
  * Creates a project note from the configured template, or from the built-in
- * scaffold when no template is set or the note is missing — "New project…"
+ * scaffold when no template is set or the note is missing — "New project"
  * never dead-ends (#6). The heading comes from the move-target setting,
  * never hardcoded. Returns the existing note if the name is already taken.
  */
